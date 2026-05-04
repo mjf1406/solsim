@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="48"
+   height="48"
+   viewBox="0 0 48 48"
+   version="1.1"
+   id="svg1"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1">
+    <marker
+       style="overflow:visible"
+       id="marker4"
+       refX="0"
+       refY="0"
+       orient="auto-start-reverse"
+       markerWidth="1"
+       markerHeight="1"
+       viewBox="0 0 1 1"
+       preserveAspectRatio="xMidYMid"
+       markerUnits="userSpaceOnUse">
+      <path
+         transform="scale(0.5)"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path4" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="Triangle"
+       refX="0"
+       refY="0"
+       orient="auto-start-reverse"
+       markerWidth="1"
+       markerHeight="1"
+       viewBox="0 0 1 1"
+       preserveAspectRatio="xMidYMid"
+       markerUnits="userSpaceOnUse">
+      <path
+         transform="scale(0.5)"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path135" />
+    </marker>
+  </defs>
+  <g
+     id="layer1">
+    <circle
+       style="fill:none;stroke:#00598a;stroke-width:1.93253;stroke-dasharray:none;stroke-opacity:1"
+       id="path1"
+       cx="24"
+       cy="24.000002"
+       r="23.033733" />
+    <path
+       style="fill:#000000;fill-opacity:1;stroke:#ff0005;stroke-width:1.75958;stroke-linecap:butt;stroke-miterlimit:2;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#Triangle);marker-end:url(#marker4)"
+       d="m 5.4386571,24 v 0 0 H 24.015289 c 18.576633,0 18.576633,0 18.576633,0"
+       id="path3" />
+    <circle
+       style="fill:#000000;fill-opacity:1;stroke:#ffffff;stroke-width:1;stroke-linecap:butt;stroke-miterlimit:2;stroke-dasharray:none;stroke-opacity:1"
+       id="path5"
+       cx="24"
+       cy="24"
+       r="2.2933567" />
+    <text
+       xml:space="preserve"
+       style="font-size:8.4221px;text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#000000;fill-opacity:1;stroke:#ffffff;stroke-width:0;stroke-linecap:butt;stroke-miterlimit:2;stroke-dasharray:none;stroke-opacity:1"
+       x="4.8837252"
+       y="32.753616"
+       id="text5"><tspan
+         id="tspan5"
+         x="4.8837252"
+         y="32.753616"
+         style="stroke:#ffffff;stroke-width:0;stroke-dasharray:none;stroke-opacity:1">diameter</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:8.4221px;text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:0;stroke-linecap:butt;stroke-miterlimit:2;stroke-dasharray:none;stroke-opacity:1"
+       x="4.8837252"
+       y="19.862389"
+       id="text5-8"><tspan
+         id="tspan5-2"
+         x="4.8837252"
+         y="19.862389"
+         style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:0;stroke-dasharray:none;stroke-opacity:1">diameter</tspan></text>
+  </g>
+</svg>

@@ -1,3 +1,5 @@
+import { spokenNumberEnUsMaxOneDecimal } from "@/lib/reading/spoken-number-en-us"
+
 /** Snapshot served from `public/data/solar_system_data.json`. */
 export const SOLAR_SYSTEM_JSON_URL = "/data/solar_system_data.json"
 
@@ -161,7 +163,182 @@ export function buildSizePageModel(data: SolarSystemJson): SizePageModel {
   }
 }
 
+export type SizeCanvasLabelMode = "on" | "auto" | "off"
+
+/** Matches canvas body taxonomy in `size-canvas.tsx` (`collectCanvasBodies`). */
+export type SizeBodyKind =
+  | "star"
+  | "planet"
+  | "moon"
+  | "dwarf"
+  | "asteroid"
+  | "comet"
+
+export function kindLabel(kind: SizeBodyKind): string {
+  switch (kind) {
+    case "star":
+      return "Star"
+    case "planet":
+      return "Planet"
+    case "moon":
+      return "Moon"
+    case "dwarf":
+      return "Dwarf planet"
+    case "asteroid":
+      return "Asteroid"
+    case "comet":
+      return "Comet"
+  }
+}
+
+/** Moon diameter in km used as 1 CSS pixel on the size canvas; same rule as `size-canvas.tsx`. */
+export function moonReferenceDiameterKm(model: SizePageModel): number {
+  const candidates: SizeRow[] = []
+  if (model.sun) candidates.push(model.sun)
+  for (const s of model.planets) {
+    candidates.push(s.body)
+    for (const m of s.moons) candidates.push(m)
+  }
+  for (const s of model.dwarfPlanets) {
+    candidates.push(s.body)
+    for (const m of s.moons) candidates.push(m)
+  }
+  for (const a of model.asteroids) candidates.push(a)
+  for (const c of model.comets) candidates.push(c)
+
+  const moon = candidates.find(
+    (r) =>
+      r.name.trim().toLowerCase() === "moon" || r.id === "301"
+  )
+  if (moon?.diameterKm != null && Number.isFinite(moon.diameterKm)) {
+    return moon.diameterKm
+  }
+  return 3474.8
+}
+
+export type SizeBodyDetail = {
+  name: string
+  kind: SizeBodyKind
+  diameterKm: number
+  /** Disk diameter in CSS pixels (Moon = 1 px). */
+  diameterPx: number
+}
+
+/**
+ * Resolves a body that appears on the size canvas (finite diameter only).
+ * Returns null if missing or not drawable.
+ */
+export function findSizeBodyDetail(
+  model: SizePageModel,
+  id: string | null
+): SizeBodyDetail | null {
+  if (!id) return null
+  const moonKm = moonReferenceDiameterKm(model)
+  if (!(moonKm > 0)) return null
+
+  const asDetail = (
+    row: SizeRow,
+    kind: SizeBodyKind
+  ): SizeBodyDetail | null => {
+    const d = row.diameterKm
+    if (d == null || !Number.isFinite(d)) return null
+    return {
+      name: row.name,
+      kind,
+      diameterKm: d,
+      diameterPx: d / moonKm,
+    }
+  }
+
+  if (model.sun?.id === id) return asDetail(model.sun, "star")
+  for (const s of model.planets) {
+    if (s.body.id === id) return asDetail(s.body, "planet")
+    for (const m of s.moons) {
+      if (m.id === id) return asDetail(m, "moon")
+    }
+  }
+  for (const s of model.dwarfPlanets) {
+    if (s.body.id === id) return asDetail(s.body, "dwarf")
+    for (const m of s.moons) {
+      if (m.id === id) return asDetail(m, "moon")
+    }
+  }
+  for (const a of model.asteroids) {
+    if (a.id === id) return asDetail(a, "asteroid")
+  }
+  for (const c of model.comets) {
+    if (c.id === id) return asDetail(c, "comet")
+  }
+  return null
+}
+
+export function formatDiameterPx(px: number): string {
+  if (!Number.isFinite(px)) return "—"
+  const digits = px >= 1 ? 1 : px >= 0.01 ? 3 : 4
+  return `${px.toLocaleString("en-US", { maximumFractionDigits: digits })} px`
+}
+
+export function findSizeRowNameById(
+  model: SizePageModel,
+  id: string | null
+): string | null {
+  if (!id) return null
+  if (model.sun?.id === id) return model.sun.name
+  for (const s of model.planets) {
+    if (s.body.id === id) return s.body.name
+    for (const m of s.moons) {
+      if (m.id === id) return m.name
+    }
+  }
+  for (const s of model.dwarfPlanets) {
+    if (s.body.id === id) return s.body.name
+    for (const m of s.moons) {
+      if (m.id === id) return m.name
+    }
+  }
+  for (const a of model.asteroids) {
+    if (a.id === id) return a.name
+  }
+  for (const c of model.comets) {
+    if (c.id === id) return c.name
+  }
+  return null
+}
+
+/** Kilometers to statute miles (exact definition uses 1 mi = 1.609344 km). */
+const KM_TO_MI = 1 / 1.609344
+
 export function formatDiameterKm(km: number | null): string {
   if (km == null || !Number.isFinite(km)) return "—"
   return `${km.toLocaleString("en-US", { maximumFractionDigits: 1 })} km`
+}
+
+export function formatDiameterNumber(
+  km: number | null,
+  unit: "km" | "mi"
+): string {
+  if (km == null || !Number.isFinite(km)) return "—"
+  const n = unit === "km" ? km : km * KM_TO_MI
+  return n.toLocaleString("en-US", { maximumFractionDigits: 1 })
+}
+
+/** Words for the diameter shown with {@link formatDiameterNumber}, plus unit (singular mile/kilometer only when rounded display is exactly `1`). */
+export function spokenDiameterSentence(km: number, unit: "km" | "mi"): string {
+  const n = unit === "km" ? km : km * KM_TO_MI
+  const formatted = n.toLocaleString("en-US", {
+    maximumFractionDigits: 1,
+    useGrouping: false,
+  })
+  const words = spokenNumberEnUsMaxOneDecimal(n)
+  const singular = formatted === "1"
+  const unitWords =
+    unit === "km"
+      ? singular
+        ? "kilometer"
+        : "kilometers"
+      : singular
+        ? "mile"
+        : "miles"
+  const sentence = `${words} ${unitWords}`
+  return sentence.charAt(0).toUpperCase() + sentence.slice(1) + "."
 }

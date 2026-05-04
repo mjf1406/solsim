@@ -1,10 +1,24 @@
+import { useCallback, useState } from "react"
+import { createPortal } from "react-dom"
 import {
   createFileRoute,
   type ErrorComponentProps,
   useLoaderData,
 } from "@tanstack/react-router"
 
-import { buildSizePageModel, fetchSolarSystemJson } from "./-data"
+import { useAppHeaderSlots } from "@/components/navigation/app-header-slots"
+
+import {
+  buildSizePageModel,
+  fetchSolarSystemJson,
+  findSizeRowNameById,
+  type SizeCanvasLabelMode,
+  type SizePageModel,
+} from "./-data"
+import { SizeComparisonCanvas } from "./-components/size-canvas"
+import { SizePageEducationNoticesSidebarContent } from "./-components/size-education-notices-sidebar-panel"
+import { SizePageLabelsSidebarPortal } from "./-components/size-labels-sidebar-panel"
+import { SizeSelectedBodySidebarContent } from "./-components/size-selected-body-sidebar-panel"
 // import { SolarSystemSizeDataTables } from "./-components/size-tables"
 
 export const Route = createFileRoute("/_app/solar-system/size/")({
@@ -15,6 +29,27 @@ export const Route = createFileRoute("/_app/solar-system/size/")({
   errorComponent: SizeRouteError,
   component: SolarSystemSizePage,
 })
+
+function SizePageLeftSidebarPortal({
+  model,
+  selectedBodyId,
+}: {
+  model: SizePageModel
+  selectedBodyId: string | null
+}) {
+  const { leftSidebarContentMount } = useAppHeaderSlots()
+  if (!leftSidebarContentMount) return null
+  return createPortal(
+    <>
+      <SizePageEducationNoticesSidebarContent />
+      <SizeSelectedBodySidebarContent
+        model={model}
+        selectedBodyId={selectedBodyId}
+      />
+    </>,
+    leftSidebarContentMount
+  )
+}
 
 function SizeRouteError({ error }: ErrorComponentProps) {
   const message =
@@ -30,10 +65,33 @@ function SizeRouteError({ error }: ErrorComponentProps) {
 }
 
 function SolarSystemSizePage() {
-  // const { model } = useLoaderData({ from: "/_app/solar-system/size/" })
+  const { model } = useLoaderData({ from: "/_app/solar-system/size/" })
+  const [labelMode, setLabelMode] = useState<SizeCanvasLabelMode>("on")
+  const [selectedBodyId, setSelectedBodyId] = useState<string | null>(null)
+
+  const cycleLabelMode = useCallback(() => {
+    setLabelMode((m) => (m === "on" ? "auto" : m === "auto" ? "off" : "on"))
+  }, [])
+
+  const selectedBodyLabel = findSizeRowNameById(model, selectedBodyId)
 
   return (
-    <div className="mx-auto max-w-4xl space-y-10 p-6">
+    <div className="relative isolate min-h-[calc(100svh-var(--app-header-h))] w-full">
+      <SizeComparisonCanvas
+        model={model}
+        labelMode={labelMode}
+        selectedBodyId={selectedBodyId}
+        onBodySelect={setSelectedBodyId}
+      />
+      <SizePageLabelsSidebarPortal
+        labelMode={labelMode}
+        onCycleLabelMode={cycleLabelMode}
+        selectedBodyLabel={selectedBodyLabel}
+      />
+      <SizePageLeftSidebarPortal
+        model={model}
+        selectedBodyId={selectedBodyId}
+      />
       {/* <SolarSystemSizeDataTables model={model} /> */}
     </div>
   )

@@ -15,11 +15,21 @@ export const Route = createFileRoute("/_app")({
   component: AppShellLayout,
 })
 
+/** Separate `localStorage` keys so left/right sidebars do not overwrite each other. */
+const SIDEBAR_STORAGE_KEY_LEFT = "solsim.sidebar.left"
+const SIDEBAR_STORAGE_KEY_RIGHT = "solsim.sidebar.right"
+
 function AppShellLayout() {
-  const { leftMount, rightMount } = useAppHeaderSlots()
+  const {
+    leftMount,
+    rightMount,
+    setLeftSidebarContentMount,
+    setRightSidebarContentMount,
+  } = useAppHeaderSlots()
 
   return (
     <SidebarProvider
+      storageKey={SIDEBAR_STORAGE_KEY_LEFT}
       className={cn(
         "min-h-[calc(100svh-var(--app-header-h))] w-full flex-1",
         "[--sidebar-width:14rem] md:[--sidebar-width:15rem]"
@@ -31,18 +41,31 @@ function AppShellLayout() {
             <SidebarTrigger />
           </HeaderSlotPortal>
         </SidebarHeader>
-        <SidebarContent />
+        <SidebarContent className="min-h-0">
+          <div
+            ref={setLeftSidebarContentMount}
+            className="flex min-h-0 flex-1 flex-col gap-2 p-2"
+          />
+        </SidebarContent>
       </Sidebar>
 
       <SidebarInset className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden p-0!">
-        <SidebarProvider className="flex min-h-0 min-w-0 flex-1 flex-row-reverse">
+        <SidebarProvider
+          storageKey={SIDEBAR_STORAGE_KEY_RIGHT}
+          className="flex min-h-0 min-w-0 flex-1 flex-row-reverse"
+        >
           <Sidebar side="right" collapsible="offcanvas" variant="sidebar">
             <SidebarHeader className="h-0 min-h-0 overflow-hidden border-0 p-0">
               <HeaderSlotPortal side="right" mount={rightMount}>
                 <SidebarTrigger />
               </HeaderSlotPortal>
             </SidebarHeader>
-            <SidebarContent />
+            <SidebarContent className="min-h-0">
+              <div
+                ref={setRightSidebarContentMount}
+                className="flex min-h-0 flex-1 flex-col gap-2 p-2"
+              />
+            </SidebarContent>
           </Sidebar>
 
           <SidebarInset className="min-h-0 min-w-0 flex-1 overflow-auto">

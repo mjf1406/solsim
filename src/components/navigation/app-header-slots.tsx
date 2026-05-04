@@ -16,6 +16,12 @@ type HeaderSlotsContextValue = {
   rightMount: HTMLElement | null
   setLeftMount: (el: HTMLElement | null) => void
   setRightMount: (el: HTMLElement | null) => void
+  /** Mount node inside the app right sidebar panel (for route-specific controls). */
+  rightSidebarContentMount: HTMLElement | null
+  setRightSidebarContentMount: (el: HTMLElement | null) => void
+  /** Mount node inside the app left sidebar panel (for route-specific controls). */
+  leftSidebarContentMount: HTMLElement | null
+  setLeftSidebarContentMount: (el: HTMLElement | null) => void
   leftSlotOccupied: boolean
   rightSlotOccupied: boolean
   claimSlot: (side: AppHeaderSlotSide) => void
@@ -27,6 +33,10 @@ const HeaderSlotsContext = createContext<HeaderSlotsContextValue | null>(null)
 export function AppHeaderSlotsProvider({ children }: { children: ReactNode }) {
   const [leftMount, setLeftMountState] = useState<HTMLElement | null>(null)
   const [rightMount, setRightMountState] = useState<HTMLElement | null>(null)
+  const [rightSidebarContentMount, setRightSidebarContentMountState] =
+    useState<HTMLElement | null>(null)
+  const [leftSidebarContentMount, setLeftSidebarContentMountState] =
+    useState<HTMLElement | null>(null)
   const [leftClaims, setLeftClaims] = useState(0)
   const [rightClaims, setRightClaims] = useState(0)
 
@@ -36,6 +46,14 @@ export function AppHeaderSlotsProvider({ children }: { children: ReactNode }) {
 
   const setRightMount = useCallback((el: HTMLElement | null) => {
     setRightMountState((prev) => (prev === el ? prev : el))
+  }, [])
+
+  const setRightSidebarContentMount = useCallback((el: HTMLElement | null) => {
+    setRightSidebarContentMountState((prev) => (prev === el ? prev : el))
+  }, [])
+
+  const setLeftSidebarContentMount = useCallback((el: HTMLElement | null) => {
+    setLeftSidebarContentMountState((prev) => (prev === el ? prev : el))
   }, [])
 
   const claimSlot = useCallback((side: AppHeaderSlotSide) => {
@@ -57,6 +75,10 @@ export function AppHeaderSlotsProvider({ children }: { children: ReactNode }) {
       rightMount,
       setLeftMount,
       setRightMount,
+      rightSidebarContentMount,
+      setRightSidebarContentMount,
+      leftSidebarContentMount,
+      setLeftSidebarContentMount,
       leftSlotOccupied,
       rightSlotOccupied,
       claimSlot,
@@ -67,6 +89,10 @@ export function AppHeaderSlotsProvider({ children }: { children: ReactNode }) {
       rightMount,
       setLeftMount,
       setRightMount,
+      rightSidebarContentMount,
+      setRightSidebarContentMount,
+      leftSidebarContentMount,
+      setLeftSidebarContentMount,
       leftSlotOccupied,
       rightSlotOccupied,
       claimSlot,

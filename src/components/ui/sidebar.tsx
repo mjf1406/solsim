@@ -26,6 +26,44 @@ import { PanelLeftIcon } from "lucide-react"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
+
+function parseOpenPreference(raw: string | null): boolean | null {
+  if (raw === "true") return true
+  if (raw === "false") return false
+  return null
+}
+
+function readSidebarCookieOpen(): boolean | null {
+  if (typeof document === "undefined") return null
+  const match = document.cookie.match(
+    new RegExp(`(?:^|; )${SIDEBAR_COOKIE_NAME}=([^;]*)`)
+  )
+  return parseOpenPreference(match?.[1] ?? null)
+}
+
+function readInitialOpen(
+  storageKey: string | undefined,
+  defaultOpen: boolean
+): boolean {
+  if (storageKey && typeof localStorage !== "undefined") {
+    const fromStorage = parseOpenPreference(localStorage.getItem(storageKey))
+    if (fromStorage !== null) return fromStorage
+  }
+  if (!storageKey) {
+    const fromCookie = readSidebarCookieOpen()
+    if (fromCookie !== null) return fromCookie
+  }
+  return defaultOpen
+}
+
+function persistSidebarOpen(storageKey: string | undefined, openState: boolean) {
+  if (storageKey && typeof localStorage !== "undefined") {
+    localStorage.setItem(storageKey, String(openState))
+    return
+  }
+  document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+}
+
 const SIDEBAR_WIDTH = "16rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
@@ -56,6 +94,7 @@ function SidebarProvider({
   defaultOpen = true,
   open: openProp,
   onOpenChange: setOpenProp,
+  storageKey,
   className,
   style,
   children,
@@ -64,13 +103,17 @@ function SidebarProvider({
   defaultOpen?: boolean
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  /** When set, open state is stored under this `localStorage` key (separate keys for nested providers). */
+  storageKey?: string
 }) {
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
-  const [_open, _setOpen] = React.useState(defaultOpen)
+  const [_open, _setOpen] = React.useState(() =>
+    readInitialOpen(storageKey, defaultOpen)
+  )
   const open = openProp ?? _open
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
@@ -81,10 +124,9 @@ function SidebarProvider({
         _setOpen(openState)
       }
 
-      // This sets the cookie to keep the sidebar state.
-      document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+      persistSidebarOpen(storageKey, openState)
     },
-    [setOpenProp, open]
+    [setOpenProp, open, storageKey]
   )
 
   // Helper to toggle the sidebar.
@@ -137,7 +179,7 @@ function SidebarProvider({
           } as React.CSSProperties
         }
         className={cn(
-          "group/sidebar-wrapper flex min-h-svh w-full has-data-[variant=inset]:bg-sidebar",
+          "group/sidebar-wrapper flex min-h-svh w-full has-data-[variant=inset]:bg-sidebar/90",
           className
         )}
         {...props}
@@ -168,7 +210,7 @@ function Sidebar({
       <div
         data-slot="sidebar"
         className={cn(
-          "flex h-full w-(--sidebar-width) flex-col bg-sidebar text-sidebar-foreground",
+          "flex h-full w-(--sidebar-width) flex-col bg-sidebar/90 text-sidebar-foreground",
           className
         )}
         {...props}
@@ -186,7 +228,7 @@ function Sidebar({
           data-sidebar="sidebar"
           data-slot="sidebar"
           data-mobile="true"
-          className="w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+          className="w-(--sidebar-width) bg-sidebar/90 p-0 text-sidebar-foreground [&>button]:hidden"
           style={
             {
               "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
@@ -243,7 +285,7 @@ function Sidebar({
           data-sidebar="sidebar"
           data-slot="sidebar-inner"
           className={cn(
-            "flex size-full flex-col overflow-hidden bg-sidebar",
+            "flex size-full flex-col overflow-hidden bg-sidebar/90",
             /* Inward-facing radii toward main content */
             "group-data-[variant=sidebar]:group-data-[side=left]:rounded-r-3xl group-data-[variant=sidebar]:group-data-[side=left]:border-r group-data-[variant=sidebar]:group-data-[side=left]:border-sidebar-border",
             "group-data-[variant=sidebar]:group-data-[side=right]:rounded-l-3xl group-data-[variant=sidebar]:group-data-[side=right]:border-l group-data-[variant=sidebar]:group-data-[side=right]:border-sidebar-border",
@@ -298,7 +340,7 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
         "absolute inset-y-0 z-20 hidden w-4 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:inset-s-1/2 after:w-[2px] hover:after:bg-sidebar-border sm:flex ltr:-translate-x-1/2 rtl:-translate-x-1/2",
         "in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",
         "[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
-        "group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full hover:group-data-[collapsible=offcanvas]:bg-sidebar",
+        "group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full hover:group-data-[collapsible=offcanvas]:bg-sidebar/90",
         "[[data-side=left][data-collapsible=offcanvas]_&]:-right-2",
         "[[data-side=right][data-collapsible=offcanvas]_&]:-left-2",
         className
