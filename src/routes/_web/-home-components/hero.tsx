@@ -28,37 +28,33 @@ export const HeroSection = () => {
 
           <div className="mx-auto max-w-3xl text-center text-4xl font-bold md:text-6xl">
             <h1>
-              Experience the
+              SolSim is a
               <span className="bg-linear-to-r from-[#D247BF] to-primary bg-clip-text px-2 text-transparent">
-                Shadcn
+                sandbox
               </span>
-              landing page
+              to learn about the Solar System
             </h1>
           </div>
 
           <p className="mx-auto max-w-screen-sm text-xl text-muted-foreground">
-            {`We're more than just a tool, we're a community of passionate
-            creators. Get access to exclusive resources, tutorials, and support.`}
+            Learners explore simulations and leveled readings; teachers get
+            printable activities and worksheets for the same ideas off-screen.
           </p>
 
           <div className="space-y-4 md:space-y-0 md:space-x-4">
             <Button className="group/arrow w-5/6 font-bold md:w-1/4">
-              Get Started
+              Start learning!
               <ArrowRight className="ml-2 size-5 transition-transform group-hover/arrow:translate-x-1" />
             </Button>
-
+            {/* <Button variant="secondary" className="w-5/6 font-bold md:w-1/4">
+              Learn more
+            </Button> */}
             <Button
               asChild
-              variant="secondary"
+              variant="outline"
               className="w-5/6 font-bold md:w-1/4"
             >
-              <a
-                href="https://github.com/nobruf/shadcn-landing-page.git"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Github repository
-              </a>
+              <Link to="/teacher">I'm a teacher</Link>
             </Button>
           </div>
         </div>

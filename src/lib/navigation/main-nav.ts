@@ -28,4 +28,5 @@ export const mainNav: MainNavEntry[] = [
     ],
   },
   { kind: "link", to: "/about", label: "About" },
+  { kind: "link", to: "/teacher", label: "Teachers" },
 ]
