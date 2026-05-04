@@ -14,8 +14,8 @@ import { Route as AppRouteRouteImport } from './routes/_app/route'
 import { Route as WebIndexRouteImport } from './routes/_web/index'
 import { Route as WebTeacherIndexRouteImport } from './routes/_web/teacher/index'
 import { Route as WebAboutIndexRouteImport } from './routes/_web/about/index'
-import { Route as AppSolarSystemSizeRouteImport } from './routes/_app/solar-system/size'
-import { Route as AppSolarSystemDistanceRouteImport } from './routes/_app/solar-system/distance'
+import { Route as AppSolarSystemSizeIndexRouteImport } from './routes/_app/solar-system/size/index'
+import { Route as AppSolarSystemDistanceIndexRouteImport } from './routes/_app/solar-system/distance/index'
 
 const WebRouteRoute = WebRouteRouteImport.update({
   id: '/_web',
@@ -40,65 +40,66 @@ const WebAboutIndexRoute = WebAboutIndexRouteImport.update({
   path: '/about/',
   getParentRoute: () => WebRouteRoute,
 } as any)
-const AppSolarSystemSizeRoute = AppSolarSystemSizeRouteImport.update({
-  id: '/solar-system/size',
-  path: '/solar-system/size',
+const AppSolarSystemSizeIndexRoute = AppSolarSystemSizeIndexRouteImport.update({
+  id: '/solar-system/size/',
+  path: '/solar-system/size/',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppSolarSystemDistanceRoute = AppSolarSystemDistanceRouteImport.update({
-  id: '/solar-system/distance',
-  path: '/solar-system/distance',
-  getParentRoute: () => AppRouteRoute,
-} as any)
+const AppSolarSystemDistanceIndexRoute =
+  AppSolarSystemDistanceIndexRouteImport.update({
+    id: '/solar-system/distance/',
+    path: '/solar-system/distance/',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof WebIndexRoute
-  '/solar-system/distance': typeof AppSolarSystemDistanceRoute
-  '/solar-system/size': typeof AppSolarSystemSizeRoute
   '/about/': typeof WebAboutIndexRoute
   '/teacher/': typeof WebTeacherIndexRoute
+  '/solar-system/distance/': typeof AppSolarSystemDistanceIndexRoute
+  '/solar-system/size/': typeof AppSolarSystemSizeIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof WebIndexRoute
-  '/solar-system/distance': typeof AppSolarSystemDistanceRoute
-  '/solar-system/size': typeof AppSolarSystemSizeRoute
   '/about': typeof WebAboutIndexRoute
   '/teacher': typeof WebTeacherIndexRoute
+  '/solar-system/distance': typeof AppSolarSystemDistanceIndexRoute
+  '/solar-system/size': typeof AppSolarSystemSizeIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteRouteWithChildren
   '/_web': typeof WebRouteRouteWithChildren
   '/_web/': typeof WebIndexRoute
-  '/_app/solar-system/distance': typeof AppSolarSystemDistanceRoute
-  '/_app/solar-system/size': typeof AppSolarSystemSizeRoute
   '/_web/about/': typeof WebAboutIndexRoute
   '/_web/teacher/': typeof WebTeacherIndexRoute
+  '/_app/solar-system/distance/': typeof AppSolarSystemDistanceIndexRoute
+  '/_app/solar-system/size/': typeof AppSolarSystemSizeIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/solar-system/distance'
-    | '/solar-system/size'
     | '/about/'
     | '/teacher/'
+    | '/solar-system/distance/'
+    | '/solar-system/size/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/solar-system/distance'
-    | '/solar-system/size'
     | '/about'
     | '/teacher'
+    | '/solar-system/distance'
+    | '/solar-system/size'
   id:
     | '__root__'
     | '/_app'
     | '/_web'
     | '/_web/'
-    | '/_app/solar-system/distance'
-    | '/_app/solar-system/size'
     | '/_web/about/'
     | '/_web/teacher/'
+    | '/_app/solar-system/distance/'
+    | '/_app/solar-system/size/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -143,31 +144,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WebAboutIndexRouteImport
       parentRoute: typeof WebRouteRoute
     }
-    '/_app/solar-system/size': {
-      id: '/_app/solar-system/size'
+    '/_app/solar-system/size/': {
+      id: '/_app/solar-system/size/'
       path: '/solar-system/size'
-      fullPath: '/solar-system/size'
-      preLoaderRoute: typeof AppSolarSystemSizeRouteImport
+      fullPath: '/solar-system/size/'
+      preLoaderRoute: typeof AppSolarSystemSizeIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
-    '/_app/solar-system/distance': {
-      id: '/_app/solar-system/distance'
+    '/_app/solar-system/distance/': {
+      id: '/_app/solar-system/distance/'
       path: '/solar-system/distance'
-      fullPath: '/solar-system/distance'
-      preLoaderRoute: typeof AppSolarSystemDistanceRouteImport
+      fullPath: '/solar-system/distance/'
+      preLoaderRoute: typeof AppSolarSystemDistanceIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
   }
 }
 
 interface AppRouteRouteChildren {
-  AppSolarSystemDistanceRoute: typeof AppSolarSystemDistanceRoute
-  AppSolarSystemSizeRoute: typeof AppSolarSystemSizeRoute
+  AppSolarSystemDistanceIndexRoute: typeof AppSolarSystemDistanceIndexRoute
+  AppSolarSystemSizeIndexRoute: typeof AppSolarSystemSizeIndexRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
-  AppSolarSystemDistanceRoute: AppSolarSystemDistanceRoute,
-  AppSolarSystemSizeRoute: AppSolarSystemSizeRoute,
+  AppSolarSystemDistanceIndexRoute: AppSolarSystemDistanceIndexRoute,
+  AppSolarSystemSizeIndexRoute: AppSolarSystemSizeIndexRoute,
 }
 
 const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
