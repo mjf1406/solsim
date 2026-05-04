@@ -8,11 +8,23 @@ import {
   formatDiameterKm,
   type SizePageModel,
   type SizeRow,
-} from "./-data"
+} from "../-data"
 
 export function SolarSystemSizeDataTables({ model }: { model: SizePageModel }) {
   return (
     <>
+      <header className="space-y-2">
+        <h1 className="font-heading text-2xl">Solar System — Size</h1>
+        <p className="text-sm text-muted-foreground">{model.physicalNote}</p>
+        <p className="text-sm text-muted-foreground">
+          Diameters use <code className="text-foreground">diameter_km</code>{" "}
+          from the snapshot when present; otherwise{" "}
+          <code className="text-foreground">2 × mean_radius_km</code>. Dwarf
+          planets: five largest in this dataset by that diameter. Moons: five
+          largest per planet or dwarf planet.
+        </p>
+      </header>
+
       <section className="space-y-3" aria-labelledby="size-sol-heading">
         <h2 id="size-sol-heading" className="font-heading text-lg">
           Sol
