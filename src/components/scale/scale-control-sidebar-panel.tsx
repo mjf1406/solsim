@@ -257,7 +257,7 @@ function ScaleSlider({
           {snapStops.map((stop) => (
             <span
               key={stop.key}
-              className="absolute left-1/2 h-px w-3 -translate-x-full -translate-y-1/2 bg-sidebar-foreground/40"
+              className="absolute left-3/4 h-px w-7 -translate-x-full -translate-y-1/2 bg-sidebar-foreground/40"
               style={{
                 bottom: `${stop.sliderValue * 100}%`,
               }}
