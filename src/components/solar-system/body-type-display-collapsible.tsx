@@ -18,6 +18,8 @@ export type BodyTypeDisplayRow = {
   renderable: number
   visibility: "visible" | "hidden"
   onSetVisibility: (v: "visible" | "hidden") => void
+  /** When set, a nested collapsible lists this content (e.g. per-body canvas status). */
+  detailContent?: ReactNode
 }
 
 type BodyTypeDisplayCollapsibleProps = {
@@ -95,49 +97,93 @@ export function BodyTypeDisplayCollapsible({
         <div className="space-y-3 border-t border-sidebar-border/80 px-1 pt-3 pb-1">
           {expandedHelp}
           <ul className="space-y-2">
-            {rows.map((row) => (
-              <li
-                key={row.kind}
-                className="flex items-center gap-2 text-xs text-sidebar-foreground"
-              >
-                <span className="min-w-0 flex-1 font-medium text-sidebar-foreground/95">
-                  {row.label}
-                </span>
-                <span
-                  className="shrink-0 tabular-nums text-sidebar-foreground/70"
-                  aria-live="polite"
-                >
-                  {row.visibility === "hidden"
-                    ? HIDDEN_COUNT
-                    : `${row.renderable}\u00a0/\u00a0${row.total}`}
-                </span>
-                <Button
-                  type="button"
-                  role="switch"
-                  aria-checked={row.visibility === "visible"}
-                  aria-label={`${row.label}: ${row.visibility === "visible" ? "visible on canvas when scale allows" : "hidden"}. Toggle.`}
-                  variant={
-                    row.visibility === "visible" ? "default" : "outline"
-                  }
-                  size="sm"
-                  className="h-7 shrink-0 px-2 text-[11px]"
-                  onClick={() =>
-                    row.onSetVisibility(
-                      row.visibility === "visible" ? "hidden" : "visible"
-                    )
-                  }
-                >
-                  <span className="inline-grid justify-items-center">
-                    <span className="invisible col-start-1 row-start-1" aria-hidden>
-                      Visible
-                    </span>
-                    <span className="col-start-1 row-start-1">
-                      {row.visibility === "visible" ? "Visible" : "Hidden"}
-                    </span>
+            {rows.map((row) => {
+              const summary = (
+                <>
+                  <span className="min-w-0 flex-1 font-medium text-sidebar-foreground/95">
+                    {row.label}
                   </span>
-                </Button>
-              </li>
-            ))}
+                  <span
+                    className="shrink-0 tabular-nums text-sidebar-foreground/70"
+                    aria-live="polite"
+                  >
+                    {row.visibility === "hidden"
+                      ? HIDDEN_COUNT
+                      : `${row.renderable}\u00a0/\u00a0${row.total}`}
+                  </span>
+                  <Button
+                    type="button"
+                    role="switch"
+                    aria-checked={row.visibility === "visible"}
+                    aria-label={`${row.label}: ${row.visibility === "visible" ? "visible on canvas when scale allows" : "hidden"}. Toggle.`}
+                    variant={
+                      row.visibility === "visible" ? "default" : "outline"
+                    }
+                    size="sm"
+                    className="h-7 shrink-0 px-2 text-[11px]"
+                    onClick={() =>
+                      row.onSetVisibility(
+                        row.visibility === "visible" ? "hidden" : "visible"
+                      )
+                    }
+                  >
+                    <span className="inline-grid justify-items-center">
+                      <span
+                        className="invisible col-start-1 row-start-1"
+                        aria-hidden
+                      >
+                        Visible
+                      </span>
+                      <span className="col-start-1 row-start-1">
+                        {row.visibility === "visible" ? "Visible" : "Hidden"}
+                      </span>
+                    </span>
+                  </Button>
+                </>
+              )
+
+              if (row.detailContent != null) {
+                return (
+                  <li key={row.kind} className="text-xs text-sidebar-foreground">
+                    <Collapsible
+                      defaultOpen={false}
+                      className="group/kind-bodylist rounded-lg"
+                    >
+                      <div className="flex items-center gap-1">
+                        <CollapsibleTrigger
+                          type="button"
+                          aria-label={`${row.label}: expand or collapse body list`}
+                          className={cn(
+                            "flex size-8 shrink-0 items-center justify-center rounded-lg text-sidebar-foreground ring-sidebar-ring outline-none",
+                            "hover:bg-sidebar-accent/60 focus-visible:ring-2"
+                          )}
+                        >
+                          <ChevronUp
+                            aria-hidden
+                            className="size-4 text-sidebar-foreground/70 transition-transform duration-200 group-data-[state=open]/kind-bodylist:rotate-180"
+                          />
+                        </CollapsibleTrigger>
+                        {summary}
+                      </div>
+                      <CollapsibleContent>
+                        <div className="mt-2 max-h-40 overflow-y-auto rounded-md border border-sidebar-border/50 bg-sidebar/25 px-2 py-1.5">
+                          {row.detailContent}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </li>
+                )
+              }
+
+              return (
+                <li
+                  key={row.kind}
+                  className="flex items-center gap-2 text-xs text-sidebar-foreground"
+                >
+                  {summary}
+                </li>
+              )
+            })}
           </ul>
         </div>
       </CollapsibleContent>

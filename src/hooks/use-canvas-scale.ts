@@ -1,0 +1,206 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useDebouncedValue } from "@tanstack/react-pacer"
+
+import {
+  computeMoonPowerOfTwoSnapStops,
+  computeScaleReadout,
+  computeSliderRange,
+  computeSliderSnapStops,
+  nearestMoonPowerOfTwoCaption,
+  nearestPresetMode,
+  nextScaleMode,
+  pxPerKmForMode,
+  pxPerKmToSliderValue,
+  pxPerKmToSliderValueMoonLadder,
+  scaleModeLabel,
+  type ScaleMode,
+  type ScaleReadout,
+  type ScaleSliderStop,
+  type SliderRange,
+  sliderValueToPxPerKm,
+  sliderValueToPxPerKmMoonLadder,
+} from "@/lib/solar-system/scale/scale-presets"
+
+export type UseCanvasScaleOptions = {
+  /** Calibrated CSS pixels per real-world mm; defaults to the CSS spec value. */
+  pxPerMm: number
+  /** When false, Moon ladder x1/8…x128 (equal ticks); when true, named object presets on log range. */
+  isCalibrated: boolean
+  /** Initial preset mode; defaults to `"moon_one_px"`. */
+  initialMode?: ScaleMode
+  /** Debounce delay (ms) before the canvas-facing `debouncedPxPerKm` updates. */
+  debounceWaitMs?: number
+}
+
+export type UseCanvasScaleResult = {
+  /** Preset mode when calibrated and snapped near a tick; else `null`. */
+  mode: ScaleMode | null
+  /** Label for the cycle preset button (`Custom` when between calibrated ticks). */
+  cycleButtonLabel: string
+  /** 0..1 slider position. */
+  sliderValue: number
+  /** Live `pxPerKm` (updates with every slider tick). */
+  pxPerKm: number
+  /** Debounced `pxPerKm` (canvas should consume this). */
+  debouncedPxPerKm: number
+  /** Live readout (km per px, 1:N ratio) using the live `pxPerKm`. */
+  readout: ScaleReadout
+  /** Slider extents (log space) and the snap positions of each named preset. */
+  range: SliderRange
+  /** Tick targets: Moon ladder x1/8…x128 when uncalibrated; else named object presets. */
+  snapStops: ScaleSliderStop[]
+  /** True if the live and debounced values disagree — slider is still settling. */
+  isPending: boolean
+  /** Set the slider position directly (e.g. from a drag). */
+  setSliderValue: (value: number) => void
+  /** Snap to the next tick (Moon ladder step or named preset). */
+  cycleMode: () => void
+  /** Snap the slider to the named preset directly. */
+  selectMode: (mode: ScaleMode) => void
+}
+
+/**
+ * Reusable canvas-scale state: uncalibrated Moon ladder (equal ticks x1/8…x128),
+ * or calibrated log slider with named presets.
+ *
+ * - `pxPerKm` updates synchronously while the user drags (so the readout feels
+ *   live).
+ * - `debouncedPxPerKm` lags by `debounceWaitMs`; canvases that have to relay
+ *   out / redraw should consume this value to avoid thrashing during drag.
+ *
+ * Recomputation: when `pxPerMm` changes, calibrated mode preserves `pxPerKm` by
+ * remapping the log slider; uncalibrated ladder position is unchanged.
+ */
+export function useCanvasScale({
+  pxPerMm,
+  isCalibrated,
+  initialMode = "moon_one_px",
+  debounceWaitMs = 150,
+}: UseCanvasScaleOptions): UseCanvasScaleResult {
+  const range = useMemo(() => computeSliderRange(pxPerMm), [pxPerMm])
+
+  const [sliderValue, setSliderValueState] = useState(() => {
+    const px = pxPerKmForMode(initialMode, pxPerMm)
+    return isCalibrated
+      ? pxPerKmToSliderValue(px, range)
+      : pxPerKmToSliderValueMoonLadder(px)
+  })
+
+  // Track the previous range so we can preserve the *physical* pxPerKm when
+  // calibration changes (rather than the slider fraction, which would silently
+  // change the chosen scale every time the user re-calibrates).
+  const prevRangeRef = useRef<SliderRange>(range)
+  useEffect(() => {
+    if (prevRangeRef.current === range) return
+    const prev = prevRangeRef.current
+    prevRangeRef.current = range
+    if (!isCalibrated) return
+    const prevPxPerKm = sliderValueToPxPerKm(sliderValue, prev)
+    const nextSlider = pxPerKmToSliderValue(prevPxPerKm, range)
+    setSliderValueState(nextSlider)
+    // We intentionally do not depend on `sliderValue` here — re-running this
+    // every slider tick would cause an infinite ping-pong; we only realign on
+    // range (i.e. calibration) changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range, isCalibrated])
+
+  const prevIsCalibratedRef = useRef(isCalibrated)
+  useEffect(() => {
+    if (prevIsCalibratedRef.current === isCalibrated) return
+    const wasCalibrated = prevIsCalibratedRef.current
+    prevIsCalibratedRef.current = isCalibrated
+    if (wasCalibrated && !isCalibrated) {
+      const px = sliderValueToPxPerKm(sliderValue, range)
+      setSliderValueState(pxPerKmToSliderValueMoonLadder(px))
+    } else if (!wasCalibrated && isCalibrated) {
+      const px = sliderValueToPxPerKmMoonLadder(sliderValue)
+      setSliderValueState(pxPerKmToSliderValue(px, range))
+    }
+  }, [isCalibrated, range, sliderValue])
+
+  const pxPerKm = useMemo(
+    () =>
+      isCalibrated
+        ? sliderValueToPxPerKm(sliderValue, range)
+        : sliderValueToPxPerKmMoonLadder(sliderValue),
+    [isCalibrated, sliderValue, range]
+  )
+
+  const [debouncedPxPerKm] = useDebouncedValue(pxPerKm, {
+    wait: debounceWaitMs,
+  })
+
+  const mode = useMemo(
+    () =>
+      isCalibrated ? nearestPresetMode(sliderValue, range, 0.008) : null,
+    [isCalibrated, sliderValue, range]
+  )
+
+  const cycleButtonLabel = useMemo(() => {
+    if (isCalibrated) {
+      return mode != null ? scaleModeLabel(mode) : "Custom"
+    }
+    return nearestMoonPowerOfTwoCaption(sliderValue)
+  }, [isCalibrated, mode, sliderValue])
+
+  const readout = useMemo(
+    () => computeScaleReadout(pxPerKm, pxPerMm),
+    [pxPerKm, pxPerMm]
+  )
+
+  const snapStops = useMemo(
+    () => computeSliderSnapStops(range, isCalibrated),
+    [range, isCalibrated]
+  )
+
+  const setSliderValue = useCallback((value: number) => {
+    if (!Number.isFinite(value)) return
+    setSliderValueState(Math.min(1, Math.max(0, value)))
+  }, [])
+
+  const selectMode = useCallback(
+    (m: ScaleMode) => {
+      const v = range.presetSliderValueByMode[m]
+      setSliderValueState(v)
+    },
+    [range]
+  )
+
+  const cycleMode = useCallback(() => {
+    if (isCalibrated) {
+      const current = mode ?? initialMode
+      selectMode(nextScaleMode(current))
+      return
+    }
+    const stops = computeMoonPowerOfTwoSnapStops()
+    if (stops.length === 0) return
+    let bestI = 0
+    let bestD = Infinity
+    for (let i = 0; i < stops.length; i++) {
+      const d = Math.abs(stops[i]!.sliderValue - sliderValue)
+      if (d < bestD) {
+        bestD = d
+        bestI = i
+      }
+    }
+    const nextI = (bestI + 1) % stops.length
+    setSliderValueState(stops[nextI]!.sliderValue)
+  }, [isCalibrated, initialMode, mode, selectMode, sliderValue])
+
+  const isPending = pxPerKm !== debouncedPxPerKm
+
+  return {
+    mode,
+    cycleButtonLabel,
+    sliderValue,
+    pxPerKm,
+    debouncedPxPerKm,
+    readout,
+    range,
+    snapStops,
+    isPending,
+    setSliderValue,
+    cycleMode,
+    selectMode,
+  }
+}

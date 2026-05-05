@@ -1,0 +1,201 @@
+/**
+ * Pure helpers for the "Scaled diameter" sidebar stat: the body's real-world
+ * physical size on the user's screen at the current canvas scale.
+ *
+ * Formula: `mm = diameterKm * pxPerKm / pxPerMm`, where `pxPerKm` is the live
+ * canvas scale and `pxPerMm` is the display calibration (CSS-spec fallback when
+ * the user hasn't calibrated, in which case the result is approximate).
+ *
+ * Auto-unit selection picks the smallest sensible unit such that the displayed
+ * value is at least 1, capped at km (metric) or mi (imperial). Sub-µm values
+ * fall back to scientific notation in µm. Normal values round to two decimal
+ * places for display.
+ */
+
+import { spokenNumberEnUsMaxOneDecimal } from "@/lib/reading/spoken-number-en-us"
+
+/** Statute mile to kilometer (exact: `1 mi = 1.609344 km`). */
+const KM_PER_MI = 1.609344
+/** Inches per millimeter (exact: `1 in = 25.4 mm`). */
+const MM_PER_IN = 25.4
+const IN_PER_FT = 12
+const FT_PER_MI = 5280
+
+export type ScaledDiameterUnitSystem = "metric" | "imperial"
+
+export type MetricUnit = "µm" | "mm" | "cm" | "m" | "km"
+export type ImperialUnit = "in" | "ft" | "mi"
+export type ScaledDiameterUnit = MetricUnit | ImperialUnit
+
+export type ScaledDiameterFormatted = {
+  /** Formatted number without the unit suffix, e.g. `"12.35"` or `"4.50e-3"`. */
+  display: string
+  /** Auto-picked unit symbol. */
+  unit: ScaledDiameterUnit
+  /** The numeric value in the chosen unit, before formatting. */
+  valueInUnit: number
+  /** Singular noun for the unit, e.g. `"millimeter"` (used by spoken sentence). */
+  unitWordsSingular: string
+  /** Plural noun for the unit, e.g. `"millimeters"` (used by spoken sentence). */
+  unitWordsPlural: string
+}
+
+/**
+ * Real-world physical mm a body occupies on the user's screen at the current
+ * scale. Returns `NaN` if any input is non-finite or non-positive.
+ */
+export function scaledDiameterMm(
+  diameterKm: number,
+  pxPerKm: number,
+  pxPerMm: number
+): number {
+  if (!Number.isFinite(diameterKm) || diameterKm < 0) return Number.NaN
+  if (!Number.isFinite(pxPerKm) || pxPerKm <= 0) return Number.NaN
+  if (!Number.isFinite(pxPerMm) || pxPerMm <= 0) return Number.NaN
+  return (diameterKm * pxPerKm) / pxPerMm
+}
+
+function roundToTwoDecimals(n: number): number {
+  return Math.round(n * 100) / 100
+}
+
+function unitWords(unit: ScaledDiameterUnit): {
+  singular: string
+  plural: string
+} {
+  switch (unit) {
+    case "µm":
+      return { singular: "micrometer", plural: "micrometers" }
+    case "mm":
+      return { singular: "millimeter", plural: "millimeters" }
+    case "cm":
+      return { singular: "centimeter", plural: "centimeters" }
+    case "m":
+      return { singular: "meter", plural: "meters" }
+    case "km":
+      return { singular: "kilometer", plural: "kilometers" }
+    case "in":
+      return { singular: "inch", plural: "inches" }
+    case "ft":
+      return { singular: "foot", plural: "feet" }
+    case "mi":
+      return { singular: "mile", plural: "miles" }
+  }
+}
+
+/** Picks the smallest metric unit where the value is ≥ 1, capped at km. */
+function pickMetric(mm: number): { value: number; unit: MetricUnit } {
+  const km = mm / 1_000_000
+  if (km >= 1) return { value: km, unit: "km" }
+  const m = mm / 1000
+  if (m >= 1) return { value: m, unit: "m" }
+  const cm = mm / 10
+  if (cm >= 1) return { value: cm, unit: "cm" }
+  if (mm >= 1) return { value: mm, unit: "mm" }
+  const um = mm * 1000
+  return { value: um, unit: "µm" }
+}
+
+/** Picks the smallest imperial unit where the value is ≥ 1, capped at mi. */
+function pickImperial(mm: number): { value: number; unit: ImperialUnit } {
+  const inches = mm / MM_PER_IN
+  const feet = inches / IN_PER_FT
+  const miles = feet / FT_PER_MI
+  if (miles >= 1) return { value: miles, unit: "mi" }
+  if (feet >= 1) return { value: feet, unit: "ft" }
+  return { value: inches, unit: "in" }
+}
+
+/**
+ * Auto-picks the most sensible sub-unit on the chosen side and formats it.
+ *
+ * Returns sentinel `display: "—"` when `mm` is non-finite or negative; callers
+ * should branch on that the same way they branch on a missing diameter row.
+ */
+export function formatScaledDiameter(
+  mm: number,
+  system: ScaledDiameterUnitSystem
+): ScaledDiameterFormatted {
+  if (!Number.isFinite(mm) || mm < 0) {
+    return {
+      display: "—",
+      unit: system === "metric" ? "mm" : "in",
+      valueInUnit: Number.NaN,
+      unitWordsSingular: system === "metric" ? "millimeter" : "inch",
+      unitWordsPlural: system === "metric" ? "millimeters" : "inches",
+    }
+  }
+
+  const { value, unit } =
+    system === "metric" ? pickMetric(mm) : pickImperial(mm)
+
+  // Sub-µm (or sub-in) values use scientific notation rather than four-plus
+  // leading zeros so the readout stays compact (two decimals in the mantissa).
+  let display: string
+  let valueInUnit: number
+  if (value > 0 && value < 0.001) {
+    display = value.toExponential(2)
+    valueInUnit = value
+  } else {
+    valueInUnit = roundToTwoDecimals(value)
+    display = valueInUnit.toLocaleString("en-US", {
+      maximumFractionDigits: 2,
+      minimumFractionDigits: 0,
+    })
+  }
+
+  const words = unitWords(unit)
+  return {
+    display,
+    unit,
+    valueInUnit,
+    unitWordsSingular: words.singular,
+    unitWordsPlural: words.plural,
+  }
+}
+
+/**
+ * English sentence for the auto-picked scaled diameter, mirroring the style of
+ * `spokenDiameterSentence` in the size page data layer.
+ *
+ * Falls back to the bare unit word when the value is below the spoken-number
+ * helper's resolution (e.g. `1.23e-4 µm` → `"A tiny fraction of a micrometer."`).
+ */
+export function spokenScaledDiameterSentence(
+  mm: number,
+  system: ScaledDiameterUnitSystem
+): string {
+  const formatted = formatScaledDiameter(mm, system)
+  const value = formatted.valueInUnit
+  if (!Number.isFinite(value) || value < 0) return ""
+
+  // Sub-tenth values round to "zero" via maximumFractionDigits=1; keep the
+  // sentence honest by saying "less than one" instead of "zero".
+  if (value > 0 && value < 0.05) {
+    return `Less than one ${formatted.unitWordsSingular}.`
+  }
+
+  const formattedNumber = value.toLocaleString("en-US", {
+    maximumFractionDigits: 2,
+    useGrouping: false,
+  })
+  const words = spokenNumberEnUsMaxOneDecimal(value)
+  const singular =
+    formattedNumber === "1" ||
+    formattedNumber === "1.0" ||
+    formattedNumber === "1.00"
+  const unitWord = singular
+    ? formatted.unitWordsSingular
+    : formatted.unitWordsPlural
+  const sentence = `${words} ${unitWord}`
+  return sentence.charAt(0).toUpperCase() + sentence.slice(1) + "."
+}
+
+// Exported for tests and callers that want the same exact-conversion constants
+// used by the formatter.
+export const SCALED_DIAMETER_CONSTANTS = {
+  KM_PER_MI,
+  MM_PER_IN,
+  IN_PER_FT,
+  FT_PER_MI,
+} as const

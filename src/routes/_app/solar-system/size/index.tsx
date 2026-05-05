@@ -7,6 +7,9 @@ import {
 } from "@tanstack/react-router"
 
 import { useAppHeaderSlots } from "@/components/navigation/app-header-slots"
+import { ScaleControlSidebarPortal } from "@/components/scale/scale-control-sidebar-panel"
+import { useCanvasScale } from "@/hooks/use-canvas-scale"
+import { useDisplayCalibration } from "@/hooks/use-display-calibration"
 
 import {
   applyBodyTypePreset,
@@ -40,9 +43,17 @@ export const Route = createFileRoute("/_app/solar-system/size/")({
 function SizePageLeftSidebarPortal({
   model,
   selectedBodyId,
+  pxPerKm,
+  pxPerMm,
+  isCalibrated,
+  onOpenCalibration,
 }: {
   model: SizePageModel
   selectedBodyId: string | null
+  pxPerKm: number
+  pxPerMm: number
+  isCalibrated: boolean
+  onOpenCalibration: () => void
 }) {
   const { leftSidebarContentMount } = useAppHeaderSlots()
   if (!leftSidebarContentMount) return null
@@ -52,6 +63,10 @@ function SizePageLeftSidebarPortal({
       <SizeSelectedBodySidebarContent
         model={model}
         selectedBodyId={selectedBodyId}
+        pxPerKm={pxPerKm}
+        pxPerMm={pxPerMm}
+        isCalibrated={isCalibrated}
+        onOpenCalibration={onOpenCalibration}
       />
     </>,
     leftSidebarContentMount
@@ -78,6 +93,13 @@ function SolarSystemSizePage() {
   const [bodyDisplayFilter, setBodyDisplayFilter] =
     useState<SizeBodyDisplayFilter>(() => applyBodyTypePreset("auto"))
 
+  const calibration = useDisplayCalibration()
+  const [calibrationDialogOpen, setCalibrationDialogOpen] = useState(false)
+  const scale = useCanvasScale({
+    pxPerMm: calibration.pxPerMm,
+    isCalibrated: calibration.isCalibrated,
+  })
+
   const cycleLabelMode = useCallback(() => {
     setLabelMode((m) => (m === "on" ? "auto" : m === "auto" ? "off" : "on"))
   }, [])
@@ -87,7 +109,12 @@ function SolarSystemSizePage() {
   useEffect(() => {
     if (
       !selectedBodyId ||
-      isSizeBodyIdVisibleUnderFilter(model, bodyDisplayFilter, selectedBodyId)
+      isSizeBodyIdVisibleUnderFilter(
+        model,
+        bodyDisplayFilter,
+        selectedBodyId,
+        scale.debouncedPxPerKm
+      )
     ) {
       return
     }
@@ -98,7 +125,7 @@ function SolarSystemSizePage() {
     return () => {
       active = false
     }
-  }, [model, bodyDisplayFilter, selectedBodyId])
+  }, [model, bodyDisplayFilter, selectedBodyId, scale.debouncedPxPerKm])
 
   return (
     <div className="relative isolate min-h-[calc(100svh-var(--app-header-h))] w-full">
@@ -108,11 +135,27 @@ function SolarSystemSizePage() {
         selectedBodyId={selectedBodyId}
         onBodySelect={setSelectedBodyId}
         bodyDisplayFilter={bodyDisplayFilter}
+        pxPerKm={scale.debouncedPxPerKm}
+      />
+      <ScaleControlSidebarPortal
+        cycleButtonLabel={scale.cycleButtonLabel}
+        sliderValue={scale.sliderValue}
+        readout={scale.readout}
+        isPending={scale.isPending}
+        setSliderValue={scale.setSliderValue}
+        cycleMode={scale.cycleMode}
+        snapStops={scale.snapStops}
+        calibration={calibration}
+        calibrationDialogOpen={calibrationDialogOpen}
+        onCalibrationDialogOpenChange={setCalibrationDialogOpen}
       />
       <SizePageBodyTypesSidebarPortal
         model={model}
         bodyDisplayFilter={bodyDisplayFilter}
         setBodyDisplayFilter={setBodyDisplayFilter}
+        pxPerKm={scale.debouncedPxPerKm}
+        selectedBodyId={selectedBodyId}
+        onSelectBody={setSelectedBodyId}
       />
       <SizePageLabelsSidebarPortal
         labelMode={labelMode}
@@ -122,6 +165,10 @@ function SolarSystemSizePage() {
       <SizePageLeftSidebarPortal
         model={model}
         selectedBodyId={selectedBodyId}
+        pxPerKm={scale.pxPerKm}
+        pxPerMm={calibration.pxPerMm}
+        isCalibrated={calibration.isCalibrated}
+        onOpenCalibration={() => setCalibrationDialogOpen(true)}
       />
       {/* <SolarSystemSizeDataTables model={model} /> */}
     </div>

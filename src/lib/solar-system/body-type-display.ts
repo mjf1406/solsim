@@ -1,6 +1,5 @@
 import {
   collectSizeCanvasBodies,
-  moonReferenceDiameterKm,
   type SizeBodyKind,
   type SizeCanvasBody,
   type SizePageModel,
@@ -123,14 +122,24 @@ export function presetCycleButtonLabel(filter: SizeBodyDisplayFilter): string {
 /** Widest preset / custom label for fixed-width cycle button layout. */
 export const BODY_TYPE_PRESET_BUTTON_WIDTH_REF = "Planets+"
 
+/**
+ * True when the body's on-screen diameter is at least `minPx` CSS pixels at the
+ * given map scale (`diameterKm * pxPerKm`).
+ */
 export function isRenderableAtScale(
   diameterKm: number,
-  moonKm: number,
+  pxPerKm: number,
   minPx: number
 ): boolean {
-  if (!(moonKm > 0) || !Number.isFinite(diameterKm)) return false
-  const diameterPx = diameterKm / moonKm
-  return diameterPx >= minPx
+  if (
+    !(pxPerKm > 0) ||
+    !Number.isFinite(diameterKm) ||
+    !Number.isFinite(pxPerKm) ||
+    !Number.isFinite(minPx)
+  ) {
+    return false
+  }
+  return diameterKm * pxPerKm >= minPx
 }
 
 export function kindByIdFromBodies(
@@ -145,10 +154,10 @@ export function kindByIdFromBodies(
 
 export function statsByKindForModel(
   model: SizePageModel,
-  minPx = 1
+  minPx: number,
+  pxPerKm: number
 ): Record<SizeBodyKind, { total: number; renderable: number }> {
   const bodies = collectSizeCanvasBodies(model)
-  const moonKm = moonReferenceDiameterKm(model)
   const empty = (): Record<
     SizeBodyKind,
     { total: number; renderable: number }
@@ -164,7 +173,7 @@ export function statsByKindForModel(
   for (const b of bodies) {
     const s = out[b.kind]
     s.total += 1
-    if (isRenderableAtScale(b.row.diameterKm, moonKm, minPx)) {
+    if (isRenderableAtScale(b.row.diameterKm, pxPerKm, minPx)) {
       s.renderable += 1
     }
   }
@@ -175,11 +184,11 @@ export function bodyPassesDisplayFilter(
   body: SizeCanvasBody,
   filter: SizeBodyDisplayFilter,
   kindById: Map<string, SizeBodyKind>,
-  moonKm: number,
+  pxPerKm: number,
   minPx: number
 ): boolean {
   if (filter.kindVisibility[body.kind] === "hidden") return false
-  if (!isRenderableAtScale(body.row.diameterKm, moonKm, minPx)) return false
+  if (!isRenderableAtScale(body.row.diameterKm, pxPerKm, minPx)) return false
   if (
     body.kind === "moon" &&
     body.parentPlanetId &&
@@ -191,15 +200,56 @@ export function bodyPassesDisplayFilter(
   return true
 }
 
+export type BodyCanvasInclusion = {
+  onCanvas: boolean
+  /** When `onCanvas` is true, a short positive label; when false, why it is not drawn. */
+  reasonLabel: string
+}
+
+const LABEL_ON_CANVAS = "On canvas"
+const LABEL_KIND_HIDDEN = "Kind hidden"
+const LABEL_UNDER_MIN_PX = "Under 1 px at this scale"
+const LABEL_MOON_PARENT_PLANETS_ONLY = "Major-planet moons only"
+
+/**
+ * Same inclusion rules as {@link bodyPassesDisplayFilter} / the size canvas, with a
+ * short label for UI (first failing check wins).
+ */
+export function bodyCanvasInclusion(
+  body: SizeCanvasBody,
+  filter: SizeBodyDisplayFilter,
+  kindById: Map<string, SizeBodyKind>,
+  pxPerKm: number,
+  minPx: number
+): BodyCanvasInclusion {
+  if (filter.kindVisibility[body.kind] === "hidden") {
+    return { onCanvas: false, reasonLabel: LABEL_KIND_HIDDEN }
+  }
+  if (!isRenderableAtScale(body.row.diameterKm, pxPerKm, minPx)) {
+    return { onCanvas: false, reasonLabel: LABEL_UNDER_MIN_PX }
+  }
+  if (
+    body.kind === "moon" &&
+    body.parentPlanetId &&
+    filter.moonParentPolicy === "planetsOnly"
+  ) {
+    const parentKind = kindById.get(body.parentPlanetId)
+    if (parentKind !== "planet") {
+      return { onCanvas: false, reasonLabel: LABEL_MOON_PARENT_PLANETS_ONLY }
+    }
+  }
+  return { onCanvas: true, reasonLabel: LABEL_ON_CANVAS }
+}
+
 export function filterSizeCanvasBodiesForDisplay(
   bodies: SizeCanvasBody[],
   filter: SizeBodyDisplayFilter,
-  moonKm: number,
+  pxPerKm: number,
   minPx: number
 ): SizeCanvasBody[] {
   const kindById = kindByIdFromBodies(bodies)
   return bodies.filter((b) =>
-    bodyPassesDisplayFilter(b, filter, kindById, moonKm, minPx)
+    bodyPassesDisplayFilter(b, filter, kindById, pxPerKm, minPx)
   )
 }
 
@@ -208,13 +258,13 @@ export function isSizeBodyIdVisibleUnderFilter(
   model: SizePageModel,
   filter: SizeBodyDisplayFilter,
   id: string | null,
+  pxPerKm: number,
   minPx = 1
 ): boolean {
   if (!id) return false
   const bodies = collectSizeCanvasBodies(model)
-  const moonKm = moonReferenceDiameterKm(model)
   const kindById = kindByIdFromBodies(bodies)
   const body = bodies.find((b) => b.row.id === id)
   if (!body) return false
-  return bodyPassesDisplayFilter(body, filter, kindById, moonKm, minPx)
+  return bodyPassesDisplayFilter(body, filter, kindById, pxPerKm, minPx)
 }

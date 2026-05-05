@@ -11,3 +11,14 @@ export {
   inflateCanvasLabelRect,
   measureCanvasLabelBox,
 } from "./body-label"
+export {
+  clampDragOffsetForLeftAnchoredDisk,
+  clampOversizedStarDragsIfAnchored,
+  clampStarDiskDragsInViewport,
+  leftSliverAnchorCenter,
+  OVERSIZED_DISK_THRESHOLD_FRAC,
+  OVERSIZED_DISK_VISIBLE_ARC_PX,
+  shouldAnchorDiskOnLeft,
+  type OversizedAnchorDragEntry,
+  type OversizedViewportInset,
+} from "./oversized-left-sliver-anchor"

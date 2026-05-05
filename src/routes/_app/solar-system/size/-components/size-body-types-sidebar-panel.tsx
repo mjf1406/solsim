@@ -5,25 +5,39 @@ import { BodyTypeDisplayCollapsible } from "@/components/solar-system/body-type-
 import { useAppHeaderSlots } from "@/components/navigation/app-header-slots"
 import {
   BODY_TYPE_PRESET_BUTTON_WIDTH_REF,
+  bodyCanvasInclusion,
   cycleBodyTypePreset,
+  kindByIdFromBodies,
   presetCycleButtonLabel,
   SIZE_BODY_KIND_ORDER,
   statsByKindForModel,
   type KindRowVisibility,
   type SizeBodyDisplayFilter,
 } from "@/lib/solar-system/body-type-display"
-import { kindLabel, type SizeBodyKind, type SizePageModel } from "../-data"
+import { cn } from "@/lib/utils"
+import {
+  collectSizeCanvasBodies,
+  kindLabel,
+  type SizeBodyKind,
+  type SizePageModel,
+} from "../-data"
 
 type SizePageBodyTypesSidebarPortalProps = {
   model: SizePageModel
   bodyDisplayFilter: SizeBodyDisplayFilter
   setBodyDisplayFilter: Dispatch<SetStateAction<SizeBodyDisplayFilter>>
+  pxPerKm: number
+  selectedBodyId: string | null
+  onSelectBody: (bodyId: string) => void
 }
 
 export function SizePageBodyTypesSidebarPortal({
   model,
   bodyDisplayFilter,
   setBodyDisplayFilter,
+  pxPerKm,
+  selectedBodyId,
+  onSelectBody,
 }: SizePageBodyTypesSidebarPortalProps) {
   const { rightSidebarContentMount } = useAppHeaderSlots()
   if (!rightSidebarContentMount) return null
@@ -32,6 +46,9 @@ export function SizePageBodyTypesSidebarPortal({
       model={model}
       bodyDisplayFilter={bodyDisplayFilter}
       setBodyDisplayFilter={setBodyDisplayFilter}
+      pxPerKm={pxPerKm}
+      selectedBodyId={selectedBodyId}
+      onSelectBody={onSelectBody}
     />,
     rightSidebarContentMount
   )
@@ -41,9 +58,10 @@ function SizeBodyTypesCollapsibleSection({
   model,
   bodyDisplayFilter,
   setBodyDisplayFilter,
+  pxPerKm,
+  selectedBodyId,
+  onSelectBody,
 }: SizePageBodyTypesSidebarPortalProps) {
-  const stats = useMemo(() => statsByKindForModel(model, 1), [model])
-
   const setKindVisibility = useCallback(
     (kind: SizeBodyKind, v: KindRowVisibility) => {
       setBodyDisplayFilter((prev) => ({
@@ -54,18 +72,91 @@ function SizeBodyTypesCollapsibleSection({
     [setBodyDisplayFilter]
   )
 
-  const rows = useMemo(
-    () =>
-      SIZE_BODY_KIND_ORDER.map((kind) => ({
+  const rows = useMemo(() => {
+    const stats = statsByKindForModel(model, 1, pxPerKm)
+    const allBodies = collectSizeCanvasBodies(model)
+    const kindById = kindByIdFromBodies(allBodies)
+    const byKind = new Map<SizeBodyKind, typeof allBodies>()
+    for (const k of SIZE_BODY_KIND_ORDER) {
+      byKind.set(k, [])
+    }
+    for (const b of allBodies) {
+      byKind.get(b.kind)!.push(b)
+    }
+    for (const k of SIZE_BODY_KIND_ORDER) {
+      byKind.get(k)!.sort((a, b) =>
+        a.row.name.localeCompare(b.row.name, undefined, { sensitivity: "base" })
+      )
+    }
+
+    return SIZE_BODY_KIND_ORDER.map((kind) => {
+      const bodies = byKind.get(kind) ?? []
+      const detailContent =
+        bodies.length === 0 ? (
+          <p className="text-[11px] text-sidebar-foreground/60">No bodies.</p>
+        ) : (
+          <ul className="space-y-1 border-l border-sidebar-border/60 pl-2">
+            {bodies.map((b) => {
+              const { onCanvas, reasonLabel } = bodyCanvasInclusion(
+                b,
+                bodyDisplayFilter,
+                kindById,
+                pxPerKm,
+                1
+              )
+              const isSelected = selectedBodyId === b.row.id
+              return (
+                <li key={b.row.id} className="leading-snug">
+                  <button
+                    type="button"
+                    className={cn(
+                      "flex w-full items-start justify-between gap-2 rounded-md px-1 py-0.5 text-left text-[11px] ring-sidebar-ring transition-colors",
+                      "hover:bg-sidebar-accent/55 focus-visible:ring-2 focus-visible:outline-none",
+                      isSelected &&
+                        "bg-sidebar-accent/70 text-sidebar-foreground ring-1 ring-sky-400/60"
+                    )}
+                    aria-label={`Select ${b.row.name} on canvas`}
+                    aria-pressed={isSelected}
+                    onClick={() => onSelectBody(b.row.id)}
+                  >
+                    <span className="min-w-0 truncate text-sidebar-foreground/95">
+                      {b.row.name}
+                    </span>
+                    <span
+                      className={cn(
+                        "max-w-[min(12rem,48%)] shrink-0 text-right leading-snug",
+                        onCanvas
+                          ? "text-sidebar-foreground"
+                          : "text-sidebar-foreground/60"
+                      )}
+                    >
+                      {reasonLabel}
+                    </span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        )
+
+      return {
         kind,
         label: kindLabel(kind),
         total: stats[kind].total,
         renderable: stats[kind].renderable,
         visibility: bodyDisplayFilter.kindVisibility[kind],
         onSetVisibility: (v: KindRowVisibility) => setKindVisibility(kind, v),
-      })),
-    [bodyDisplayFilter.kindVisibility, stats, setKindVisibility]
-  )
+        detailContent,
+      }
+    })
+  }, [
+    model,
+    bodyDisplayFilter,
+    pxPerKm,
+    setKindVisibility,
+    selectedBodyId,
+    onSelectBody,
+  ])
 
   const onCycleMode = useCallback(() => {
     setBodyDisplayFilter((prev) => cycleBodyTypePreset(prev))
@@ -109,6 +200,11 @@ function SizeBodyTypesCollapsibleSection({
               diameter.{" "}
               <span className="text-sidebar-foreground italic">Hidden</span>{" "}
               means it will never be shown.
+            </p>
+            <p>
+              Expand a body type with the chevron to see every body and whether
+              it would appear on the canvas at the current scale. Click a name
+              to select that body on the canvas.
             </p>
           </div>
         }
