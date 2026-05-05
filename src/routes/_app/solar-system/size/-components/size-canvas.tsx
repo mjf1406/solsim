@@ -17,6 +17,8 @@ import {
   inflateCanvasLabelRect,
   measureCanvasLabelBox,
 } from "@/lib/canvas"
+import { usePointerDragDelta } from "@/hooks/use-pointer-drag-delta"
+import { getCanvasLocalCssPoint } from "@/lib/pointer/canvas-client-xy"
 import { cn } from "@/lib/utils"
 
 import {
@@ -447,6 +449,46 @@ function shouldDrawBodyLabel(
   return selectedBodyId != null && bodyId === selectedBodyId
 }
 
+function isDependentMoonEntry(e: LayoutEntry): boolean {
+  return e.kind === "moon" && e.parentPlanetId != null
+}
+
+function applyUserDragOffsetsToPosById(
+  ctx: CanvasRenderingContext2D,
+  entries: LayoutEntry[],
+  posById: Map<string, { cx: number; cy: number }>,
+  dragOffsetById: Map<string, { x: number; y: number }>,
+  wCss: number,
+  hCss: number,
+  inset: CanvasViewportInset,
+  mode: "nonDependentMoon" | "dependentMoon"
+): void {
+  for (const e of entries) {
+    if (e.diameterPx < 1) continue
+    const dep = isDependentMoonEntry(e)
+    if (mode === "nonDependentMoon" && dep) continue
+    if (mode === "dependentMoon" && !dep) continue
+    const d = dragOffsetById.get(e.row.id)
+    if (!d || (d.x === 0 && d.y === 0)) continue
+    const pos = posById.get(e.row.id)
+    if (!pos) continue
+    let { cx, cy } = pos
+    cx += d.x
+    cy += d.y
+    ;({ cx, cy } = nudgeBodyCenterToFitViewport(
+      ctx,
+      cx,
+      cy,
+      e.diameterPx,
+      e.row.name,
+      wCss,
+      hCss,
+      inset
+    ))
+    posById.set(e.row.id, { cx, cy })
+  }
+}
+
 function computePositionsById(
   ctx: CanvasRenderingContext2D,
   entries: LayoutEntry[],
@@ -454,7 +496,8 @@ function computePositionsById(
   hCss: number,
   positionFractionById: Map<string, { ux: number; uy: number }>,
   moonOrbitAngleById: Map<string, number>,
-  inset: CanvasViewportInset
+  inset: CanvasViewportInset,
+  dragOffsetById: Map<string, { x: number; y: number }>
 ): Map<string, { cx: number; cy: number }> {
   const posById = new Map<string, { cx: number; cy: number }>()
   const entryById = new Map(entries.map((e) => [e.row.id, e]))
@@ -487,6 +530,17 @@ function computePositionsById(
     ))
     posById.set(e.row.id, { cx, cy })
   }
+
+  applyUserDragOffsetsToPosById(
+    ctx,
+    entries,
+    posById,
+    dragOffsetById,
+    wCss,
+    hCss,
+    inset,
+    "nonDependentMoon"
+  )
 
   const moonLabelRectsByParent = new Map<string, CanvasBodyLabelRect[]>()
 
@@ -632,8 +686,23 @@ function computePositionsById(
     }
   }
 
+  applyUserDragOffsetsToPosById(
+    ctx,
+    entries,
+    posById,
+    dragOffsetById,
+    wCss,
+    hCss,
+    inset,
+    "dependentMoon"
+  )
+
   return posById
 }
+
+const DRAG_THRESHOLD_CSS_PX = 5
+/** Slightly larger so touch drags start reliably after `touch-none` suppresses scroll. */
+const DRAG_THRESHOLD_TOUCH_CSS_PX = 10
 
 export function SizeComparisonCanvas({
   model,
@@ -651,8 +720,19 @@ export function SizeComparisonCanvas({
   const layoutHitRef = useRef<HitLayoutSnapshot | null>(null)
   const redrawRef = useRef<(() => Promise<void>) | null>(null)
 
+  const positionFractionByIdRef = useRef<
+    Map<string, { ux: number; uy: number }>
+  >(new Map())
+  const moonOrbitAngleByIdRef = useRef<Map<string, number>>(new Map())
+  const bodyDragOffsetByIdRef = useRef<Map<string, { x: number; y: number }>>(
+    new Map()
+  )
+  const isDraggingRef = useRef(false)
+
   const labelModeRef = useRef(labelMode)
   const selectedBodyIdRef = useRef(selectedBodyId)
+
+  const { startSession: startPointerDrag } = usePointerDragDelta()
 
   const onCanvasPointerDown = useCallback(
     (e: PointerEvent<HTMLCanvasElement>) => {
@@ -660,9 +740,7 @@ export function SizeComparisonCanvas({
       const canvas = canvasRef.current
       const snap = layoutHitRef.current
       if (!canvas || !snap) return
-      const rect = canvas.getBoundingClientRect()
-      const x = e.clientX - rect.left
-      const y = e.clientY - rect.top
+      const { x, y } = getCanvasLocalCssPoint(canvas, e.clientX, e.clientY)
       const hit = hitTestBodyIdAt(
         snap,
         x,
@@ -671,8 +749,35 @@ export function SizeComparisonCanvas({
         selectedBodyIdRef.current
       )
       onBodySelect(hit)
+      if (!hit) return
+
+      startPointerDrag({
+        event: e.nativeEvent,
+        captureTarget: canvas,
+        dragThresholdPx:
+          e.nativeEvent.pointerType === "touch"
+            ? DRAG_THRESHOLD_TOUCH_CSS_PX
+            : DRAG_THRESHOLD_CSS_PX,
+        onMove: (dx, dy) => {
+          const prev = bodyDragOffsetByIdRef.current.get(hit) ?? { x: 0, y: 0 }
+          bodyDragOffsetByIdRef.current.set(hit, {
+            x: prev.x + dx,
+            y: prev.y + dy,
+          })
+          isDraggingRef.current = true
+          const c = canvasRef.current
+          if (c) c.style.cursor = "grabbing"
+          void redrawRef.current?.()
+        },
+        onEnd: () => {
+          isDraggingRef.current = false
+          const c = canvasRef.current
+          if (c) c.style.cursor = "default"
+          void redrawRef.current?.()
+        },
+      })
     },
-    [onBodySelect]
+    [onBodySelect, startPointerDrag]
   )
 
   const onCanvasPointerMove = useCallback(
@@ -681,9 +786,11 @@ export function SizeComparisonCanvas({
       const canvas = canvasRef.current
       const snap = layoutHitRef.current
       if (!canvas || !snap) return
-      const rect = canvas.getBoundingClientRect()
-      const x = e.clientX - rect.left
-      const y = e.clientY - rect.top
+      if (isDraggingRef.current) {
+        canvas.style.cursor = "grabbing"
+        return
+      }
+      const { x, y } = getCanvasLocalCssPoint(canvas, e.clientX, e.clientY)
       const hit = hitTestBodyIdAt(
         snap,
         x,
@@ -691,14 +798,14 @@ export function SizeComparisonCanvas({
         labelModeRef.current,
         selectedBodyIdRef.current
       )
-      canvas.style.cursor = hit ? "pointer" : "default"
+      canvas.style.cursor = hit ? "grab" : "default"
     },
     [onBodySelect]
   )
 
   const onCanvasPointerLeave = useCallback(() => {
     const canvas = canvasRef.current
-    if (canvas) canvas.style.cursor = "default"
+    if (canvas && !isDraggingRef.current) canvas.style.cursor = "default"
   }, [])
 
   useLayoutEffect(() => {
@@ -706,29 +813,24 @@ export function SizeComparisonCanvas({
     const wrapper = wrapperRef.current
     if (!canvas || !wrapper) return
 
-    const bodies = collectCanvasBodies(model)
-    const moonKm = moonReferenceDiameterKm(bodies)
-    const pxPerKm = 1 / moonKm
-
-    const ordered = [...bodies].sort(
-      (a, b) => b.row.diameterKm - a.row.diameterKm
-    )
-
-    // One random spot per body while this effect runs (new layout when `model` changes).
-    const positionFractionById = new Map<string, { ux: number; uy: number }>()
-    for (const b of bodies) {
-      positionFractionById.set(b.row.id, {
+    const bodiesForSeed = collectCanvasBodies(model)
+    positionFractionByIdRef.current = new Map()
+    for (const b of bodiesForSeed) {
+      positionFractionByIdRef.current.set(b.row.id, {
         ux: Math.random(),
         uy: Math.random(),
       })
     }
-
-    const moonOrbitAngleById = new Map<string, number>()
-    for (const b of bodies) {
+    moonOrbitAngleByIdRef.current = new Map()
+    for (const b of bodiesForSeed) {
       if (b.kind === "moon" && b.parentPlanetId) {
-        moonOrbitAngleById.set(b.row.id, Math.random() * Math.PI * 2)
+        moonOrbitAngleByIdRef.current.set(
+          b.row.id,
+          Math.random() * Math.PI * 2
+        )
       }
     }
+    bodyDragOffsetByIdRef.current = new Map()
 
     let cancelled = false
     const resizeObserver = new ResizeObserver(() => {
@@ -745,6 +847,13 @@ export function SizeComparisonCanvas({
       const wCss = wrapper.clientWidth ?? 0
       const hCss = wrapper?.clientHeight ?? 0
       if (wCss < 16 || hCss < 16) return
+
+      const bodies = collectCanvasBodies(model)
+      const moonKm = moonReferenceDiameterKm(bodies)
+      const pxPerKm = 1 / moonKm
+      const ordered = [...bodies].sort(
+        (a, b) => b.row.diameterKm - a.row.diameterKm
+      )
 
       const drawOrder = ordered
 
@@ -793,9 +902,10 @@ export function SizeComparisonCanvas({
         entries,
         wCss,
         hCss,
-        positionFractionById,
-        moonOrbitAngleById,
-        viewportInset
+        positionFractionByIdRef.current,
+        moonOrbitAngleByIdRef.current,
+        viewportInset,
+        bodyDragOffsetByIdRef.current
       )
 
       const labelRectById = new Map<string, CanvasBodyLabelRect>()
@@ -927,9 +1037,11 @@ export function SizeComparisonCanvas({
         ref={canvasRef}
         className={cn(
           "absolute inset-0 block size-full",
-          onBodySelect ? "pointer-events-auto" : "pointer-events-none"
+          onBodySelect
+            ? "pointer-events-auto touch-none select-none"
+            : "pointer-events-none"
         )}
-        aria-label="Scaled bodies: click a disk or its name label to select. Moons sit near their planet; Moon is one pixel; larger drawn behind."
+        aria-label="Scaled bodies: tap or click a disk or its name label to select. Drag with finger or pointer to reposition (move a few pixels first to start a drag). Moons sit near their planet; Moon is one pixel; larger drawn behind."
         onPointerDown={onBodySelect ? onCanvasPointerDown : undefined}
         onPointerMove={onBodySelect ? onCanvasPointerMove : undefined}
         onPointerLeave={onBodySelect ? onCanvasPointerLeave : undefined}
