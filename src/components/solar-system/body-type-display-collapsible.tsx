@@ -154,16 +154,56 @@ export function BodyTypeDisplayCollapsible({
                           type="button"
                           aria-label={`${row.label}: expand or collapse body list`}
                           className={cn(
-                            "flex size-8 shrink-0 items-center justify-center rounded-lg text-sidebar-foreground ring-sidebar-ring outline-none",
+                            "flex min-w-0 flex-1 cursor-pointer items-center gap-1 rounded-lg py-0.5 pr-1 pl-0.5 text-left text-sidebar-foreground ring-sidebar-ring outline-none",
                             "hover:bg-sidebar-accent/60 focus-visible:ring-2"
                           )}
                         >
-                          <ChevronUp
-                            aria-hidden
-                            className="size-4 text-sidebar-foreground/70 transition-transform duration-200 group-data-[state=open]/kind-bodylist:rotate-180"
-                          />
+                          <span className="flex size-8 shrink-0 items-center justify-center">
+                            <ChevronUp
+                              aria-hidden
+                              className="size-4 text-sidebar-foreground/70 transition-transform duration-200 group-data-[state=open]/kind-bodylist:rotate-180"
+                            />
+                          </span>
+                          <span className="min-w-0 flex-1 font-medium text-sidebar-foreground/95">
+                            {row.label}
+                          </span>
+                          <span
+                            className="shrink-0 tabular-nums text-sidebar-foreground/70"
+                            aria-live="polite"
+                          >
+                            {row.visibility === "hidden"
+                              ? HIDDEN_COUNT
+                              : `${row.renderable}\u00a0/\u00a0${row.total}`}
+                          </span>
                         </CollapsibleTrigger>
-                        {summary}
+                        <Button
+                          type="button"
+                          role="switch"
+                          aria-checked={row.visibility === "visible"}
+                          aria-label={`${row.label}: ${row.visibility === "visible" ? "visible on canvas when scale allows" : "hidden"}. Toggle.`}
+                          variant={
+                            row.visibility === "visible" ? "default" : "outline"
+                          }
+                          size="sm"
+                          className="h-7 shrink-0 px-2 text-[11px]"
+                          onClick={() =>
+                            row.onSetVisibility(
+                              row.visibility === "visible" ? "hidden" : "visible"
+                            )
+                          }
+                        >
+                          <span className="inline-grid justify-items-center">
+                            <span
+                              className="invisible col-start-1 row-start-1"
+                              aria-hidden
+                            >
+                              Visible
+                            </span>
+                            <span className="col-start-1 row-start-1">
+                              {row.visibility === "visible" ? "Visible" : "Hidden"}
+                            </span>
+                          </span>
+                        </Button>
                       </div>
                       <CollapsibleContent>
                         <div className="mt-2 max-h-40 overflow-y-auto rounded-md border border-sidebar-border/50 bg-sidebar/25 px-2 py-1.5">

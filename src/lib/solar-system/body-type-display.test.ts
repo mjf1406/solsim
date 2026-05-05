@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest"
 
-import type { SizeCanvasBody } from "@/routes/_app/solar-system/size/-data"
+import {
+  makeSizeCanvasId,
+  type SizeCanvasBody,
+} from "@/routes/_app/solar-system/size/-data"
 
 import {
   applyBodyTypePreset,
@@ -11,12 +14,12 @@ import {
   defaultSizeBodyDisplayFilter,
   filterSizeCanvasBodiesForDisplay,
   isRenderableAtScale,
-  kindByIdFromBodies,
   presetCycleButtonLabel,
 } from "./body-type-display"
 
 function moon(id: string, diameterKm: number, parentId: string): SizeCanvasBody {
   return {
+    canvasId: makeSizeCanvasId("moon", id),
     row: { id, name: id, diameterKm },
     kind: "moon",
     parentPlanetId: parentId,
@@ -25,6 +28,7 @@ function moon(id: string, diameterKm: number, parentId: string): SizeCanvasBody 
 
 function planet(id: string, diameterKm: number): SizeCanvasBody {
   return {
+    canvasId: makeSizeCanvasId("planet", id),
     row: { id, name: id, diameterKm },
     kind: "planet",
     parentPlanetId: null,
@@ -33,6 +37,7 @@ function planet(id: string, diameterKm: number): SizeCanvasBody {
 
 function dwarf(id: string, diameterKm: number): SizeCanvasBody {
   return {
+    canvasId: makeSizeCanvasId("dwarf", id),
     row: { id, name: id, diameterKm },
     kind: "dwarf",
     parentPlanetId: null,
@@ -41,6 +46,7 @@ function dwarf(id: string, diameterKm: number): SizeCanvasBody {
 
 function asteroid(id: string, diameterKm: number): SizeCanvasBody {
   return {
+    canvasId: makeSizeCanvasId("asteroid", id),
     row: { id, name: id, diameterKm },
     kind: "asteroid",
     parentPlanetId: null,
@@ -74,19 +80,18 @@ describe("bodyPassesDisplayFilter planetsOnly moons", () => {
   const pluto = dwarf("plu", 2376.6)
   const galilean = moon("io", 3600, "jup")
   const bodies = [jupiter, pluto, charon, galilean]
-  const kindById = kindByIdFromBodies(bodies)
 
   const filter = applyBodyTypePreset("planetsAndMoons")
 
   it("allows moons of planets", () => {
     expect(
-      bodyPassesDisplayFilter(galilean, filter, kindById, pxPerKm, minPx)
+      bodyPassesDisplayFilter(galilean, filter, bodies, pxPerKm, minPx)
     ).toBe(true)
   })
 
   it("excludes moons of dwarf planets", () => {
     expect(
-      bodyPassesDisplayFilter(charon, filter, kindById, pxPerKm, minPx)
+      bodyPassesDisplayFilter(charon, filter, bodies, pxPerKm, minPx)
     ).toBe(false)
   })
 
@@ -100,6 +105,21 @@ describe("bodyPassesDisplayFilter planetsOnly moons", () => {
     expect(visible.some((b) => b.row.id === "io")).toBe(true)
     expect(visible.some((b) => b.row.id === "char")).toBe(false)
   })
+
+  it("keeps two bodies that share the same catalog id string", () => {
+    const host = planet("10", 140_000)
+    const rock = asteroid("10", 5000)
+    const dupBodies = [host, rock]
+    const f = defaultSizeBodyDisplayFilter()
+    const visible = filterSizeCanvasBodiesForDisplay(
+      dupBodies,
+      f,
+      pxPerKm,
+      minPx
+    )
+    expect(visible).toHaveLength(2)
+    expect(new Set(visible.map((b) => b.canvasId)).size).toBe(2)
+  })
 })
 
 describe("bodyCanvasInclusion", () => {
@@ -112,25 +132,24 @@ describe("bodyCanvasInclusion", () => {
     const galilean = moon("io", 3600, "jup")
     const tinyAsteroid = asteroid("tiny", 500)
     const bodies = [jupiter, galilean, tinyAsteroid]
-    const kindById = kindByIdFromBodies(bodies)
     const filter = applyBodyTypePreset("planets")
     const incMoon = bodyCanvasInclusion(
       galilean,
       filter,
-      kindById,
+      bodies,
       pxMoonOne,
       minPx
     )
     expect(incMoon.onCanvas).toBe(false)
     expect(incMoon.reasonLabel).toBe("Kind hidden")
     expect(
-      bodyPassesDisplayFilter(galilean, filter, kindById, pxMoonOne, minPx)
+      bodyPassesDisplayFilter(galilean, filter, bodies, pxMoonOne, minPx)
     ).toBe(false)
 
     const incAst = bodyCanvasInclusion(
       tinyAsteroid,
       filter,
-      kindById,
+      bodies,
       pxMoonOne,
       minPx
     )
@@ -141,13 +160,12 @@ describe("bodyCanvasInclusion", () => {
   it("reports under 1 px when kind is visible", () => {
     const rock = asteroid("rock", 500)
     const bodies = [rock]
-    const kindById = kindByIdFromBodies(bodies)
     const filter = defaultSizeBodyDisplayFilter()
-    const inc = bodyCanvasInclusion(rock, filter, kindById, pxMoonOne, minPx)
+    const inc = bodyCanvasInclusion(rock, filter, bodies, pxMoonOne, minPx)
     expect(inc.onCanvas).toBe(false)
     expect(inc.reasonLabel).toBe("Under 1 px at this scale")
     expect(
-      bodyPassesDisplayFilter(rock, filter, kindById, pxMoonOne, minPx)
+      bodyPassesDisplayFilter(rock, filter, bodies, pxMoonOne, minPx)
     ).toBe(false)
   })
 
@@ -156,13 +174,12 @@ describe("bodyCanvasInclusion", () => {
     const charon = moon("char", 4000, "plu")
     const pluto = dwarf("plu", 2376.6)
     const bodies = [jupiter, pluto, charon]
-    const kindById = kindByIdFromBodies(bodies)
     const filter = applyBodyTypePreset("planetsAndMoons")
-    const inc = bodyCanvasInclusion(charon, filter, kindById, pxMoonOne, minPx)
+    const inc = bodyCanvasInclusion(charon, filter, bodies, pxMoonOne, minPx)
     expect(inc.onCanvas).toBe(false)
     expect(inc.reasonLabel).toBe("Major-planet moons only")
     expect(
-      bodyPassesDisplayFilter(charon, filter, kindById, pxMoonOne, minPx)
+      bodyPassesDisplayFilter(charon, filter, bodies, pxMoonOne, minPx)
     ).toBe(inc.onCanvas)
   })
 
@@ -170,9 +187,8 @@ describe("bodyCanvasInclusion", () => {
     const jupiter = planet("jup", 140_000)
     const galilean = moon("io", 3600, "jup")
     const bodies = [jupiter, galilean]
-    const kindById = kindByIdFromBodies(bodies)
     const filter = applyBodyTypePreset("planetsAndMoons")
-    const inc = bodyCanvasInclusion(galilean, filter, kindById, pxMoonOne, minPx)
+    const inc = bodyCanvasInclusion(galilean, filter, bodies, pxMoonOne, minPx)
     expect(inc.onCanvas).toBe(true)
     expect(inc.reasonLabel).toBe("On canvas")
   })

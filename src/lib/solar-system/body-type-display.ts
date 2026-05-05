@@ -142,14 +142,17 @@ export function isRenderableAtScale(
   return diameterKm * pxPerKm >= minPx
 }
 
-export function kindByIdFromBodies(
-  bodies: SizeCanvasBody[]
-): Map<string, SizeBodyKind> {
-  const m = new Map<string, SizeBodyKind>()
-  for (const b of bodies) {
-    m.set(b.row.id, b.kind)
-  }
-  return m
+/** Moon parent `parentPlanetId` is a catalog host id; resolve kind without conflating other bodies that reuse the same id string. */
+export function hostKindForMoonParentCatalogId(
+  bodies: SizeCanvasBody[],
+  parentCatalogId: string
+): SizeBodyKind | undefined {
+  const host = bodies.find(
+    (b) =>
+      (b.kind === "planet" || b.kind === "dwarf") &&
+      b.row.id === parentCatalogId
+  )
+  return host?.kind
 }
 
 export function statsByKindForModel(
@@ -183,7 +186,7 @@ export function statsByKindForModel(
 export function bodyPassesDisplayFilter(
   body: SizeCanvasBody,
   filter: SizeBodyDisplayFilter,
-  kindById: Map<string, SizeBodyKind>,
+  bodies: SizeCanvasBody[],
   pxPerKm: number,
   minPx: number
 ): boolean {
@@ -194,7 +197,10 @@ export function bodyPassesDisplayFilter(
     body.parentPlanetId &&
     filter.moonParentPolicy === "planetsOnly"
   ) {
-    const parentKind = kindById.get(body.parentPlanetId)
+    const parentKind = hostKindForMoonParentCatalogId(
+      bodies,
+      body.parentPlanetId
+    )
     if (parentKind !== "planet") return false
   }
   return true
@@ -218,7 +224,7 @@ const LABEL_MOON_PARENT_PLANETS_ONLY = "Major-planet moons only"
 export function bodyCanvasInclusion(
   body: SizeCanvasBody,
   filter: SizeBodyDisplayFilter,
-  kindById: Map<string, SizeBodyKind>,
+  bodies: SizeCanvasBody[],
   pxPerKm: number,
   minPx: number
 ): BodyCanvasInclusion {
@@ -233,7 +239,10 @@ export function bodyCanvasInclusion(
     body.parentPlanetId &&
     filter.moonParentPolicy === "planetsOnly"
   ) {
-    const parentKind = kindById.get(body.parentPlanetId)
+    const parentKind = hostKindForMoonParentCatalogId(
+      bodies,
+      body.parentPlanetId
+    )
     if (parentKind !== "planet") {
       return { onCanvas: false, reasonLabel: LABEL_MOON_PARENT_PLANETS_ONLY }
     }
@@ -247,9 +256,8 @@ export function filterSizeCanvasBodiesForDisplay(
   pxPerKm: number,
   minPx: number
 ): SizeCanvasBody[] {
-  const kindById = kindByIdFromBodies(bodies)
   return bodies.filter((b) =>
-    bodyPassesDisplayFilter(b, filter, kindById, pxPerKm, minPx)
+    bodyPassesDisplayFilter(b, filter, bodies, pxPerKm, minPx)
   )
 }
 
@@ -263,8 +271,8 @@ export function isSizeBodyIdVisibleUnderFilter(
 ): boolean {
   if (!id) return false
   const bodies = collectSizeCanvasBodies(model)
-  const kindById = kindByIdFromBodies(bodies)
-  const body = bodies.find((b) => b.row.id === id)
+  const body =
+    bodies.find((b) => b.canvasId === id) ?? bodies.find((b) => b.row.id === id)
   if (!body) return false
-  return bodyPassesDisplayFilter(body, filter, kindById, pxPerKm, minPx)
+  return bodyPassesDisplayFilter(body, filter, bodies, pxPerKm, minPx)
 }

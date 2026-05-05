@@ -42,7 +42,7 @@ import {
 /**
  * Scale: parent supplies `pxPerKm`. The default (when no prop is provided) keeps
  * the legacy "Moon = 1 CSS px" behavior using `moonReferenceDiameterKm(model)`.
- * Body pixel centers are frozen on first layout for each id and reused for every
+ * Body pixel centers are frozen on first layout for each canvasId and reused for every
  * subsequent redraw at any scale; only the radius changes around that fixed point.
  * The Sun is special-cased: when its diameter exceeds a fraction of the viewport
  * it is anchored off the left edge so only a sliver remains visible, leaving
@@ -376,7 +376,7 @@ type LayoutEntry = SizeCanvasBody & {
 }
 
 type HitLayoutSnapshot = {
-  entries: Array<{ row: { id: string }; diameterPx: number }>
+  entries: Array<{ canvasId: string; diameterPx: number }>
   posById: Map<string, { cx: number; cy: number }>
   /** Label bounds in CSS px when drawn; inflated slightly for hit targets. */
   labelRectById: Map<string, CanvasBodyLabelRect>
@@ -403,9 +403,9 @@ function hitTestBodyIdAt(
   for (let i = snap.entries.length - 1; i >= 0; i--) {
     const entry = snap.entries[i]
     if (entry.diameterPx < 1) continue
-    const pos = snap.posById.get(entry.row.id)
+    const pos = snap.posById.get(entry.canvasId)
     if (!pos) continue
-    const id = entry.row.id
+    const id = entry.canvasId
     if (shouldDrawBodyLabel(labelMode, selectedBodyId, id)) {
       const labelRect = snap.labelRectById.get(id)
       if (labelRect && pointInLabelHitRect(x, y, labelRect)) {
@@ -445,7 +445,7 @@ function freshCenterForNonDependent(
   inset: CanvasViewportInset,
   positionFractionById: Map<string, { ux: number; uy: number }>
 ): { cx: number; cy: number } {
-  const frac = positionFractionById.get(e.row.id) ?? { ux: 0.5, uy: 0.5 }
+  const frac = positionFractionById.get(e.canvasId) ?? { ux: 0.5, uy: 0.5 }
   let { cx, cy } = centerForBodyInViewportWithLabel(
     ctx,
     wCss,
@@ -556,7 +556,7 @@ function freshCenterForDependentMoon(
 /**
  * Resolves the effective on-screen position of every renderable entry.
  *
- * - Each id has its center frozen on first layout in `frozenCenterById`; later
+ * - Each canvasId has its center frozen on first layout in `frozenCenterById`; later
  *   redraws (including scale changes) reuse it without nudging or clamping.
  * - The Sun is special-cased: when its diameter exceeds the off-screen threshold
  *   its effective center jumps to a fixed left-edge anchor so only a sliver of
@@ -578,12 +578,17 @@ function computePositionsById(
   frozenCenterById: Map<string, { cx: number; cy: number }>
 ): Map<string, { cx: number; cy: number }> {
   const posById = new Map<string, { cx: number; cy: number }>()
-  const entryById = new Map(entries.map((e) => [e.row.id, e]))
+  const hostEntryByCatalogId = new Map<string, LayoutEntry>()
+  for (const e of entries) {
+    if (e.kind === "planet" || e.kind === "dwarf") {
+      hostEntryByCatalogId.set(e.row.id, e)
+    }
+  }
 
   for (const e of entries) {
     if (e.kind === "moon" && e.parentPlanetId) continue
     if (e.diameterPx < 1) continue
-    let center = frozenCenterById.get(e.row.id)
+    let center = frozenCenterById.get(e.canvasId)
     if (!center) {
       center = freshCenterForNonDependent(
         ctx,
@@ -593,9 +598,9 @@ function computePositionsById(
         inset,
         positionFractionById
       )
-      frozenCenterById.set(e.row.id, center)
+      frozenCenterById.set(e.canvasId, center)
     }
-    posById.set(e.row.id, { cx: center.cx, cy: center.cy })
+    posById.set(e.canvasId, { cx: center.cx, cy: center.cy })
   }
 
   const moonLabelRectsByParent = new Map<string, CanvasBodyLabelRect[]>()
@@ -604,10 +609,12 @@ function computePositionsById(
     if (!(e.kind === "moon" && e.parentPlanetId)) continue
     if (e.diameterPx < 1) continue
     const pid = e.parentPlanetId
-    const parentEntry = entryById.get(pid)
-    const parentPos = posById.get(pid)
+    const parentEntry = hostEntryByCatalogId.get(pid)
+    const parentPos = parentEntry
+      ? posById.get(parentEntry.canvasId)
+      : undefined
 
-    let center = frozenCenterById.get(e.row.id)
+    let center = frozenCenterById.get(e.canvasId)
     if (!center) {
       if (
         !parentPos ||
@@ -623,9 +630,9 @@ function computePositionsById(
           inset,
           positionFractionById
         )
-        frozenCenterById.set(e.row.id, center)
+        frozenCenterById.set(e.canvasId, center)
       } else {
-        const baseAng = moonOrbitAngleById.get(e.row.id) ?? 0
+        const baseAng = moonOrbitAngleById.get(e.canvasId) ?? 0
         const parentRectInfl = inflateCanvasLabelRect(
           bodyCircleLabelRect(
             ctx,
@@ -650,13 +657,13 @@ function computePositionsById(
           avoid
         )
         center = { cx: placed.cx, cy: placed.cy }
-        frozenCenterById.set(e.row.id, center)
+        frozenCenterById.set(e.canvasId, center)
         const nextSiblings = moonLabelRectsByParent.get(pid) ?? []
         nextSiblings.push(placed.moonRectInfl)
         moonLabelRectsByParent.set(pid, nextSiblings)
       }
     }
-    posById.set(e.row.id, { cx: center.cx, cy: center.cy })
+    posById.set(e.canvasId, { cx: center.cx, cy: center.cy })
   }
 
   for (const e of entries) {
@@ -669,30 +676,30 @@ function computePositionsById(
       OVERSIZED_DISK_VISIBLE_ARC_PX,
       inset.left
     )
-    posById.set(e.row.id, anchor)
+    posById.set(e.canvasId, anchor)
   }
 
   for (const e of entries) {
     if (e.diameterPx < 1) continue
-    const d = dragOffsetById.get(e.row.id)
+    const d = dragOffsetById.get(e.canvasId)
     if (!d || (d.x === 0 && d.y === 0)) continue
-    const pos = posById.get(e.row.id)
+    const pos = posById.get(e.canvasId)
     if (!pos) continue
-    posById.set(e.row.id, { cx: pos.cx + d.x, cy: pos.cy + d.y })
+    posById.set(e.canvasId, { cx: pos.cx + d.x, cy: pos.cy + d.y })
   }
 
   for (const parent of entries) {
     if (parent.diameterPx < 1) continue
     if (!(parent.kind === "planet" || parent.kind === "dwarf")) continue
-    const d = dragOffsetById.get(parent.row.id)
+    const d = dragOffsetById.get(parent.canvasId)
     if (!d || (d.x === 0 && d.y === 0)) continue
     const pid = parent.row.id
     for (const m of entries) {
       if (m.diameterPx < 1) continue
       if (!(m.kind === "moon" && m.parentPlanetId === pid)) continue
-      const pos = posById.get(m.row.id)
+      const pos = posById.get(m.canvasId)
       if (!pos) continue
-      posById.set(m.row.id, { cx: pos.cx + d.x, cy: pos.cy + d.y })
+      posById.set(m.canvasId, { cx: pos.cx + d.x, cy: pos.cy + d.y })
     }
   }
 
@@ -735,7 +742,7 @@ export function SizeComparisonCanvas({
   const bodyDragOffsetByIdRef = useRef<Map<string, { x: number; y: number }>>(
     new Map()
   )
-  /** Cached pixel center per body id; populated on first layout, reused thereafter. */
+  /** Cached pixel center per canvasId; populated on first layout, reused thereafter. */
   const frozenCenterByIdRef = useRef<Map<string, { cx: number; cy: number }>>(
     new Map()
   )
@@ -832,7 +839,7 @@ export function SizeComparisonCanvas({
     const bodiesForSeed = collectSizeCanvasBodies(model)
     positionFractionByIdRef.current = new Map()
     for (const b of bodiesForSeed) {
-      positionFractionByIdRef.current.set(b.row.id, {
+      positionFractionByIdRef.current.set(b.canvasId, {
         ux: Math.random(),
         uy: Math.random(),
       })
@@ -841,7 +848,7 @@ export function SizeComparisonCanvas({
     for (const b of bodiesForSeed) {
       if (b.kind === "moon" && b.parentPlanetId) {
         moonOrbitAngleByIdRef.current.set(
-          b.row.id,
+          b.canvasId,
           Math.random() * Math.PI * 2
         )
       }
@@ -934,7 +941,7 @@ export function SizeComparisonCanvas({
       clampStarDiskDragsInViewport(
         entries.map((e) => ({
           kind: e.kind,
-          id: e.row.id,
+          id: e.canvasId,
           diameterPx: e.diameterPx,
         })),
         wCss,
@@ -959,7 +966,7 @@ export function SizeComparisonCanvas({
       const labelRectById = new Map<string, CanvasBodyLabelRect>()
       for (const e of entries) {
         if (e.diameterPx < 1) continue
-        const pos = posById.get(e.row.id)
+        const pos = posById.get(e.canvasId)
         if (!pos) continue
         const raw = bodyCircleLabelRect(
           ctx,
@@ -969,14 +976,14 @@ export function SizeComparisonCanvas({
           e.diameterPx
         )
         labelRectById.set(
-          e.row.id,
+          e.canvasId,
           inflateCanvasLabelRect(raw, 6)
         )
       }
 
       layoutHitRef.current = {
         entries: entries.map((e) => ({
-          row: { id: e.row.id },
+          canvasId: e.canvasId,
           diameterPx: e.diameterPx,
         })),
         posById,
@@ -988,7 +995,7 @@ export function SizeComparisonCanvas({
         const r = e.diameterPx / 2
         if (!(r > 0)) return
         if (e.diameterPx < 1) return
-        const pos = posById.get(e.row.id)
+        const pos = posById.get(e.canvasId)
         if (!pos) return
         const { cx, cy } = pos
         if (res.status === "fulfilled") {
@@ -1006,7 +1013,7 @@ export function SizeComparisonCanvas({
           shouldDrawBodyLabel(
             labelModeRef.current,
             selectedBodyIdRef.current,
-            e.row.id
+            e.canvasId
           )
         ) {
           drawCanvasBodyLabel(ctx, e.row.name, cx, cy, r)
@@ -1017,10 +1024,10 @@ export function SizeComparisonCanvas({
       if (selId) {
         for (let i = 0; i < entries.length; i++) {
           const e = entries[i]
-          if (e.row.id !== selId) continue
+          if (e.canvasId !== selId) continue
           const r = e.diameterPx / 2
           if (!(r > 0) || e.diameterPx < 1) break
-          const pos = posById.get(e.row.id)
+          const pos = posById.get(e.canvasId)
           if (!pos) break
           drawSelectionIndicator(ctx, pos.cx, pos.cy, r)
           break

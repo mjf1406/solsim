@@ -174,8 +174,17 @@ export type SizeBodyKind =
   | "asteroid"
   | "comet"
 
+/** Stable key for layout/selection; catalog `row.id` can repeat across kinds (Horizons). */
+export function makeSizeCanvasId(
+  kind: SizeBodyKind,
+  catalogId: string
+): string {
+  return `${kind}:${catalogId}`
+}
+
 /** One drawable body on the size canvas (finite diameter). */
 export type SizeCanvasBody = {
+  canvasId: string
   row: SizeRow & { diameterKm: number }
   kind: SizeBodyKind
   /** Host planet or dwarf id when `kind === "moon"`. */
@@ -192,9 +201,11 @@ export function collectSizeCanvasBodies(model: SizePageModel): SizeCanvasBody[] 
     parentPlanetId: string | null = null
   ) => {
     if (row.diameterKm == null || !Number.isFinite(row.diameterKm)) return
-    if (seen.has(row.id)) return
-    seen.add(row.id)
+    const canvasId = makeSizeCanvasId(kind, row.id)
+    if (seen.has(canvasId)) return
+    seen.add(canvasId)
     out.push({
+      canvasId,
       row: row as SizeRow & { diameterKm: number },
       kind,
       parentPlanetId,
@@ -291,6 +302,9 @@ export function findSizeBodyDetail(
     }
   }
 
+  const byCanvas = collectSizeCanvasBodies(model).find((b) => b.canvasId === id)
+  if (byCanvas) return asDetail(byCanvas.row, byCanvas.kind)
+
   if (model.sun?.id === id) return asDetail(model.sun, "star")
   for (const s of model.planets) {
     if (s.body.id === id) return asDetail(s.body, "planet")
@@ -324,6 +338,9 @@ export function findSizeRowNameById(
   id: string | null
 ): string | null {
   if (!id) return null
+  const byCanvas = collectSizeCanvasBodies(model).find((b) => b.canvasId === id)
+  if (byCanvas) return byCanvas.row.name
+
   if (model.sun?.id === id) return model.sun.name
   for (const s of model.planets) {
     if (s.body.id === id) return s.body.name

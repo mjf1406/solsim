@@ -7,7 +7,6 @@ import {
   BODY_TYPE_PRESET_BUTTON_WIDTH_REF,
   bodyCanvasInclusion,
   cycleBodyTypePreset,
-  kindByIdFromBodies,
   presetCycleButtonLabel,
   SIZE_BODY_KIND_ORDER,
   statsByKindForModel,
@@ -75,7 +74,6 @@ function SizeBodyTypesCollapsibleSection({
   const rows = useMemo(() => {
     const stats = statsByKindForModel(model, 1, pxPerKm)
     const allBodies = collectSizeCanvasBodies(model)
-    const kindById = kindByIdFromBodies(allBodies)
     const byKind = new Map<SizeBodyKind, typeof allBodies>()
     for (const k of SIZE_BODY_KIND_ORDER) {
       byKind.set(k, [])
@@ -100,13 +98,13 @@ function SizeBodyTypesCollapsibleSection({
               const { onCanvas, reasonLabel } = bodyCanvasInclusion(
                 b,
                 bodyDisplayFilter,
-                kindById,
+                allBodies,
                 pxPerKm,
                 1
               )
-              const isSelected = selectedBodyId === b.row.id
+              const isSelected = selectedBodyId === b.canvasId
               return (
-                <li key={b.row.id} className="leading-snug">
+                <li key={b.canvasId} className="leading-snug">
                   <button
                     type="button"
                     className={cn(
@@ -117,7 +115,7 @@ function SizeBodyTypesCollapsibleSection({
                     )}
                     aria-label={`Select ${b.row.name} on canvas`}
                     aria-pressed={isSelected}
-                    onClick={() => onSelectBody(b.row.id)}
+                    onClick={() => onSelectBody(b.canvasId)}
                   >
                     <span className="min-w-0 truncate text-sidebar-foreground/95">
                       {b.row.name}
@@ -202,9 +200,9 @@ function SizeBodyTypesCollapsibleSection({
               means it will never be shown.
             </p>
             <p>
-              Expand a body type with the chevron to see every body and whether
-              it would appear on the canvas at the current scale. Click a name
-              to select that body on the canvas.
+              Click a body type row (name, counts, or chevron) to expand and see
+              every body and whether it would appear on the canvas at the current
+              scale. Click a body name to select it on the canvas.
             </p>
           </div>
         }
