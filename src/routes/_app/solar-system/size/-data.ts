@@ -293,7 +293,7 @@ export type SizeBodyDetail = {
   name: string
   kind: SizeBodyKind
   diameterKm: number
-  /** Disk diameter in CSS pixels (Moon = 1 px). */
+  /** Disk diameter in CSS pixels at the given canvas scale (`diameterKm * pxPerKm`). */
   diameterPx: number
   /** Host planet or dwarf name when `kind === "moon"` and known; otherwise null. */
   parentPlanetName: string | null
@@ -305,11 +305,11 @@ export type SizeBodyDetail = {
  */
 export function findSizeBodyDetail(
   model: SizePageModel,
-  id: string | null
+  id: string | null,
+  /** CSS pixels per kilometer (same convention as the size canvas). */
+  pxPerKm: number
 ): SizeBodyDetail | null {
   if (!id) return null
-  const moonKm = moonReferenceDiameterKm(model)
-  if (!(moonKm > 0)) return null
 
   const asDetail = (
     row: SizeRow,
@@ -322,7 +322,7 @@ export function findSizeBodyDetail(
       name: row.name,
       kind,
       diameterKm: d,
-      diameterPx: d / moonKm,
+      diameterPx: d * pxPerKm,
       parentPlanetName: kind === "moon" ? moonParentName : null,
     }
   }

@@ -45,7 +45,7 @@ export function SizeSelectedBodySidebarContent({
   const [diameterUnit, setDiameterUnit] = useState<"km" | "mi">("km")
   const [scaledUnitSystem, setScaledUnitSystem] =
     useState<ScaledDiameterUnitSystem>("metric")
-  const detail = findSizeBodyDetail(model, selectedBodyId)
+  const detail = findSizeBodyDetail(model, selectedBodyId, pxPerKm)
 
   if (!detail) {
     return (
