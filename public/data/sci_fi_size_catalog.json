@@ -1,0 +1,144 @@
+{
+  "bodies": [
+    {
+      "id": "scifi-sw-death-star-i",
+      "name": "Death Star I (Star Wars)",
+      "category": "sci_fi",
+      "physical": { "diameter_km": 160 },
+      "source_note": "~160 km sphere often cited for DS-1 (fictional)"
+    },
+    {
+      "id": "scifi-sw-death-star-ii",
+      "name": "Death Star II (Star Wars)",
+      "category": "sci_fi",
+      "physical": { "diameter_km": 900 },
+      "source_note": "~900 km unfinished second Death Star (fictional)"
+    },
+    {
+      "id": "scifi-sw-starkiller-base",
+      "name": "Starkiller Base (Star Wars)",
+      "category": "sci_fi",
+      "physical": { "diameter_km": 1900 },
+      "source_note": "Ilum-scale icy planet weapon ~1900 km diameter (fictional estimate)"
+    },
+    {
+      "id": "scifi-sw-millennium-falcon",
+      "name": "Millennium Falcon (Star Wars)",
+      "category": "sci_fi",
+      "physical": { "diameter_km": 0.034 },
+      "source_note": "~34 m freighter; shown as disk diameter for comparison (fictional)"
+    },
+    {
+      "id": "scifi-sw-imperial-star-destroyer",
+      "name": "Imperial-class Star Destroyer (Star Wars)",
+      "category": "sci_fi",
+      "physical": { "diameter_km": 1.6 },
+      "source_note": "~1.6 km Imperial I length used as comparable extent (fictional)"
+    },
+    {
+      "id": "scifi-sw-executor-ssd",
+      "name": "Executor Super Star Destroyer (Star Wars)",
+      "category": "sci_fi",
+      "physical": { "diameter_km": 19 },
+      "source_note": "~19 km Executor length as comparable extent (fictional)"
+    },
+    {
+      "id": "scifi-sw-coruscant",
+      "name": "Coruscant (Star Wars)",
+      "category": "sci_fi",
+      "physical": { "diameter_km": 12742 },
+      "source_note": "Earth-scale ecumenopolis ~12742 km (fictional)"
+    },
+    {
+      "id": "scifi-sw-alderaan",
+      "name": "Alderaan (Star Wars)",
+      "category": "sci_fi",
+      "physical": { "diameter_km": 12500 },
+      "source_note": "Earth-like inhabited world ~12500 km (fictional)"
+    },
+    {
+      "id": "scifi-sw-endor-moon",
+      "name": "Forest Moon of Endor (Star Wars)",
+      "category": "sci_fi",
+      "physical": { "diameter_km": 4900 },
+      "source_note": "Moon-sized body ~4900 km (common fan/wiki scale; fictional)"
+    },
+    {
+      "id": "scifi-sw-yavin-4",
+      "name": "Yavin 4 (Star Wars)",
+      "category": "sci_fi",
+      "physical": { "diameter_km": 5200 },
+      "source_note": "Moon of Yavin Prime ~5200 km (fictional estimate)"
+    },
+    {
+      "id": "scifi-st-borg-cube",
+      "name": "Borg Cube (Star Trek)",
+      "category": "sci_fi",
+      "physical": { "diameter_km": 3.04 },
+      "source_note": "~3.04 km Borg Cube edge length as sphere diameter (fictional)"
+    },
+    {
+      "id": "scifi-st-enterprise-d",
+      "name": "USS Enterprise NCC-1701-D (Star Trek)",
+      "category": "sci_fi",
+      "physical": { "diameter_km": 0.642 },
+      "source_note": "~642 m Galaxy-class length as comparable extent (fictional)"
+    },
+    {
+      "id": "scifi-st-deep-space-nine",
+      "name": "Deep Space 9 (Star Trek)",
+      "category": "sci_fi",
+      "physical": { "diameter_km": 1.451 },
+      "source_note": "~1451 m Cardassian station width estimate (fictional)"
+    },
+    {
+      "id": "scifi-st-dderidex-warbird",
+      "name": "Romulan D'deridex Warbird (Star Trek)",
+      "category": "sci_fi",
+      "physical": { "diameter_km": 1.2 },
+      "source_note": "~1.2 km warbird length estimate (fictional)"
+    },
+    {
+      "id": "scifi-st-vulcan",
+      "name": "Vulcan (Star Trek)",
+      "category": "sci_fi",
+      "physical": { "diameter_km": 12700 },
+      "source_note": "Desert/class-M planet ~Earth scale (fictional)"
+    },
+    {
+      "id": "scifi-st-qonos",
+      "name": "Qo'noS (Star Trek)",
+      "category": "sci_fi",
+      "physical": { "diameter_km": 11800 },
+      "source_note": "Klingon homeworld ~11800 km (fictional estimate)"
+    },
+    {
+      "id": "scifi-st-romulus",
+      "name": "Romulus (Star Trek)",
+      "category": "sci_fi",
+      "physical": { "diameter_km": 12450 },
+      "source_note": "Romulan homeworld Earth-scale ~12450 km (fictional)"
+    },
+    {
+      "id": "scifi-st-bajor",
+      "name": "Bajor (Star Trek)",
+      "category": "sci_fi",
+      "physical": { "diameter_km": 12000 },
+      "source_note": "Class-M inhabited planet ~12000 km (fictional estimate)"
+    },
+    {
+      "id": "scifi-avatar-pandora",
+      "name": "Pandora (Avatar)",
+      "category": "sci_fi",
+      "physical": { "diameter_km": 11447 },
+      "source_note": "Moon of Polyphemus; ~11447 km equatorial diameter in Pandorapedia-style refs (fictional)"
+    },
+    {
+      "id": "scifi-avatar-polyphemus",
+      "name": "Polyphemus (Avatar)",
+      "category": "sci_fi",
+      "physical": { "diameter_km": 139822 },
+      "source_note": "Gas giant host of Pandora; Jupiter-scale ~139822 km for comparison (fictional)"
+    }
+  ]
+}

@@ -21,6 +21,15 @@ import {
   type SizePageModel,
 } from "../-data"
 
+/*
+ * Sci-fi catalog rows are omitted here until diameter estimates are verified.
+ * Restore: use SIZE_BODY_KIND_ORDER instead of SIDEBAR_BODY_KIND_ORDER below,
+ * and uncomment the Sci-fi paragraph in expandedHelp.
+ */
+const SIDEBAR_BODY_KIND_ORDER = SIZE_BODY_KIND_ORDER.filter(
+  (k) => k !== "scifi"
+)
+
 type SizePageBodyTypesSidebarPortalProps = {
   model: SizePageModel
   bodyDisplayFilter: SizeBodyDisplayFilter
@@ -87,7 +96,7 @@ function SizeBodyTypesCollapsibleSection({
       )
     }
 
-    return SIZE_BODY_KIND_ORDER.map((kind) => {
+    return SIDEBAR_BODY_KIND_ORDER.map((kind) => {
       const bodies = byKind.get(kind) ?? []
       const detailContent =
         bodies.length === 0 ? (
@@ -173,9 +182,18 @@ function SizeBodyTypesCollapsibleSection({
           <div className="space-y-2 text-xs leading-snug text-sidebar-foreground/80">
             <p>
               <span className="font-medium text-sidebar-foreground">Auto</span>{" "}
-              mode turns all the below body types on, showing all bodies that
-              are at least 1 pixel in diameter.
+              mode turns on every real solar-system kind below (star through
+              comet), showing bodies that are at least 1 pixel in diameter.
             </p>
+            {/* Sci-fi Body types section — restore when catalog is verified:
+            <p>
+              <span className="font-medium text-sidebar-foreground">Sci-fi</span>{" "}
+              references use fictional diameter estimates for scale comparison.
+              They stay hidden until you set Sci-fi to{" "}
+              <span className="italic">Visible</span>. Planets, Planets+, and
+              Auto never turn Sci-fi on.
+            </p>
+            */}
             <p>
               <span className="font-medium text-sidebar-foreground">
                 Planets

@@ -12,6 +12,7 @@ export const SIZE_BODY_KIND_ORDER: SizeBodyKind[] = [
   "dwarf",
   "asteroid",
   "comet",
+  "scifi",
 ]
 
 export type KindRowVisibility = "visible" | "hidden"
@@ -25,18 +26,23 @@ export type SizeBodyDisplayFilter = {
 
 export type BodyTypePresetId = "planets" | "planetsAndMoons" | "auto"
 
-const allVisible = (): Record<SizeBodyKind, KindRowVisibility> => ({
+/** Horizons-backed kinds visible; Sci-fi stays hidden until the user enables it. */
+const horizonsKindsVisible = (): Record<
+  SizeBodyKind,
+  KindRowVisibility
+> => ({
   star: "visible",
   planet: "visible",
   moon: "visible",
   dwarf: "visible",
   asteroid: "visible",
   comet: "visible",
+  scifi: "hidden",
 })
 
 export function defaultSizeBodyDisplayFilter(): SizeBodyDisplayFilter {
   return {
-    kindVisibility: allVisible(),
+    kindVisibility: horizonsKindsVisible(),
     moonParentPolicy: "any",
   }
 }
@@ -54,6 +60,7 @@ export function applyBodyTypePreset(
           dwarf: "hidden",
           asteroid: "hidden",
           comet: "hidden",
+          scifi: "hidden",
         },
         moonParentPolicy: "any",
       }
@@ -66,12 +73,13 @@ export function applyBodyTypePreset(
           dwarf: "hidden",
           asteroid: "hidden",
           comet: "hidden",
+          scifi: "hidden",
         },
         moonParentPolicy: "planetsOnly",
       }
     case "auto":
       return {
-        kindVisibility: allVisible(),
+        kindVisibility: horizonsKindsVisible(),
         moonParentPolicy: "any",
       }
   }
@@ -171,6 +179,7 @@ export function statsByKindForModel(
     dwarf: { total: 0, renderable: 0 },
     asteroid: { total: 0, renderable: 0 },
     comet: { total: 0, renderable: 0 },
+    scifi: { total: 0, renderable: 0 },
   })
   const out = empty()
   for (const b of bodies) {

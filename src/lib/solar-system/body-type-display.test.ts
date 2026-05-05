@@ -200,6 +200,22 @@ describe("presets and cycle", () => {
     expect(presetCycleButtonLabel(defaultSizeBodyDisplayFilter())).toBe("Auto")
   })
 
+  it("keeps Sci-fi hidden for default and every preset", () => {
+    const def = defaultSizeBodyDisplayFilter()
+    expect(def.kindVisibility.scifi).toBe("hidden")
+    expect(applyBodyTypePreset("planets").kindVisibility.scifi).toBe("hidden")
+    expect(applyBodyTypePreset("planetsAndMoons").kindVisibility.scifi).toBe(
+      "hidden"
+    )
+    expect(applyBodyTypePreset("auto").kindVisibility.scifi).toBe("hidden")
+  })
+
+  it("classifies as custom when Sci-fi is visible", () => {
+    const f = defaultSizeBodyDisplayFilter()
+    f.kindVisibility.scifi = "visible"
+    expect(classifyBodyTypePreset(f)).toBe("custom")
+  })
+
   it("cycles planets -> planetsAndMoons -> auto -> planets", () => {
     let f = applyBodyTypePreset("planets")
     expect(classifyBodyTypePreset(f)).toBe("planets")

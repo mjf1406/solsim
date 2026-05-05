@@ -19,6 +19,7 @@ import {
 
 import {
   buildSizePageModel,
+  fetchSciFiSizeCatalog,
   fetchSolarSystemJson,
   findSizeRowNameById,
   type SizeCanvasLabelMode,
@@ -34,8 +35,11 @@ import { SizeSelectedBodySidebarContent } from "./-components/size-selected-body
 
 export const Route = createFileRoute("/_app/solar-system/size/")({
   loader: async () => {
-    const json = await fetchSolarSystemJson()
-    return { model: buildSizePageModel(json) }
+    const [json, sciFiCatalog] = await Promise.all([
+      fetchSolarSystemJson(),
+      fetchSciFiSizeCatalog(),
+    ])
+    return { model: buildSizePageModel(json, sciFiCatalog) }
   },
   errorComponent: SizeRouteError,
   component: SolarSystemSizePage,

@@ -3,6 +3,9 @@ import { spokenNumberEnUsMaxOneDecimal } from "@/lib/reading/spoken-number-en-us
 /** Snapshot served from `public/data/solar_system_data.json`. */
 export const SOLAR_SYSTEM_JSON_URL = "/data/solar_system_data.json"
 
+/** Curated fictional sizes for the size comparison page. */
+export const SCI_FI_SIZE_CATALOG_URL = "/data/sci_fi_size_catalog.json"
+
 export type Physical = {
   diameter_km?: number | null
   mean_radius_km?: number | null
@@ -14,6 +17,12 @@ export type CatalogBody = {
   category: string
   parent_id?: string | null
   physical?: Physical
+  /** Maintainer note from sci-fi catalog JSON; not shown in UI. */
+  source_note?: string
+}
+
+export type SciFiSizeCatalogJson = {
+  bodies: CatalogBody[]
 }
 
 export type SolarSystemJson = {
@@ -51,6 +60,7 @@ export type SizePageModel = {
   dwarfPlanets: PlanetSection[]
   asteroids: SizeRow[]
   comets: SizeRow[]
+  sciFi: SizeRow[]
 }
 
 export function diameterKm(physical: Physical | undefined): number | null {
@@ -124,7 +134,19 @@ export async function fetchSolarSystemJson(): Promise<SolarSystemJson> {
   return res.json() as Promise<SolarSystemJson>
 }
 
-export function buildSizePageModel(data: SolarSystemJson): SizePageModel {
+export async function fetchSciFiSizeCatalog(): Promise<CatalogBody[]> {
+  const res = await fetch(SCI_FI_SIZE_CATALOG_URL)
+  if (!res.ok) {
+    throw new Error(`Failed to load sci-fi size catalog (${res.status})`)
+  }
+  const json = (await res.json()) as SciFiSizeCatalogJson
+  return json.bodies ?? []
+}
+
+export function buildSizePageModel(
+  data: SolarSystemJson,
+  sciFiCatalog: CatalogBody[] = []
+): SizePageModel {
   const moons = data.categories.moons ?? []
   const byParent = moonsByParent(moons)
   const moonLimit = 5
@@ -152,6 +174,8 @@ export function buildSizePageModel(data: SolarSystemJson): SizePageModel {
 
   const asteroids = topByDiameter(data.categories.asteroids ?? [], minorLimit)
   const comets = topByDiameter(data.categories.comets ?? [], minorLimit)
+  const sciFiLimit = 50
+  const sciFi = topByDiameter(sciFiCatalog, sciFiLimit)
 
   return {
     physicalNote: physicalSchemaNote(data.metadata),
@@ -160,6 +184,7 @@ export function buildSizePageModel(data: SolarSystemJson): SizePageModel {
     dwarfPlanets,
     asteroids,
     comets,
+    sciFi,
   }
 }
 
@@ -173,6 +198,7 @@ export type SizeBodyKind =
   | "dwarf"
   | "asteroid"
   | "comet"
+  | "scifi"
 
 /** Stable key for layout/selection; catalog `row.id` can repeat across kinds (Horizons). */
 export function makeSizeCanvasId(
@@ -223,6 +249,7 @@ export function collectSizeCanvasBodies(model: SizePageModel): SizeCanvasBody[] 
   }
   for (const a of model.asteroids) add(a, "asteroid", null)
   for (const c of model.comets) add(c, "comet", null)
+  for (const s of model.sciFi) add(s, "scifi", null)
   return out
 }
 
@@ -240,6 +267,8 @@ export function kindLabel(kind: SizeBodyKind): string {
       return "Asteroid"
     case "comet":
       return "Comet"
+    case "scifi":
+      return "Sci-fi"
   }
 }
 
@@ -261,6 +290,8 @@ export function sizeBodyKindPredicationPhrase(kind: SizeBodyKind): string | null
       return "an asteroid"
     case "comet":
       return "a comet"
+    case "scifi":
+      return "a science-fiction reference (estimated size)"
   }
 }
 
@@ -355,6 +386,9 @@ export function findSizeBodyDetail(
   for (const c of model.comets) {
     if (c.id === id) return asDetail(c, "comet")
   }
+  for (const s of model.sciFi) {
+    if (s.id === id) return asDetail(s, "scifi")
+  }
   return null
 }
 
@@ -390,6 +424,9 @@ export function findSizeRowNameById(
   }
   for (const c of model.comets) {
     if (c.id === id) return c.name
+  }
+  for (const s of model.sciFi) {
+    if (s.id === id) return s.name
   }
   return null
 }

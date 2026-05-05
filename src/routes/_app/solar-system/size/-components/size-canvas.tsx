@@ -58,6 +58,7 @@ const SPACE_FLAT_FILL = "#020617"
 function placeholderSrc(name: string, kind: SizeBodyKind): string {
   const n = name.trim().toLowerCase()
   if (kind === "star" || n === "sun") return `${PLACEHOLDER_BASE}/sun.svg`
+  if (kind === "scifi") return `${PLACEHOLDER_BASE}/asteroid.svg`
   if (kind === "asteroid") return `${PLACEHOLDER_BASE}/asteroid.svg`
   if (kind === "comet") return `${PLACEHOLDER_BASE}/comet.svg`
   if (kind === "dwarf") return `${PLACEHOLDER_BASE}/dwarf-planet.svg`
