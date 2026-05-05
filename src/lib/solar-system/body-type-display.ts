@@ -42,7 +42,9 @@ export function defaultSizeBodyDisplayFilter(): SizeBodyDisplayFilter {
   }
 }
 
-export function applyBodyTypePreset(id: BodyTypePresetId): SizeBodyDisplayFilter {
+export function applyBodyTypePreset(
+  id: BodyTypePresetId
+): SizeBodyDisplayFilter {
   switch (id) {
     case "planets":
       return {
@@ -110,18 +112,16 @@ export function cycleBodyTypePreset(
   return applyBodyTypePreset("planets")
 }
 
-export function presetCycleButtonLabel(
-  filter: SizeBodyDisplayFilter
-): string {
+export function presetCycleButtonLabel(filter: SizeBodyDisplayFilter): string {
   const p = classifyBodyTypePreset(filter)
   if (p === "custom") return "Custom"
   if (p === "planets") return "Planets"
-  if (p === "planetsAndMoons") return "Planets & moons"
+  if (p === "planetsAndMoons") return "Planets+"
   return "Auto"
 }
 
 /** Widest preset / custom label for fixed-width cycle button layout. */
-export const BODY_TYPE_PRESET_BUTTON_WIDTH_REF = "Planets & moons"
+export const BODY_TYPE_PRESET_BUTTON_WIDTH_REF = "Planets+"
 
 export function isRenderableAtScale(
   diameterKm: number,
@@ -149,7 +149,10 @@ export function statsByKindForModel(
 ): Record<SizeBodyKind, { total: number; renderable: number }> {
   const bodies = collectSizeCanvasBodies(model)
   const moonKm = moonReferenceDiameterKm(model)
-  const empty = (): Record<SizeBodyKind, { total: number; renderable: number }> => ({
+  const empty = (): Record<
+    SizeBodyKind,
+    { total: number; renderable: number }
+  > => ({
     star: { total: 0, renderable: 0 },
     planet: { total: 0, renderable: 0 },
     moon: { total: 0, renderable: 0 },
