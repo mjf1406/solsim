@@ -19,17 +19,25 @@ import {
 } from "@/lib/canvas"
 import { usePointerDragDelta } from "@/hooks/use-pointer-drag-delta"
 import { getCanvasLocalCssPoint } from "@/lib/pointer/canvas-client-xy"
+import {
+  defaultSizeBodyDisplayFilter,
+  filterSizeCanvasBodiesForDisplay,
+  type SizeBodyDisplayFilter,
+} from "@/lib/solar-system/body-type-display"
 import { cn } from "@/lib/utils"
 
 import {
+  collectSizeCanvasBodies,
+  moonReferenceDiameterKm,
+  type SizeBodyKind,
+  type SizeCanvasBody,
   type SizeCanvasLabelMode,
   type SizePageModel,
-  type SizeRow,
 } from "../-data"
 
 /**
  * Scale: Moon's disk is 1 CSS pixel across, so 1 px = Moon diameter in km.
- * At runtime that is `moonReferenceDiameterKm()` (Moon in the snapshot, else 3474.8).
+ * At runtime that is `moonReferenceDiameterKm(model)` (Moon in the snapshot, else 3474.8).
  * Example from solar_system_data.json: Moon diameter_km 3474.8 → 1 px ≈ 3474.8 km.
  */
 
@@ -38,56 +46,7 @@ const PLACEHOLDER_BASE = "/assets/placeholders"
 /** Matches page backdrop `#020617`; canvas clears each frame to this flat fill. */
 const SPACE_FLAT_FILL = "#020617"
 
-type BodyKind = "star" | "planet" | "moon" | "dwarf" | "asteroid" | "comet"
-
-type CanvasBody = {
-  row: SizeRow & { diameterKm: number }
-  kind: BodyKind
-  /** Host planet or dwarf id when `kind === "moon"`. */
-  parentPlanetId: string | null
-}
-
-function collectCanvasBodies(model: SizePageModel): CanvasBody[] {
-  const out: CanvasBody[] = []
-  const seen = new Set<string>()
-  const add = (
-    row: SizeRow,
-    kind: BodyKind,
-    parentPlanetId: string | null = null
-  ) => {
-    if (row.diameterKm == null || !Number.isFinite(row.diameterKm)) return
-    if (seen.has(row.id)) return
-    seen.add(row.id)
-    out.push({
-      row: row as SizeRow & { diameterKm: number },
-      kind,
-      parentPlanetId,
-    })
-  }
-
-  if (model.sun) add(model.sun, "star", null)
-  for (const s of model.planets) {
-    add(s.body, "planet", null)
-    for (const m of s.moons) add(m, "moon", s.body.id)
-  }
-  for (const s of model.dwarfPlanets) {
-    add(s.body, "dwarf", null)
-    for (const m of s.moons) add(m, "moon", s.body.id)
-  }
-  for (const a of model.asteroids) add(a, "asteroid", null)
-  for (const c of model.comets) add(c, "comet", null)
-  return out
-}
-
-function moonReferenceDiameterKm(bodies: CanvasBody[]): number {
-  const moon = bodies.find(
-    (b) => b.row.name.trim().toLowerCase() === "moon" || b.row.id === "301"
-  )
-  if (moon?.row.diameterKm) return moon.row.diameterKm
-  return 3474.8
-}
-
-function placeholderSrc(name: string, kind: BodyKind): string {
+function placeholderSrc(name: string, kind: SizeBodyKind): string {
   const n = name.trim().toLowerCase()
   if (kind === "star" || n === "sun") return `${PLACEHOLDER_BASE}/sun.svg`
   if (kind === "asteroid") return `${PLACEHOLDER_BASE}/asteroid.svg`
@@ -387,7 +346,7 @@ const MOON_LABEL_SEARCH_STEPS = 32
 const MOON_LABEL_DIST_STEP_PX = 5
 const MOON_LABEL_ANGLE_SLICES = 24
 
-type LayoutEntry = CanvasBody & {
+type LayoutEntry = SizeCanvasBody & {
   src: string
   diameterPx: number
 }
@@ -709,11 +668,13 @@ export function SizeComparisonCanvas({
   labelMode = "on",
   selectedBodyId = null,
   onBodySelect,
+  bodyDisplayFilter = defaultSizeBodyDisplayFilter(),
 }: {
   model: SizePageModel
   labelMode?: SizeCanvasLabelMode
   selectedBodyId?: string | null
   onBodySelect?: (bodyId: string | null) => void
+  bodyDisplayFilter?: SizeBodyDisplayFilter
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -731,6 +692,7 @@ export function SizeComparisonCanvas({
 
   const labelModeRef = useRef(labelMode)
   const selectedBodyIdRef = useRef(selectedBodyId)
+  const bodyDisplayFilterRef = useRef(bodyDisplayFilter)
 
   const { startSession: startPointerDrag } = usePointerDragDelta()
 
@@ -813,7 +775,7 @@ export function SizeComparisonCanvas({
     const wrapper = wrapperRef.current
     if (!canvas || !wrapper) return
 
-    const bodiesForSeed = collectCanvasBodies(model)
+    const bodiesForSeed = collectSizeCanvasBodies(model)
     positionFractionByIdRef.current = new Map()
     for (const b of bodiesForSeed) {
       positionFractionByIdRef.current.set(b.row.id, {
@@ -848,8 +810,14 @@ export function SizeComparisonCanvas({
       const hCss = wrapper?.clientHeight ?? 0
       if (wCss < 16 || hCss < 16) return
 
-      const bodies = collectCanvasBodies(model)
-      const moonKm = moonReferenceDiameterKm(bodies)
+      const allBodies = collectSizeCanvasBodies(model)
+      const moonKm = moonReferenceDiameterKm(model)
+      const bodies = filterSizeCanvasBodiesForDisplay(
+        allBodies,
+        bodyDisplayFilterRef.current,
+        moonKm,
+        1
+      )
       const pxPerKm = 1 / moonKm
       const ordered = [...bodies].sort(
         (a, b) => b.row.diameterKm - a.row.diameterKm
@@ -1027,6 +995,11 @@ export function SizeComparisonCanvas({
     selectedBodyIdRef.current = selectedBodyId
     void redrawRef.current?.()
   }, [labelMode, selectedBodyId])
+
+  useLayoutEffect(() => {
+    bodyDisplayFilterRef.current = bodyDisplayFilter
+    void redrawRef.current?.()
+  }, [bodyDisplayFilter])
 
   return (
     <div

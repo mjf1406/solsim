@@ -165,7 +165,7 @@ export function buildSizePageModel(data: SolarSystemJson): SizePageModel {
 
 export type SizeCanvasLabelMode = "on" | "auto" | "off"
 
-/** Matches canvas body taxonomy in `size-canvas.tsx` (`collectCanvasBodies`). */
+/** Matches canvas body taxonomy (`collectSizeCanvasBodies`). */
 export type SizeBodyKind =
   | "star"
   | "planet"
@@ -173,6 +173,47 @@ export type SizeBodyKind =
   | "dwarf"
   | "asteroid"
   | "comet"
+
+/** One drawable body on the size canvas (finite diameter). */
+export type SizeCanvasBody = {
+  row: SizeRow & { diameterKm: number }
+  kind: SizeBodyKind
+  /** Host planet or dwarf id when `kind === "moon"`. */
+  parentPlanetId: string | null
+}
+
+/** Bodies shown on the size comparison canvas, in catalog order groups. */
+export function collectSizeCanvasBodies(model: SizePageModel): SizeCanvasBody[] {
+  const out: SizeCanvasBody[] = []
+  const seen = new Set<string>()
+  const add = (
+    row: SizeRow,
+    kind: SizeBodyKind,
+    parentPlanetId: string | null = null
+  ) => {
+    if (row.diameterKm == null || !Number.isFinite(row.diameterKm)) return
+    if (seen.has(row.id)) return
+    seen.add(row.id)
+    out.push({
+      row: row as SizeRow & { diameterKm: number },
+      kind,
+      parentPlanetId,
+    })
+  }
+
+  if (model.sun) add(model.sun, "star", null)
+  for (const s of model.planets) {
+    add(s.body, "planet", null)
+    for (const m of s.moons) add(m, "moon", s.body.id)
+  }
+  for (const s of model.dwarfPlanets) {
+    add(s.body, "dwarf", null)
+    for (const m of s.moons) add(m, "moon", s.body.id)
+  }
+  for (const a of model.asteroids) add(a, "asteroid", null)
+  for (const c of model.comets) add(c, "comet", null)
+  return out
+}
 
 export function kindLabel(kind: SizeBodyKind): string {
   switch (kind) {

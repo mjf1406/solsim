@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { createPortal } from "react-dom"
 import {
   createFileRoute,
@@ -9,12 +9,19 @@ import {
 import { useAppHeaderSlots } from "@/components/navigation/app-header-slots"
 
 import {
+  applyBodyTypePreset,
+  isSizeBodyIdVisibleUnderFilter,
+  type SizeBodyDisplayFilter,
+} from "@/lib/solar-system/body-type-display"
+
+import {
   buildSizePageModel,
   fetchSolarSystemJson,
   findSizeRowNameById,
   type SizeCanvasLabelMode,
   type SizePageModel,
 } from "./-data"
+import { SizePageBodyTypesSidebarPortal } from "./-components/size-body-types-sidebar-panel"
 import { SizeComparisonCanvas } from "./-components/size-canvas"
 import { SizePageEducationNoticesSidebarContent } from "./-components/size-education-notices-sidebar-panel"
 import { SizePageLabelsSidebarPortal } from "./-components/size-labels-sidebar-panel"
@@ -68,12 +75,30 @@ function SolarSystemSizePage() {
   const { model } = useLoaderData({ from: "/_app/solar-system/size/" })
   const [labelMode, setLabelMode] = useState<SizeCanvasLabelMode>("on")
   const [selectedBodyId, setSelectedBodyId] = useState<string | null>(null)
+  const [bodyDisplayFilter, setBodyDisplayFilter] =
+    useState<SizeBodyDisplayFilter>(() => applyBodyTypePreset("auto"))
 
   const cycleLabelMode = useCallback(() => {
     setLabelMode((m) => (m === "on" ? "auto" : m === "auto" ? "off" : "on"))
   }, [])
 
   const selectedBodyLabel = findSizeRowNameById(model, selectedBodyId)
+
+  useEffect(() => {
+    if (
+      !selectedBodyId ||
+      isSizeBodyIdVisibleUnderFilter(model, bodyDisplayFilter, selectedBodyId)
+    ) {
+      return
+    }
+    let active = true
+    queueMicrotask(() => {
+      if (active) setSelectedBodyId(null)
+    })
+    return () => {
+      active = false
+    }
+  }, [model, bodyDisplayFilter, selectedBodyId])
 
   return (
     <div className="relative isolate min-h-[calc(100svh-var(--app-header-h))] w-full">
@@ -82,6 +107,12 @@ function SolarSystemSizePage() {
         labelMode={labelMode}
         selectedBodyId={selectedBodyId}
         onBodySelect={setSelectedBodyId}
+        bodyDisplayFilter={bodyDisplayFilter}
+      />
+      <SizePageBodyTypesSidebarPortal
+        model={model}
+        bodyDisplayFilter={bodyDisplayFilter}
+        setBodyDisplayFilter={setBodyDisplayFilter}
       />
       <SizePageLabelsSidebarPortal
         labelMode={labelMode}
