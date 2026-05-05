@@ -31,6 +31,14 @@ import {
 import { cn } from "@/lib/utils"
 
 import {
+  diskCentersAlongTargetDiameter,
+  formatMeasureRatioForLabel,
+} from "./measure/measure-body-math"
+import type {
+  BodyMeasureOverlay,
+  MeasureTargetHitBody,
+} from "./measure/measure-types"
+import {
   collectSizeCanvasBodies,
   moonReferenceDiameterKm,
   type SizeBodyKind,
@@ -151,6 +159,44 @@ function drawSelectionIndicator(
   ctx.lineWidth = lineWInner
   ctx.shadowColor = "rgba(56, 189, 248, 0.55)"
   ctx.shadowBlur = Math.min(18, ringR * 0.42) * (0.72 + 0.38 * pulse)
+  ctx.stroke()
+  ctx.restore()
+}
+
+function shakeOffsetForReject(
+  nowMs: number,
+  shakeEndMs: number,
+  seed: number
+): { dx: number; dy: number } {
+  if (nowMs >= shakeEndMs) return { dx: 0, dy: 0 }
+  const duration = 520
+  const t = Math.max(0, (shakeEndMs - nowMs) / duration)
+  const amp = Math.max(2.5, 8 * Math.min(1, t * 1.4))
+  const phase = nowMs * 0.022 + seed * 1.7
+  return {
+    dx: Math.sin(phase * 1.9) * amp,
+    dy: Math.cos(phase * 1.4) * amp * 0.65,
+  }
+}
+
+function drawRejectXMark(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  bodyRadiusPx: number
+): void {
+  const r = bodyRadiusPx
+  if (!(r > 0)) return
+  const inset = r * 0.38
+  ctx.save()
+  ctx.strokeStyle = "rgba(248, 113, 113, 0.92)"
+  ctx.lineWidth = Math.max(2, Math.min(5, r * 0.12))
+  ctx.lineCap = "round"
+  ctx.beginPath()
+  ctx.moveTo(cx - r + inset, cy - r + inset)
+  ctx.lineTo(cx + r - inset, cy + r - inset)
+  ctx.moveTo(cx + r - inset, cy - r + inset)
+  ctx.lineTo(cx - r + inset, cy + r - inset)
   ctx.stroke()
   ctx.restore()
 }
@@ -720,6 +766,10 @@ export function SizeComparisonCanvas({
   pxPerKm,
   listSelectionAttentionKey = 0,
   onListSelectionAttentionTarget,
+  measureArmed = false,
+  measureUnitCanvasId = null,
+  bodyMeasureOverlay = null,
+  onMeasurePick,
 }: {
   model: SizePageModel
   labelMode?: SizeCanvasLabelMode
@@ -739,6 +789,10 @@ export function SizeComparisonCanvas({
     y: number
     burstKey: number
   }) => void
+  measureArmed?: boolean
+  measureUnitCanvasId?: string | null
+  bodyMeasureOverlay?: BodyMeasureOverlay | null
+  onMeasurePick?: (hit: MeasureTargetHitBody | null) => void
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -770,6 +824,13 @@ export function SizeComparisonCanvas({
     onListSelectionAttentionTarget
   )
 
+  const measureArmedRef = useRef(measureArmed)
+  const measureUnitCanvasIdRef = useRef(measureUnitCanvasId)
+  const bodyMeasureOverlayRef = useRef<BodyMeasureOverlay | null>(
+    bodyMeasureOverlay ?? null
+  )
+  const onMeasurePickRef = useRef(onMeasurePick)
+
   const { startSession: startPointerDrag } = usePointerDragDelta()
 
   useLayoutEffect(() => {
@@ -785,13 +846,39 @@ export function SizeComparisonCanvas({
     onListSelectionAttentionTargetRef.current = onListSelectionAttentionTarget
   }, [onListSelectionAttentionTarget])
 
+  useLayoutEffect(() => {
+    measureArmedRef.current = measureArmed
+    measureUnitCanvasIdRef.current = measureUnitCanvasId
+    bodyMeasureOverlayRef.current = bodyMeasureOverlay ?? null
+    onMeasurePickRef.current = onMeasurePick
+    void redrawRef.current?.()
+  }, [measureArmed, measureUnitCanvasId, bodyMeasureOverlay, onMeasurePick])
+
   const onCanvasPointerDown = useCallback(
     (e: PointerEvent<HTMLCanvasElement>) => {
-      if (!onBodySelect) return
       const canvas = canvasRef.current
       const snap = layoutHitRef.current
       if (!canvas || !snap) return
       const { x, y } = getCanvasLocalCssPoint(canvas, e.clientX, e.clientY)
+
+      const pick = onMeasurePickRef.current
+      if (
+        pick &&
+        measureArmedRef.current &&
+        measureUnitCanvasIdRef.current
+      ) {
+        const hitId = hitTestBodyIdAt(
+          snap,
+          x,
+          y,
+          labelModeRef.current,
+          selectedBodyIdRef.current
+        )
+        pick(hitId ? { kind: "body", canvasId: hitId } : null)
+        return
+      }
+
+      if (!onBodySelect) return
       const hit = hitTestBodyIdAt(
         snap,
         x,
@@ -833,10 +920,18 @@ export function SizeComparisonCanvas({
 
   const onCanvasPointerMove = useCallback(
     (e: PointerEvent<HTMLCanvasElement>) => {
-      if (!onBodySelect) return
       const canvas = canvasRef.current
       const snap = layoutHitRef.current
       if (!canvas || !snap) return
+      if (
+        onMeasurePickRef.current &&
+        measureArmedRef.current &&
+        measureUnitCanvasIdRef.current
+      ) {
+        canvas.style.cursor = "crosshair"
+        return
+      }
+      if (!onBodySelect) return
       if (isDraggingRef.current) {
         canvas.style.cursor = "grabbing"
         return
@@ -856,7 +951,18 @@ export function SizeComparisonCanvas({
 
   const onCanvasPointerLeave = useCallback(() => {
     const canvas = canvasRef.current
-    if (canvas && !isDraggingRef.current) canvas.style.cursor = "default"
+    if (!canvas || !isDraggingRef.current) {
+      if (
+        canvas &&
+        onMeasurePickRef.current &&
+        measureArmedRef.current &&
+        measureUnitCanvasIdRef.current
+      ) {
+        canvas.style.cursor = "crosshair"
+      } else if (canvas) {
+        canvas.style.cursor = "default"
+      }
+    }
   }, [])
 
   useLayoutEffect(() => {
@@ -1018,6 +1124,10 @@ export function SizeComparisonCanvas({
         labelRectById,
       }
 
+      const overlay = bodyMeasureOverlayRef.current
+      const nowMs =
+        typeof performance !== "undefined" ? performance.now() : 0
+
       settled.forEach((res, i) => {
         const e = entries[i]
         const r = e.diameterPx / 2
@@ -1025,7 +1135,19 @@ export function SizeComparisonCanvas({
         if (e.diameterPx < 1) return
         const pos = posById.get(e.canvasId)
         if (!pos) return
-        const { cx, cy } = pos
+        let { cx, cy } = pos
+        if (
+          overlay?.kind === "reject" &&
+          overlay.targetCanvasId === e.canvasId
+        ) {
+          const sh = shakeOffsetForReject(
+            nowMs,
+            overlay.shakeEndMs,
+            e.canvasId.length * 11
+          )
+          cx += sh.dx
+          cy += sh.dy
+        }
         if (res.status === "fulfilled") {
           const img = res.value
           drawBody(ctx, img, cx, cy, e.diameterPx)
@@ -1057,8 +1179,104 @@ export function SizeComparisonCanvas({
           if (!(r > 0) || e.diameterPx < 1) break
           const pos = posById.get(e.canvasId)
           if (!pos) break
-          drawSelectionIndicator(ctx, pos.cx, pos.cy, r)
+          let ix = pos.cx
+          let iy = pos.cy
+          if (
+            overlay?.kind === "reject" &&
+            overlay.targetCanvasId === selId
+          ) {
+            const sh = shakeOffsetForReject(
+              nowMs,
+              overlay.shakeEndMs,
+              e.canvasId.length * 11
+            )
+            ix += sh.dx
+            iy += sh.dy
+          }
+          drawSelectionIndicator(ctx, ix, iy, r)
           break
+        }
+      }
+
+      if (overlay?.kind === "success") {
+        const target = entries.find(
+          (ent) => ent.canvasId === overlay.targetCanvasId
+        )
+        const unit = entries.find(
+          (ent) => ent.canvasId === overlay.unitCanvasId
+        )
+        if (
+          target &&
+          unit &&
+          target.diameterPx >= 1 &&
+          unit.diameterPx >= 1
+        ) {
+          const pos = posById.get(target.canvasId)
+          if (pos) {
+            const R = target.diameterPx / 2
+            const { cx, cy } = pos
+            const centers = diskCentersAlongTargetDiameter(
+              cx,
+              R,
+              unit.diameterPx,
+              overlay.ratio
+            )
+            const unitIdx = entries.findIndex(
+              (ent) => ent.canvasId === overlay.unitCanvasId
+            )
+            if (unitIdx >= 0) {
+              const res = settled[unitIdx]
+              const ue = entries[unitIdx]
+              for (const tcx of centers) {
+                if (res.status === "fulfilled") {
+                  drawBody(ctx, res.value, tcx, cy, ue.diameterPx)
+                } else {
+                  const ur = ue.diameterPx / 2
+                  ctx.save()
+                  ctx.beginPath()
+                  ctx.arc(tcx, cy, ur, 0, Math.PI * 2)
+                  ctx.fillStyle = "rgba(128, 128, 128, 0.45)"
+                  ctx.fill()
+                  ctx.restore()
+                }
+              }
+            }
+            ctx.save()
+            ctx.font =
+              "600 14px ui-sans-serif, system-ui, sans-serif"
+            ctx.textAlign = "center"
+            ctx.textBaseline = "bottom"
+            ctx.fillStyle = "rgba(248, 250, 252, 0.96)"
+            ctx.shadowColor = "rgba(2, 6, 23, 0.85)"
+            ctx.shadowBlur = 8
+            ctx.fillText(
+              formatMeasureRatioForLabel(overlay.ratio),
+              cx,
+              cy - R - 10
+            )
+            ctx.restore()
+          }
+        }
+      }
+
+      if (overlay?.kind === "reject" && nowMs < overlay.xEndMs) {
+        const e = entries.find(
+          (ent) => ent.canvasId === overlay.targetCanvasId
+        )
+        if (e && e.diameterPx >= 1) {
+          const pos = posById.get(e.canvasId)
+          if (pos) {
+            const r = e.diameterPx / 2
+            let { cx, cy } = pos
+            const sh = shakeOffsetForReject(
+              nowMs,
+              overlay.shakeEndMs,
+              e.canvasId.length * 11
+            )
+            cx += sh.dx
+            cy += sh.dy
+            drawRejectXMark(ctx, cx, cy, r)
+          }
         }
       }
 
@@ -1133,26 +1351,37 @@ export function SizeComparisonCanvas({
     void redrawRef.current?.()
   }, [labelMode, selectedBodyId])
 
-  /** While a body is selected, redraw on a modest cadence so the selection ring can pulse. */
+  /**
+   * Selection ring pulse and reject shake need periodic redraws; one frame after
+   * shake ends clears the offset while keeping the X mark.
+   */
   useLayoutEffect(() => {
-    if (!selectedBodyId) return
-    let rafId = 0
     let cancelled = false
+    let rafId = 0
     let lastRedraw = 0
     const loop = (now: number) => {
-      if (cancelled || !selectedBodyIdRef.current) return
-      if (now - lastRedraw >= 32) {
-        lastRedraw = now
+      if (cancelled) return
+      const ov = bodyMeasureOverlayRef.current
+      const shakeNeeded =
+        ov?.kind === "reject" && now < ov.shakeEndMs
+      const xNeeded = ov?.kind === "reject" && now < ov.xEndMs
+      const selectionPulse = Boolean(selectedBodyIdRef.current)
+      if (selectionPulse || shakeNeeded || xNeeded) {
+        if (now - lastRedraw >= 32) {
+          lastRedraw = now
+          void redrawRef.current?.()
+        }
+        rafId = requestAnimationFrame(loop)
+      } else if (ov?.kind === "reject") {
         void redrawRef.current?.()
       }
-      rafId = requestAnimationFrame(loop)
     }
     rafId = requestAnimationFrame(loop)
     return () => {
       cancelled = true
       cancelAnimationFrame(rafId)
     }
-  }, [selectedBodyId])
+  }, [selectedBodyId, bodyMeasureOverlay])
 
   useLayoutEffect(() => {
     bodyDisplayFilterRef.current = bodyDisplayFilter
@@ -1164,6 +1393,8 @@ export function SizeComparisonCanvas({
     void redrawRef.current?.()
   }, [pxPerKm])
 
+  const canvasInteractive = Boolean(onBodySelect || onMeasurePick)
+
   return (
     <div
       ref={wrapperRef}
@@ -1173,14 +1404,14 @@ export function SizeComparisonCanvas({
         ref={canvasRef}
         className={cn(
           "absolute inset-0 block size-full",
-          onBodySelect
+          canvasInteractive
             ? "pointer-events-auto touch-none select-none"
             : "pointer-events-none"
         )}
-        aria-label="Scaled bodies: tap or click a disk or its name label to select. Drag with finger or pointer to reposition (move a few pixels first to start a drag). Moons sit near their planet; Moon is one pixel; larger drawn behind."
-        onPointerDown={onBodySelect ? onCanvasPointerDown : undefined}
-        onPointerMove={onBodySelect ? onCanvasPointerMove : undefined}
-        onPointerLeave={onBodySelect ? onCanvasPointerLeave : undefined}
+        aria-label="Scaled bodies: tap or click a disk or its name label to select. Drag with finger or pointer to reposition (move a few pixels first to start a drag). Moons sit near their planet; Moon is one pixel; larger drawn behind. Measure mode (sidebar): crosshair, tap a target body."
+        onPointerDown={canvasInteractive ? onCanvasPointerDown : undefined}
+        onPointerMove={canvasInteractive ? onCanvasPointerMove : undefined}
+        onPointerLeave={canvasInteractive ? onCanvasPointerLeave : undefined}
       />
     </div>
   )

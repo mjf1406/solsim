@@ -18,12 +18,20 @@ import {
 
 import {
   buildSizePageModel,
+  collectSizeCanvasBodies,
   fetchSciFiSizeCatalog,
   fetchSolarSystemJson,
   findSizeRowNameById,
   type SizeCanvasLabelMode,
   type SizePageModel,
 } from "./-data"
+import { bodyDiameterRatio } from "./-components/measure/measure-body-math"
+import type {
+  BodyMeasureOverlay,
+  MeasureSubjectKind,
+  MeasureTargetHitBody,
+} from "./-components/measure/measure-types"
+// import { SizePageMeasureSidebarPortal } from "./-components/measure/size-measure-sidebar-section"
 import { SizePageBodyTypesSidebarPortal } from "./-components/size-body-types-sidebar-panel"
 import { SizeComparisonCanvas } from "./-components/size-canvas"
 import { SizeSelectionAttentionOverlay } from "./-components/size-selection-attention-overlay"
@@ -117,6 +125,14 @@ function SolarSystemSizePage() {
     target: { x: number; y: number }
     playId: number
   } | null>(null)
+
+  const [measureSubjectKind] = useState<MeasureSubjectKind>("body")
+  const [measureUnitCanvasId, setMeasureUnitCanvasId] = useState<string | null>(
+    null
+  )
+  const [measureArmed, setMeasureArmed] = useState(false)
+  const [bodyMeasureOverlay, setBodyMeasureOverlay] =
+    useState<BodyMeasureOverlay>(null)
 
   const calibration = useDisplayCalibration()
   const [calibrationDialogOpen, setCalibrationDialogOpen] = useState(false)
@@ -226,6 +242,108 @@ function SolarSystemSizePage() {
     }
   }, [model, bodyDisplayFilter, selectedBodyId, scale.debouncedPxPerKm])
 
+  useEffect(() => {
+    if (measureUnitCanvasId != null) return
+    if (!selectedBodyId) return
+    if (
+      !isSizeBodyIdVisibleUnderFilter(
+        model,
+        bodyDisplayFilter,
+        selectedBodyId,
+        scale.debouncedPxPerKm
+      )
+    ) {
+      return
+    }
+    let active = true
+    queueMicrotask(() => {
+      if (active) setMeasureUnitCanvasId(selectedBodyId)
+    })
+    return () => {
+      active = false
+    }
+  }, [
+    measureUnitCanvasId,
+    selectedBodyId,
+    model,
+    bodyDisplayFilter,
+    scale.debouncedPxPerKm,
+  ])
+
+  useEffect(() => {
+    if (!measureUnitCanvasId) return
+    if (
+      isSizeBodyIdVisibleUnderFilter(
+        model,
+        bodyDisplayFilter,
+        measureUnitCanvasId,
+        scale.debouncedPxPerKm
+      )
+    ) {
+      return
+    }
+    let active = true
+    queueMicrotask(() => {
+      if (!active) return
+      setMeasureUnitCanvasId(null)
+      setMeasureArmed(false)
+      setBodyMeasureOverlay(null)
+    })
+    return () => {
+      active = false
+    }
+  }, [
+    model,
+    bodyDisplayFilter,
+    measureUnitCanvasId,
+    scale.debouncedPxPerKm,
+  ])
+
+  const onMeasurePick = useCallback(
+    (hit: MeasureTargetHitBody | null) => {
+      setMeasureArmed(false)
+      if (!hit || measureSubjectKind !== "body") return
+      if (!measureUnitCanvasId) return
+      const bodies = collectSizeCanvasBodies(model)
+      const unit = bodies.find((b) => b.canvasId === measureUnitCanvasId)
+      const target = bodies.find((b) => b.canvasId === hit.canvasId)
+      if (!unit || !target) return
+      const uk = unit.row.diameterKm
+      const tk = target.row.diameterKm
+      if (tk < uk) {
+        const now = performance.now()
+        setBodyMeasureOverlay({
+          kind: "reject",
+          targetCanvasId: hit.canvasId,
+          shakeEndMs: now + 520,
+          xEndMs: now + 2000,
+        })
+        return
+      }
+      setBodyMeasureOverlay({
+        kind: "success",
+        targetCanvasId: hit.canvasId,
+        unitCanvasId: measureUnitCanvasId,
+        ratio: bodyDiameterRatio(tk, uk),
+      })
+    },
+    [measureSubjectKind, measureUnitCanvasId, model]
+  )
+
+  useEffect(() => {
+    if (bodyMeasureOverlay?.kind !== "reject") return
+    const now = performance.now()
+    const ms = Math.max(0, bodyMeasureOverlay.xEndMs - now)
+    const id = window.setTimeout(() => {
+      setBodyMeasureOverlay((prev) => (prev?.kind === "reject" ? null : prev))
+    }, ms + 10)
+    return () => window.clearTimeout(id)
+  }, [bodyMeasureOverlay])
+
+  // const clearBodyMeasureOverlay = useCallback(() => {
+  //   setBodyMeasureOverlay(null)
+  // }, [])
+
   return (
     <div className="relative isolate min-h-[calc(100svh-var(--app-header-h))] w-full">
       <SizeComparisonCanvas
@@ -237,6 +355,10 @@ function SolarSystemSizePage() {
         pxPerKm={scale.debouncedPxPerKm}
         listSelectionAttentionKey={listSelectionAttentionKey}
         onListSelectionAttentionTarget={onListSelectionAttentionTarget}
+        measureArmed={measureArmed}
+        measureUnitCanvasId={measureUnitCanvasId}
+        bodyMeasureOverlay={bodyMeasureOverlay}
+        onMeasurePick={onMeasurePick}
       />
       <ScaleControlSidebarPortal
         cycleButtonLabel={scale.cycleButtonLabel}
@@ -270,6 +392,22 @@ function SolarSystemSizePage() {
         onCycleLabelMode={cycleLabelMode}
         selectedBodyLabel={selectedBodyLabel}
       />
+      {/*
+        Measure sidebar section scaffold (needs refinement before shipping).
+
+        <SizePageMeasureSidebarPortal
+          model={model}
+          bodyDisplayFilter={bodyDisplayFilter}
+          pxPerKm={scale.debouncedPxPerKm}
+          selectedBodyId={selectedBodyId}
+          unitCanvasId={measureUnitCanvasId}
+          onUnitCanvasIdChange={setMeasureUnitCanvasId}
+          armed={measureArmed}
+          onArmedChange={setMeasureArmed}
+          overlay={bodyMeasureOverlay}
+          onClearOverlay={clearBodyMeasureOverlay}
+        />
+      */}
       <SizePageLeftSidebarPortal
         model={model}
         selectedBodyId={selectedBodyId}
