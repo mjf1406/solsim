@@ -38,7 +38,6 @@ import {
   sizeSearchToBodyDisplayFilter,
   type SizeRouteSearch,
 } from "./-url-search"
-// import { SolarSystemSizeDataTables } from "./-components/size-tables"
 
 export const Route = createFileRoute("/_app/solar-system/size/")({
   validateSearch: (search: Record<string, unknown>): SizeRouteSearch =>
@@ -112,16 +111,12 @@ function SolarSystemSizePage() {
     () => search.body ?? null
   )
   const [bodyDisplayFilter, setBodyDisplayFilter] =
-    useState<SizeBodyDisplayFilter>(() =>
-      sizeSearchToBodyDisplayFilter(search)
-    )
-  const [listSelectionAttentionKey, setListSelectionAttentionKey] =
-    useState(0)
-  const [selectionAttentionOverlay, setSelectionAttentionOverlay] =
-    useState<{
-      target: { x: number; y: number }
-      playId: number
-    } | null>(null)
+    useState<SizeBodyDisplayFilter>(() => sizeSearchToBodyDisplayFilter(search))
+  const [listSelectionAttentionKey, setListSelectionAttentionKey] = useState(0)
+  const [selectionAttentionOverlay, setSelectionAttentionOverlay] = useState<{
+    target: { x: number; y: number }
+    playId: number
+  } | null>(null)
 
   const calibration = useDisplayCalibration()
   const [calibrationDialogOpen, setCalibrationDialogOpen] = useState(false)
@@ -283,7 +278,6 @@ function SolarSystemSizePage() {
         isCalibrated={calibration.isCalibrated}
         onOpenCalibration={() => setCalibrationDialogOpen(true)}
       />
-      {/* <SolarSystemSizeDataTables model={model} /> */}
     </div>
   )
 }

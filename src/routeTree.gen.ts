@@ -16,6 +16,7 @@ import { Route as WebTeacherIndexRouteImport } from './routes/_web/teacher/index
 import { Route as WebAboutIndexRouteImport } from './routes/_web/about/index'
 import { Route as AppSolarSystemSizeIndexRouteImport } from './routes/_app/solar-system/size/index'
 import { Route as AppSolarSystemDistanceIndexRouteImport } from './routes/_app/solar-system/distance/index'
+import { Route as AppSolarSystemDataIndexRouteImport } from './routes/_app/solar-system/data/index'
 
 const WebRouteRoute = WebRouteRouteImport.update({
   id: '/_web',
@@ -51,11 +52,17 @@ const AppSolarSystemDistanceIndexRoute =
     path: '/solar-system/distance/',
     getParentRoute: () => AppRouteRoute,
   } as any)
+const AppSolarSystemDataIndexRoute = AppSolarSystemDataIndexRouteImport.update({
+  id: '/solar-system/data/',
+  path: '/solar-system/data/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof WebIndexRoute
   '/about/': typeof WebAboutIndexRoute
   '/teacher/': typeof WebTeacherIndexRoute
+  '/solar-system/data/': typeof AppSolarSystemDataIndexRoute
   '/solar-system/distance/': typeof AppSolarSystemDistanceIndexRoute
   '/solar-system/size/': typeof AppSolarSystemSizeIndexRoute
 }
@@ -63,6 +70,7 @@ export interface FileRoutesByTo {
   '/': typeof WebIndexRoute
   '/about': typeof WebAboutIndexRoute
   '/teacher': typeof WebTeacherIndexRoute
+  '/solar-system/data': typeof AppSolarSystemDataIndexRoute
   '/solar-system/distance': typeof AppSolarSystemDistanceIndexRoute
   '/solar-system/size': typeof AppSolarSystemSizeIndexRoute
 }
@@ -73,6 +81,7 @@ export interface FileRoutesById {
   '/_web/': typeof WebIndexRoute
   '/_web/about/': typeof WebAboutIndexRoute
   '/_web/teacher/': typeof WebTeacherIndexRoute
+  '/_app/solar-system/data/': typeof AppSolarSystemDataIndexRoute
   '/_app/solar-system/distance/': typeof AppSolarSystemDistanceIndexRoute
   '/_app/solar-system/size/': typeof AppSolarSystemSizeIndexRoute
 }
@@ -82,6 +91,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about/'
     | '/teacher/'
+    | '/solar-system/data/'
     | '/solar-system/distance/'
     | '/solar-system/size/'
   fileRoutesByTo: FileRoutesByTo
@@ -89,6 +99,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/teacher'
+    | '/solar-system/data'
     | '/solar-system/distance'
     | '/solar-system/size'
   id:
@@ -98,6 +109,7 @@ export interface FileRouteTypes {
     | '/_web/'
     | '/_web/about/'
     | '/_web/teacher/'
+    | '/_app/solar-system/data/'
     | '/_app/solar-system/distance/'
     | '/_app/solar-system/size/'
   fileRoutesById: FileRoutesById
@@ -158,15 +170,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSolarSystemDistanceIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/solar-system/data/': {
+      id: '/_app/solar-system/data/'
+      path: '/solar-system/data'
+      fullPath: '/solar-system/data/'
+      preLoaderRoute: typeof AppSolarSystemDataIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
   }
 }
 
 interface AppRouteRouteChildren {
+  AppSolarSystemDataIndexRoute: typeof AppSolarSystemDataIndexRoute
   AppSolarSystemDistanceIndexRoute: typeof AppSolarSystemDistanceIndexRoute
   AppSolarSystemSizeIndexRoute: typeof AppSolarSystemSizeIndexRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
+  AppSolarSystemDataIndexRoute: AppSolarSystemDataIndexRoute,
   AppSolarSystemDistanceIndexRoute: AppSolarSystemDistanceIndexRoute,
   AppSolarSystemSizeIndexRoute: AppSolarSystemSizeIndexRoute,
 }

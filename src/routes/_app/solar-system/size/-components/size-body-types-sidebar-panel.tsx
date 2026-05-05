@@ -9,7 +9,7 @@ import {
   cycleBodyTypePreset,
   presetCycleButtonLabel,
   SIZE_BODY_KIND_ORDER,
-  statsByKindForModel,
+  statsByKindForModelUnderFilter,
   type KindRowVisibility,
   type SizeBodyDisplayFilter,
 } from "@/lib/solar-system/body-type-display"
@@ -81,7 +81,7 @@ function SizeBodyTypesCollapsibleSection({
   )
 
   const rows = useMemo(() => {
-    const stats = statsByKindForModel(model, 1, pxPerKm)
+    const stats = statsByKindForModelUnderFilter(model, bodyDisplayFilter, 1, pxPerKm)
     const allBodies = collectSizeCanvasBodies(model)
     const byKind = new Map<SizeBodyKind, typeof allBodies>()
     for (const k of SIZE_BODY_KIND_ORDER) {

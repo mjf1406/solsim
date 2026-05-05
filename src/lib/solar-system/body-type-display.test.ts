@@ -15,6 +15,7 @@ import {
   filterSizeCanvasBodiesForDisplay,
   isRenderableAtScale,
   presetCycleButtonLabel,
+  statsByKindForModelUnderFilter,
 } from "./body-type-display"
 
 function moon(id: string, diameterKm: number, parentId: string): SizeCanvasBody {
@@ -93,6 +94,12 @@ describe("bodyPassesDisplayFilter planetsOnly moons", () => {
     expect(
       bodyPassesDisplayFilter(charon, filter, bodies, pxPerKm, minPx)
     ).toBe(false)
+  })
+
+  it("allows dwarf-planet moons when dwarf kind is enabled", () => {
+    const f = applyBodyTypePreset("planetsAndMoons")
+    f.kindVisibility.dwarf = "visible"
+    expect(bodyPassesDisplayFilter(charon, f, bodies, pxPerKm, minPx)).toBe(true)
   })
 
   it("filterSizeCanvasBodiesForDisplay drops dwarf-planet moons", () => {
@@ -177,10 +184,22 @@ describe("bodyCanvasInclusion", () => {
     const filter = applyBodyTypePreset("planetsAndMoons")
     const inc = bodyCanvasInclusion(charon, filter, bodies, pxMoonOne, minPx)
     expect(inc.onCanvas).toBe(false)
-    expect(inc.reasonLabel).toBe("Major-planet moons only")
+    expect(inc.reasonLabel).toBe("Dwarf planets disabled")
     expect(
       bodyPassesDisplayFilter(charon, filter, bodies, pxMoonOne, minPx)
     ).toBe(inc.onCanvas)
+  })
+
+  it("includes dwarf moons in Planets+ when dwarf kind is enabled", () => {
+    const jupiter = planet("jup", 140_000)
+    const charon = moon("char", 4000, "plu")
+    const pluto = dwarf("plu", 2376.6)
+    const bodies = [jupiter, pluto, charon]
+    const filter = applyBodyTypePreset("planetsAndMoons")
+    filter.kindVisibility.dwarf = "visible"
+    const inc = bodyCanvasInclusion(charon, filter, bodies, pxMoonOne, minPx)
+    expect(inc.onCanvas).toBe(true)
+    expect(inc.reasonLabel).toBe("On canvas")
   })
 
   it("reports on canvas when included", () => {
@@ -191,6 +210,67 @@ describe("bodyCanvasInclusion", () => {
     const inc = bodyCanvasInclusion(galilean, filter, bodies, pxMoonOne, minPx)
     expect(inc.onCanvas).toBe(true)
     expect(inc.reasonLabel).toBe("On canvas")
+  })
+})
+
+describe("dwarf moons require dwarf visibility", () => {
+  const moonKm = 3474.8
+  const pxPerKm = 1 / moonKm
+
+  it("excludes dwarf-planet moons when dwarf kind is hidden (even when moons are visible)", () => {
+    const jupiter = planet("jup", 140_000)
+    const pluto = dwarf("plu", 2376.6)
+    const charon = moon("char", 4000, "plu")
+    const io = moon("io", 3600, "jup")
+    const bodies = [jupiter, pluto, charon, io]
+
+    const f = defaultSizeBodyDisplayFilter()
+    f.kindVisibility.moon = "visible"
+    f.kindVisibility.dwarf = "hidden"
+    f.moonParentPolicy = "any"
+
+    expect(bodyPassesDisplayFilter(io, f, bodies, pxPerKm, 1)).toBe(true)
+    expect(bodyPassesDisplayFilter(charon, f, bodies, pxPerKm, 1)).toBe(false)
+
+    const inc = bodyCanvasInclusion(charon, f, bodies, pxPerKm, 1)
+    expect(inc.onCanvas).toBe(false)
+    expect(inc.reasonLabel).toBe("Dwarf planets disabled")
+  })
+})
+
+describe("statsByKindForModelUnderFilter", () => {
+  const moonKm = 3474.8
+  const pxPerKm = 1 / moonKm
+
+  it("drops dwarf-planet moons from moon totals when dwarf kind is hidden", () => {
+    const model = {
+      physicalNote: "",
+      sun: null,
+      planets: [
+        {
+          body: { id: "jup", name: "Jupiter", diameterKm: 140_000 },
+          moons: [{ id: "io", name: "Io", diameterKm: 3600 }],
+        },
+      ],
+      dwarfPlanets: [
+        {
+          body: { id: "plu", name: "Pluto", diameterKm: 2376.6 },
+          moons: [{ id: "char", name: "Charon", diameterKm: 4000 }],
+        },
+      ],
+      asteroids: [],
+      comets: [],
+      sciFi: [],
+    }
+
+    const f = defaultSizeBodyDisplayFilter()
+    f.kindVisibility.moon = "visible"
+    f.kindVisibility.dwarf = "hidden"
+    f.moonParentPolicy = "any"
+
+    const stats = statsByKindForModelUnderFilter(model, f, 1, pxPerKm)
+    expect(stats.moon.total).toBe(1)
+    expect(stats.moon.renderable).toBe(1)
   })
 })
 

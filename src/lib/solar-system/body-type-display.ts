@@ -201,6 +201,12 @@ export function bodyPassesDisplayFilter(
 ): boolean {
   if (filter.kindVisibility[body.kind] === "hidden") return false
   if (!isRenderableAtScale(body.row.diameterKm, pxPerKm, minPx)) return false
+  if (body.kind === "moon" && body.parentPlanetId) {
+    const parentKind = hostKindForMoonParentCatalogId(bodies, body.parentPlanetId)
+    if (parentKind === "dwarf" && filter.kindVisibility.dwarf === "hidden") {
+      return false
+    }
+  }
   if (
     body.kind === "moon" &&
     body.parentPlanetId &&
@@ -210,7 +216,12 @@ export function bodyPassesDisplayFilter(
       bodies,
       body.parentPlanetId
     )
-    if (parentKind !== "planet") return false
+    if (parentKind !== "planet") {
+      if (parentKind === "dwarf" && filter.kindVisibility.dwarf === "visible") {
+        return true
+      }
+      return false
+    }
   }
   return true
 }
@@ -224,6 +235,7 @@ export type BodyCanvasInclusion = {
 const LABEL_ON_CANVAS = "On canvas"
 const LABEL_KIND_HIDDEN = "Kind hidden"
 const LABEL_UNDER_MIN_PX = "Under 1 px at this scale"
+const LABEL_MOON_PARENT_DWARF_DISABLED = "Dwarf planets disabled"
 const LABEL_MOON_PARENT_PLANETS_ONLY = "Major-planet moons only"
 
 /**
@@ -243,6 +255,12 @@ export function bodyCanvasInclusion(
   if (!isRenderableAtScale(body.row.diameterKm, pxPerKm, minPx)) {
     return { onCanvas: false, reasonLabel: LABEL_UNDER_MIN_PX }
   }
+  if (body.kind === "moon" && body.parentPlanetId) {
+    const parentKind = hostKindForMoonParentCatalogId(bodies, body.parentPlanetId)
+    if (parentKind === "dwarf" && filter.kindVisibility.dwarf === "hidden") {
+      return { onCanvas: false, reasonLabel: LABEL_MOON_PARENT_DWARF_DISABLED }
+    }
+  }
   if (
     body.kind === "moon" &&
     body.parentPlanetId &&
@@ -253,10 +271,65 @@ export function bodyCanvasInclusion(
       body.parentPlanetId
     )
     if (parentKind !== "planet") {
+      if (parentKind === "dwarf" && filter.kindVisibility.dwarf === "visible") {
+        return { onCanvas: true, reasonLabel: LABEL_ON_CANVAS }
+      }
       return { onCanvas: false, reasonLabel: LABEL_MOON_PARENT_PLANETS_ONLY }
     }
   }
   return { onCanvas: true, reasonLabel: LABEL_ON_CANVAS }
+}
+
+function bodyEligibleUnderFilterIgnoringScale(
+  body: SizeCanvasBody,
+  filter: SizeBodyDisplayFilter,
+  bodies: SizeCanvasBody[]
+): boolean {
+  if (filter.kindVisibility[body.kind] === "hidden") return false
+  if (body.kind === "moon" && body.parentPlanetId) {
+    const parentKind = hostKindForMoonParentCatalogId(bodies, body.parentPlanetId)
+    if (parentKind === "dwarf" && filter.kindVisibility.dwarf === "hidden") {
+      return false
+    }
+    if (filter.moonParentPolicy === "planetsOnly" && parentKind !== "planet") {
+      if (parentKind === "dwarf" && filter.kindVisibility.dwarf === "visible") {
+        return true
+      }
+      return false
+    }
+  }
+  return true
+}
+
+export function statsByKindForModelUnderFilter(
+  model: SizePageModel,
+  filter: SizeBodyDisplayFilter,
+  minPx: number,
+  pxPerKm: number
+): Record<SizeBodyKind, { total: number; renderable: number }> {
+  const bodies = collectSizeCanvasBodies(model)
+  const empty = (): Record<
+    SizeBodyKind,
+    { total: number; renderable: number }
+  > => ({
+    star: { total: 0, renderable: 0 },
+    planet: { total: 0, renderable: 0 },
+    moon: { total: 0, renderable: 0 },
+    dwarf: { total: 0, renderable: 0 },
+    asteroid: { total: 0, renderable: 0 },
+    comet: { total: 0, renderable: 0 },
+    scifi: { total: 0, renderable: 0 },
+  })
+  const out = empty()
+  for (const b of bodies) {
+    if (!bodyEligibleUnderFilterIgnoringScale(b, filter, bodies)) continue
+    const s = out[b.kind]
+    s.total += 1
+    if (isRenderableAtScale(b.row.diameterKm, pxPerKm, minPx)) {
+      s.renderable += 1
+    }
+  }
+  return out
 }
 
 export function filterSizeCanvasBodiesForDisplay(
