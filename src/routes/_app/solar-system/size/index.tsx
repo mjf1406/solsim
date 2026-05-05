@@ -26,6 +26,7 @@ import {
 } from "./-data"
 import { SizePageBodyTypesSidebarPortal } from "./-components/size-body-types-sidebar-panel"
 import { SizeComparisonCanvas } from "./-components/size-canvas"
+import { SizeSelectionAttentionOverlay } from "./-components/size-selection-attention-overlay"
 import { SizePageEducationNoticesSidebarContent } from "./-components/size-education-notices-sidebar-panel"
 import { SizePageLabelsSidebarPortal } from "./-components/size-labels-sidebar-panel"
 import { SizeSelectedBodySidebarContent } from "./-components/size-selected-body-sidebar-panel"
@@ -92,6 +93,13 @@ function SolarSystemSizePage() {
   const [selectedBodyId, setSelectedBodyId] = useState<string | null>(null)
   const [bodyDisplayFilter, setBodyDisplayFilter] =
     useState<SizeBodyDisplayFilter>(() => applyBodyTypePreset("auto"))
+  const [listSelectionAttentionKey, setListSelectionAttentionKey] =
+    useState(0)
+  const [selectionAttentionOverlay, setSelectionAttentionOverlay] =
+    useState<{
+      target: { x: number; y: number }
+      playId: number
+    } | null>(null)
 
   const calibration = useDisplayCalibration()
   const [calibrationDialogOpen, setCalibrationDialogOpen] = useState(false)
@@ -102,6 +110,25 @@ function SolarSystemSizePage() {
 
   const cycleLabelMode = useCallback(() => {
     setLabelMode((m) => (m === "on" ? "auto" : m === "auto" ? "off" : "on"))
+  }, [])
+
+  const selectBodyFromBodyTypesList = useCallback((bodyId: string) => {
+    setSelectedBodyId(bodyId)
+    setListSelectionAttentionKey((k) => k + 1)
+  }, [])
+
+  const onListSelectionAttentionTarget = useCallback(
+    (p: { x: number; y: number; burstKey: number }) => {
+      setSelectionAttentionOverlay({
+        target: { x: p.x, y: p.y },
+        playId: p.burstKey,
+      })
+    },
+    []
+  )
+
+  const clearSelectionAttentionOverlay = useCallback(() => {
+    setSelectionAttentionOverlay(null)
   }, [])
 
   const selectedBodyLabel = findSizeRowNameById(model, selectedBodyId)
@@ -136,6 +163,8 @@ function SolarSystemSizePage() {
         onBodySelect={setSelectedBodyId}
         bodyDisplayFilter={bodyDisplayFilter}
         pxPerKm={scale.debouncedPxPerKm}
+        listSelectionAttentionKey={listSelectionAttentionKey}
+        onListSelectionAttentionTarget={onListSelectionAttentionTarget}
       />
       <ScaleControlSidebarPortal
         cycleButtonLabel={scale.cycleButtonLabel}
@@ -155,8 +184,15 @@ function SolarSystemSizePage() {
         setBodyDisplayFilter={setBodyDisplayFilter}
         pxPerKm={scale.debouncedPxPerKm}
         selectedBodyId={selectedBodyId}
-        onSelectBody={setSelectedBodyId}
+        onSelectBody={selectBodyFromBodyTypesList}
       />
+      {selectionAttentionOverlay ? (
+        <SizeSelectionAttentionOverlay
+          target={selectionAttentionOverlay.target}
+          playId={selectionAttentionOverlay.playId}
+          onDone={clearSelectionAttentionOverlay}
+        />
+      ) : null}
       <SizePageLabelsSidebarPortal
         labelMode={labelMode}
         onCycleLabelMode={cycleLabelMode}

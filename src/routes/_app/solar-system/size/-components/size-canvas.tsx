@@ -717,6 +717,8 @@ export function SizeComparisonCanvas({
   onBodySelect,
   bodyDisplayFilter = defaultSizeBodyDisplayFilter(),
   pxPerKm,
+  listSelectionAttentionKey = 0,
+  onListSelectionAttentionTarget,
 }: {
   model: SizePageModel
   labelMode?: SizeCanvasLabelMode
@@ -729,6 +731,13 @@ export function SizeComparisonCanvas({
    * applied without recomputing body centers (centers stay frozen).
    */
   pxPerKm?: number
+  /** Incremented when the Body types list selects a body; used for one-shot edge beams. */
+  listSelectionAttentionKey?: number
+  onListSelectionAttentionTarget?: (p: {
+    x: number
+    y: number
+    burstKey: number
+  }) => void
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -754,8 +763,26 @@ export function SizeComparisonCanvas({
   const selectedBodyIdRef = useRef(selectedBodyId)
   const bodyDisplayFilterRef = useRef(bodyDisplayFilter)
   const pxPerKmRef = useRef<number | undefined>(pxPerKm)
+  const listSelectionAttentionKeyRef = useRef(listSelectionAttentionKey)
+  const lastHandledListAttentionKeyRef = useRef(listSelectionAttentionKey)
+  const onListSelectionAttentionTargetRef = useRef(
+    onListSelectionAttentionTarget
+  )
 
   const { startSession: startPointerDrag } = usePointerDragDelta()
+
+  useLayoutEffect(() => {
+    listSelectionAttentionKeyRef.current = listSelectionAttentionKey
+  }, [listSelectionAttentionKey])
+
+  /** Same body re-selected from the list only bumps `listSelectionAttentionKey`; redraw still needed for beams. */
+  useLayoutEffect(() => {
+    void redrawRef.current?.()
+  }, [listSelectionAttentionKey])
+
+  useLayoutEffect(() => {
+    onListSelectionAttentionTargetRef.current = onListSelectionAttentionTarget
+  }, [onListSelectionAttentionTarget])
 
   const onCanvasPointerDown = useCallback(
     (e: PointerEvent<HTMLCanvasElement>) => {
@@ -1032,6 +1059,28 @@ export function SizeComparisonCanvas({
           drawSelectionIndicator(ctx, pos.cx, pos.cy, r)
           break
         }
+      }
+
+      const attnKey = listSelectionAttentionKeyRef.current
+      if (attnKey > lastHandledListAttentionKeyRef.current) {
+        const cb = onListSelectionAttentionTargetRef.current
+        if (cb && selId) {
+          for (let i = 0; i < entries.length; i++) {
+            const e = entries[i]
+            if (e.canvasId !== selId) continue
+            if (e.diameterPx < 1) break
+            const pos = posById.get(selId)
+            if (!pos) break
+            const rect = canvas.getBoundingClientRect()
+            cb({
+              x: rect.left + pos.cx,
+              y: rect.top + pos.cy,
+              burstKey: attnKey,
+            })
+            break
+          }
+        }
+        lastHandledListAttentionKeyRef.current = attnKey
       }
     }
 
