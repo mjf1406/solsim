@@ -243,6 +243,27 @@ export function kindLabel(kind: SizeBodyKind): string {
   }
 }
 
+/**
+ * Article + lowercase body-type phrase for sidebar copy ("NAME is …").
+ * Moons use host-specific wording instead.
+ */
+export function sizeBodyKindPredicationPhrase(kind: SizeBodyKind): string | null {
+  switch (kind) {
+    case "moon":
+      return null
+    case "star":
+      return "a star"
+    case "planet":
+      return "a planet"
+    case "dwarf":
+      return "a dwarf planet"
+    case "asteroid":
+      return "an asteroid"
+    case "comet":
+      return "a comet"
+  }
+}
+
 /** Moon diameter in km used as 1 CSS pixel on the size canvas; same rule as `size-canvas.tsx`. */
 export function moonReferenceDiameterKm(model: SizePageModel): number {
   const candidates: SizeRow[] = []
@@ -274,6 +295,8 @@ export type SizeBodyDetail = {
   diameterKm: number
   /** Disk diameter in CSS pixels (Moon = 1 px). */
   diameterPx: number
+  /** Host planet or dwarf name when `kind === "moon"` and known; otherwise null. */
+  parentPlanetName: string | null
 }
 
 /**
@@ -290,7 +313,8 @@ export function findSizeBodyDetail(
 
   const asDetail = (
     row: SizeRow,
-    kind: SizeBodyKind
+    kind: SizeBodyKind,
+    moonParentName: string | null = null
   ): SizeBodyDetail | null => {
     const d = row.diameterKm
     if (d == null || !Number.isFinite(d)) return null
@@ -299,23 +323,30 @@ export function findSizeBodyDetail(
       kind,
       diameterKm: d,
       diameterPx: d / moonKm,
+      parentPlanetName: kind === "moon" ? moonParentName : null,
     }
   }
 
   const byCanvas = collectSizeCanvasBodies(model).find((b) => b.canvasId === id)
-  if (byCanvas) return asDetail(byCanvas.row, byCanvas.kind)
+  if (byCanvas) {
+    const moonParentName =
+      byCanvas.kind === "moon" && byCanvas.parentPlanetId
+        ? findSizeRowNameById(model, byCanvas.parentPlanetId)
+        : null
+    return asDetail(byCanvas.row, byCanvas.kind, moonParentName)
+  }
 
   if (model.sun?.id === id) return asDetail(model.sun, "star")
   for (const s of model.planets) {
     if (s.body.id === id) return asDetail(s.body, "planet")
     for (const m of s.moons) {
-      if (m.id === id) return asDetail(m, "moon")
+      if (m.id === id) return asDetail(m, "moon", s.body.name)
     }
   }
   for (const s of model.dwarfPlanets) {
     if (s.body.id === id) return asDetail(s.body, "dwarf")
     for (const m of s.moons) {
-      if (m.id === id) return asDetail(m, "moon")
+      if (m.id === id) return asDetail(m, "moon", s.body.name)
     }
   }
   for (const a of model.asteroids) {

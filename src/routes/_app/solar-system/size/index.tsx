@@ -92,7 +92,7 @@ function SolarSystemSizePage() {
   const [labelMode, setLabelMode] = useState<SizeCanvasLabelMode>("on")
   const [selectedBodyId, setSelectedBodyId] = useState<string | null>(null)
   const [bodyDisplayFilter, setBodyDisplayFilter] =
-    useState<SizeBodyDisplayFilter>(() => applyBodyTypePreset("auto"))
+    useState<SizeBodyDisplayFilter>(() => applyBodyTypePreset("planets"))
   const [listSelectionAttentionKey, setListSelectionAttentionKey] =
     useState(0)
   const [selectionAttentionOverlay, setSelectionAttentionOverlay] =

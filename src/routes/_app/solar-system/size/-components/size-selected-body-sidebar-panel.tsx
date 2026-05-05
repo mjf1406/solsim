@@ -16,6 +16,7 @@ import {
   formatDiameterNumber,
   formatDiameterPx,
   kindLabel,
+  sizeBodyKindPredicationPhrase,
   spokenDiameterSentence,
   type SizePageModel,
 } from "../-data"
@@ -54,6 +55,9 @@ export function SizeSelectedBodySidebarContent({
     )
   }
 
+  const subjectLabel = detail.name === "Sun" ? "the Sun" : detail.name
+  const typeIntroPredication = sizeBodyKindPredicationPhrase(detail.kind)
+
   return (
     <div className="flex flex-col gap-3">
       <h2 className="flex items-center justify-between gap-2 font-heading text-2xl font-semibold tracking-tight text-sidebar-foreground">
@@ -62,6 +66,15 @@ export function SizeSelectedBodySidebarContent({
           {kindLabel(detail.kind)}
         </Badge>
       </h2>
+      {detail.kind === "moon" && detail.parentPlanetName ? (
+        <p className="text-base leading-snug text-sidebar-foreground/90">
+          {detail.name} is a moon of {detail.parentPlanetName}.
+        </p>
+      ) : typeIntroPredication ? (
+        <p className="text-base leading-snug text-sidebar-foreground/90">
+          {subjectLabel} is {typeIntroPredication}.
+        </p>
+      ) : null}
       <p className="text-base leading-snug text-sidebar-foreground/90">
         See how wide {detail.name == "Sun" ? "the Sun" : detail.name} really is
         below. This is also called the{" "}
