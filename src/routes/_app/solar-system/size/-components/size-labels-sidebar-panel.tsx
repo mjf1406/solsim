@@ -92,13 +92,12 @@ function SizeLabelsCollapsibleSection({
       <CollapsibleContent>
         <div className="space-y-2 border-t border-sidebar-border/80 px-1 pt-3 pb-1 text-xs leading-snug text-sidebar-foreground/80">
           <p>
-            <span className="font-medium text-sidebar-foreground">On:</span>{" "}
-            Every body shows its name next to (or inside) its disk.
+            <span className="font-medium text-sidebar-foreground">On</span> mode
+            shows every body's label.
           </p>
           <p>
-            <span className="font-medium text-sidebar-foreground">Auto:</span>{" "}
-            Only the body you select on the canvas shows a label. Tap empty
-            space to clear the selection.
+            <span className="font-medium text-sidebar-foreground">Auto</span>{" "}
+            mode shows only the label of the selected body.
             {labelMode === "auto" && (
               <span className="mt-1 block text-sidebar-foreground/70">
                 {selectedBodyLabel
@@ -108,8 +107,8 @@ function SizeLabelsCollapsibleSection({
             )}
           </p>
           <p>
-            <span className="font-medium text-sidebar-foreground">Off:</span>{" "}
-            Names are hidden; disks stay visible.
+            <span className="font-medium text-sidebar-foreground">Off</span>{" "}
+            mode hides all labels.
           </p>
         </div>
       </CollapsibleContent>
