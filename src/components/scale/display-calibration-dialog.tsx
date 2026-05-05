@@ -88,6 +88,7 @@ export function DisplayCalibrationDialog({
   const [calibratorRef, setCalibratorRef] =
     useState<CalibratorReference>("credit_card")
   const [rulerUnit, setRulerUnit] = useState<RulerUnit>("cm")
+  const rulerMajorTicks = rulerUnit === "cm" ? 10 : 4
   const refMm =
     calibratorRef === "ruler"
       ? calibrationRulerWidthMm(rulerUnit)
@@ -222,14 +223,17 @@ export function DisplayCalibrationDialog({
                 <div className="relative h-5 w-full max-w-[140px] overflow-hidden rounded-md border border-foreground/20 bg-muted/10">
                   <div className="absolute inset-0 bg-linear-to-r from-foreground/10 via-foreground/5 to-foreground/10" />
                   <div className="absolute inset-y-0 left-0 w-4 bg-foreground/10" />
-                  <div className="absolute inset-y-0 left-4 w-px bg-foreground/25" />
-                  <div className="absolute inset-y-0 left-8 w-px bg-foreground/25" />
-                  <div className="absolute inset-y-0 left-12 w-px bg-foreground/25" />
-                  <div className="absolute inset-y-0 left-16 w-px bg-foreground/25" />
-                  <div className="absolute inset-y-0 left-20 w-px bg-foreground/25" />
-                  <div className="absolute inset-y-0 left-24 w-px bg-foreground/25" />
-                  <div className="absolute inset-y-0 left-28 w-px bg-foreground/25" />
-                  <div className="absolute inset-y-0 left-32 w-px bg-foreground/25" />
+                  {Array.from({ length: rulerMajorTicks }, (_, i) => i + 1).map(
+                    (n) => (
+                      <div
+                        key={n}
+                        className="absolute inset-y-0 w-px bg-foreground/25"
+                        style={{
+                          left: `${(n / rulerMajorTicks) * 100}%`,
+                        }}
+                      />
+                    )
+                  )}
                 </div>
               </div>
               <span className="text-[11px] font-medium leading-tight sm:text-xs">
@@ -370,15 +374,17 @@ export function DisplayCalibrationDialog({
                 <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl bg-muted/10 shadow-sm">
                   <div className="absolute inset-0 bg-linear-to-r from-foreground/10 via-foreground/5 to-foreground/10" />
                   <div className="absolute inset-y-0 left-0 w-[10%] bg-foreground/10" />
-                  <div className="absolute inset-y-0 left-[10%] w-px bg-foreground/25" />
-                  <div className="absolute inset-y-0 left-[20%] w-px bg-foreground/25" />
-                  <div className="absolute inset-y-0 left-[30%] w-px bg-foreground/25" />
-                  <div className="absolute inset-y-0 left-[40%] w-px bg-foreground/25" />
-                  <div className="absolute inset-y-0 left-[50%] w-px bg-foreground/25" />
-                  <div className="absolute inset-y-0 left-[60%] w-px bg-foreground/25" />
-                  <div className="absolute inset-y-0 left-[70%] w-px bg-foreground/25" />
-                  <div className="absolute inset-y-0 left-[80%] w-px bg-foreground/25" />
-                  <div className="absolute inset-y-0 left-[90%] w-px bg-foreground/25" />
+                  {Array.from({ length: rulerMajorTicks }, (_, i) => i + 1).map(
+                    (n) => (
+                      <div
+                        key={n}
+                        className="absolute inset-y-0 w-px bg-foreground/25"
+                        style={{
+                          left: `${(n / rulerMajorTicks) * 100}%`,
+                        }}
+                      />
+                    )
+                  )}
                 </div>
               )}
             </div>
