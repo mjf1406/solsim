@@ -1,6 +1,13 @@
+import {
+  SIZE_PAGE_DEFAULT_LINK_SEARCH,
+  type SizeRouteSearch,
+} from "@/routes/_app/solar-system/size/-url-search"
+
 export type MainNavChildLink = {
   to: string
   label: string
+  /** When set, passed to TanStack `<Link search={…}>` (required for routes with `validateSearch`). */
+  search?: SizeRouteSearch
 }
 
 export type MainNavLink = {
@@ -23,7 +30,11 @@ export const mainNav: MainNavEntry[] = [
     kind: "group",
     label: "Solar System",
     items: [
-      { to: "/solar-system/size", label: "Size" },
+      {
+        to: "/solar-system/size",
+        label: "Size",
+        search: SIZE_PAGE_DEFAULT_LINK_SEARCH,
+      },
       { to: "/solar-system/distance", label: "Distance" },
     ],
   },

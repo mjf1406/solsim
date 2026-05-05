@@ -1,6 +1,8 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Link } from "@tanstack/react-router"
+
+import { SIZE_PAGE_DEFAULT_LINK_SEARCH } from "@/routes/_app/solar-system/size/-url-search"
 import { ArrowRight } from "lucide-react"
 
 export const HeroSection = () => {
@@ -15,7 +17,11 @@ export const HeroSection = () => {
             <span>
               {" "}
               We've launched with{" "}
-              <Link to="/solar-system/size" className="underline">
+              <Link
+                to="/solar-system/size"
+                search={SIZE_PAGE_DEFAULT_LINK_SEARCH}
+                className="underline"
+              >
                 Size
               </Link>{" "}
               and{" "}

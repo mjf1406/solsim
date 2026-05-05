@@ -111,6 +111,9 @@ export function AppHeader() {
                             <NavigationMenuLink asChild>
                               <Link
                                 to={item.to}
+                                {...(item.search != null
+                                  ? { search: item.search }
+                                  : {})}
                                 className={cn(
                                   navLinkClass,
                                   "text-muted-foreground hover:text-foreground"

@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import {
   createFileRoute,
+  deepEqual,
   type ErrorComponentProps,
-  useLoaderData,
 } from "@tanstack/react-router"
 
 import { useAppHeaderSlots } from "@/components/navigation/app-header-slots"
@@ -12,7 +12,6 @@ import { useCanvasScale } from "@/hooks/use-canvas-scale"
 import { useDisplayCalibration } from "@/hooks/use-display-calibration"
 
 import {
-  applyBodyTypePreset,
   isSizeBodyIdVisibleUnderFilter,
   type SizeBodyDisplayFilter,
 } from "@/lib/solar-system/body-type-display"
@@ -31,9 +30,19 @@ import { SizeSelectionAttentionOverlay } from "./-components/size-selection-atte
 import { SizePageEducationNoticesSidebarContent } from "./-components/size-education-notices-sidebar-panel"
 import { SizePageLabelsSidebarPortal } from "./-components/size-labels-sidebar-panel"
 import { SizeSelectedBodySidebarContent } from "./-components/size-selected-body-sidebar-panel"
+import {
+  finalizeNavigateSearch,
+  parseSizeRouteSearch,
+  pxPerKmToSliderForCalibration,
+  serializeSizePageSearch,
+  sizeSearchToBodyDisplayFilter,
+  type SizeRouteSearch,
+} from "./-url-search"
 // import { SolarSystemSizeDataTables } from "./-components/size-tables"
 
 export const Route = createFileRoute("/_app/solar-system/size/")({
+  validateSearch: (search: Record<string, unknown>): SizeRouteSearch =>
+    parseSizeRouteSearch(search),
   loader: async () => {
     const [json, sciFiCatalog] = await Promise.all([
       fetchSolarSystemJson(),
@@ -92,11 +101,20 @@ function SizeRouteError({ error }: ErrorComponentProps) {
 }
 
 function SolarSystemSizePage() {
-  const { model } = useLoaderData({ from: "/_app/solar-system/size/" })
-  const [labelMode, setLabelMode] = useState<SizeCanvasLabelMode>("on")
-  const [selectedBodyId, setSelectedBodyId] = useState<string | null>(null)
+  const { model } = Route.useLoaderData()
+  const search = Route.useSearch()
+  const navigate = Route.useNavigate()
+
+  const [labelMode, setLabelMode] = useState<SizeCanvasLabelMode>(
+    () => search.labels
+  )
+  const [selectedBodyId, setSelectedBodyId] = useState<string | null>(
+    () => search.body ?? null
+  )
   const [bodyDisplayFilter, setBodyDisplayFilter] =
-    useState<SizeBodyDisplayFilter>(() => applyBodyTypePreset("planets"))
+    useState<SizeBodyDisplayFilter>(() =>
+      sizeSearchToBodyDisplayFilter(search)
+    )
   const [listSelectionAttentionKey, setListSelectionAttentionKey] =
     useState(0)
   const [selectionAttentionOverlay, setSelectionAttentionOverlay] =
@@ -111,6 +129,61 @@ function SolarSystemSizePage() {
     pxPerMm: calibration.pxPerMm,
     isCalibrated: calibration.isCalibrated,
   })
+
+  const searchRef = useRef(search)
+  useEffect(() => {
+    searchRef.current = search
+  }, [search])
+
+  useEffect(() => {
+    /* Router search is external input (link, back/forward). */
+    /* eslint-disable react-hooks/set-state-in-effect -- sync URL → UI */
+    setLabelMode(search.labels)
+    setBodyDisplayFilter(sizeSearchToBodyDisplayFilter(search))
+    setSelectedBodyId(search.body ?? null)
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [search])
+
+  useEffect(() => {
+    if (search.zoom == null) return
+    scale.setSliderValue(
+      pxPerKmToSliderForCalibration({
+        pxPerKm: search.zoom,
+        isCalibrated: calibration.isCalibrated,
+        pxPerMm: calibration.pxPerMm,
+      })
+    )
+    /* eslint-disable-next-line react-hooks/exhaustive-deps -- omit `scale`; identity churn would re-run every paint */
+  }, [
+    search.zoom,
+    calibration.isCalibrated,
+    calibration.pxPerMm,
+    scale.setSliderValue,
+  ])
+
+  useEffect(() => {
+    const partial = serializeSizePageSearch({
+      selectedBodyId,
+      labelMode,
+      bodyDisplayFilter,
+      debouncedPxPerKm: scale.debouncedPxPerKm,
+    })
+    const nextSearch = finalizeNavigateSearch(partial)
+    const id = window.setTimeout(() => {
+      if (deepEqual(nextSearch, searchRef.current)) return
+      navigate({
+        replace: true,
+        search: nextSearch,
+      })
+    }, 400)
+    return () => window.clearTimeout(id)
+  }, [
+    bodyDisplayFilter,
+    labelMode,
+    navigate,
+    scale.debouncedPxPerKm,
+    selectedBodyId,
+  ])
 
   const cycleLabelMode = useCallback(() => {
     setLabelMode((m) => (m === "on" ? "auto" : m === "auto" ? "off" : "on"))
