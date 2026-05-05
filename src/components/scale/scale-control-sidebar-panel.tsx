@@ -162,8 +162,7 @@ function ScaleControlCollapsibleSection({
               <CollapsibleContent className="px-2 pt-0 pb-2">
                 <ol className="list-decimal space-y-2 pl-4 text-[11px] text-sidebar-foreground/85">
                   <li>
-                    Get a graphite pencil, driver&apos;s license, passport, or
-                    credit card.
+                    Get a ruler, driver&apos;s license, passport, or credit card.
                   </li>
                   <li className="marker:font-medium">
                     <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1.5">

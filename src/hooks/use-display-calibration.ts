@@ -10,8 +10,10 @@ export const CREDIT_CARD_WIDTH_MM = 85.6
 /** ID-1 credit card height (mm). Useful for sizing the calibration outline. */
 export const CREDIT_CARD_HEIGHT_MM = 53.98
 
-/** Typical hex wood pencil: distance across flats (mm), for body width. */
-export const PENCIL_ACROSS_FLATS_MM = 7.2
+/** Ruler reference lengths (mm). */
+export const RULER_10CM_MM = 100
+
+export const RULER_4IN_MM = 101.6
 
 /** ISO/IEC 7810 ID-3 passport page long edge (mm). */
 export const PASSPORT_LONG_EDGE_MM = 125
@@ -19,20 +21,26 @@ export const PASSPORT_LONG_EDGE_MM = 125
 /** ISO/IEC 7810 ID-3 short edge (mm). */
 export const PASSPORT_SHORT_EDGE_MM = 88
 
-export type CalibratorReference = "pencil" | "credit_card" | "passport"
+export type CalibratorReference = "ruler" | "credit_card" | "passport"
+
+export type NonRulerCalibratorReference = Exclude<CalibratorReference, "ruler">
+
+export type RulerUnit = "cm" | "in"
 
 /** Physical width (mm) the user matches to the on-screen horizontal outline. */
 export function calibrationReferenceWidthMm(
-  ref: CalibratorReference
+  ref: NonRulerCalibratorReference
 ): number {
   switch (ref) {
-    case "pencil":
-      return PENCIL_ACROSS_FLATS_MM
     case "credit_card":
       return CREDIT_CARD_WIDTH_MM
     case "passport":
       return PASSPORT_LONG_EDGE_MM
   }
+}
+
+export function calibrationRulerWidthMm(unit: RulerUnit): number {
+  return unit === "cm" ? RULER_10CM_MM : RULER_4IN_MM
 }
 
 export type DisplayCalibration = {
