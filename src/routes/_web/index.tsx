@@ -7,7 +7,7 @@ export const Route = createFileRoute("/_web/")({
 
 function Index() {
   return (
-    <div>
+    <div className="mx-auto flex w-full flex-col items-center justify-center gap-4">
       <HeroSection />
     </div>
   )
