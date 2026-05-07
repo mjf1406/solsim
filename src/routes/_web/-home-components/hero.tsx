@@ -49,9 +49,11 @@ export const HeroSection = () => {
           </p>
 
           <div className="space-y-4 md:space-y-0 md:space-x-4">
-            <Button className="group/arrow w-5/6 font-bold md:w-1/4">
-              Start learning
-              <ArrowRight className="ml-2 size-5 transition-transform group-hover/arrow:translate-x-1" />
+            <Button asChild className="group/arrow w-5/6 font-bold md:w-1/4">
+              <Link to="/" hash="pages">
+                Start learning
+                <ArrowRight className="ml-2 size-5 transition-transform group-hover/arrow:translate-x-1" />
+              </Link>
             </Button>
             {/* <Button variant="secondary" className="w-5/6 font-bold md:w-1/4">
               Learn more
@@ -72,14 +74,14 @@ export const HeroSection = () => {
             width={1200}
             height={1200}
             className="relative mx-auto w-full rounded-lg border border-t-2 border-secondary border-t-primary/30 leading-none md:w-[1200px] dark:hidden"
-            src="/hero-image-light.jpeg"
+            src="/hero-image-light.webp"
             alt="Dashboard preview (light theme)"
           />
           <img
             width={1200}
             height={1200}
             className="relative mx-auto hidden w-full rounded-lg border border-t-2 border-secondary border-t-primary/30 leading-none md:w-[1200px] dark:block"
-            src="/hero-image-dark.jpeg"
+            src="/hero-image-dark.webp"
             alt="Dashboard preview (dark theme)"
           />
 

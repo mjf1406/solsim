@@ -12,6 +12,8 @@ import LoadingScreen from "./components/navigation/loading-screen"
 const router = createRouter({
   routeTree,
   defaultPendingComponent: LoadingScreen,
+  defaultPendingMs: 50,
+  defaultPendingMinMs: 200,
 })
 
 // Register the router instance for type safety
