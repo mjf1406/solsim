@@ -114,3 +114,35 @@ export function spokenNumberEnUsMaxOneDecimal(n: number): string {
 
   return words
 }
+
+/**
+ * Lowercase English words matching an en-US numeric display string (as shown in UI).
+ * Each digit after the decimal is spoken separately (`3.72` → `three point seven two`).
+ */
+export function spokenNumberEnUsFromEnUsDisplay(display: string): string {
+  const trimmed = display.trim()
+  if (trimmed === "" || trimmed === "—") return ""
+
+  const noCommas = trimmed.replace(/,/g, "")
+  const dot = noCommas.indexOf(".")
+  const intRaw = dot === -1 ? noCommas : noCommas.slice(0, dot)
+  const decRaw = dot === -1 ? "" : noCommas.slice(dot + 1)
+
+  if (intRaw === "" || !/^\d+$/.test(intRaw)) return ""
+
+  const intNum = Number.parseInt(intRaw, 10)
+  if (!Number.isFinite(intNum)) return ""
+
+  let words = integerToEnglishWordsNonNegative(intNum)
+
+  if (decRaw !== "") {
+    if (!/^\d+$/.test(decRaw)) return ""
+    const digitWords = [...decRaw].map((ch) => {
+      const d = Number.parseInt(ch, 10)
+      return ZERO_TO_NINETEEN[d]!
+    })
+    words += ` point ${digitWords.join(" ")}`
+  }
+
+  return words
+}

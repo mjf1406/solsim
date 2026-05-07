@@ -12,7 +12,7 @@
  * places for display.
  */
 
-import { spokenNumberEnUsMaxOneDecimal } from "@/lib/reading/spoken-number-en-us"
+import { spokenNumberEnUsFromEnUsDisplay } from "@/lib/reading/spoken-number-en-us"
 
 /** Statute mile to kilometer (exact: `1 mi = 1.609344 km`). */
 const KM_PER_MI = 1.609344
@@ -160,6 +160,9 @@ export function formatScaledDiameter(
  *
  * Falls back to the bare unit word when the value is below the spoken-number
  * helper's resolution (e.g. `1.23e-4 µm` → `"A tiny fraction of a micrometer."`).
+ *
+ * For normal values, spoken decimals match {@link formatScaledDiameter}'s `display`
+ * digit-for-digit after the decimal point.
  */
 export function spokenScaledDiameterSentence(
   mm: number,
@@ -169,21 +172,17 @@ export function spokenScaledDiameterSentence(
   const value = formatted.valueInUnit
   if (!Number.isFinite(value) || value < 0) return ""
 
-  // Sub-tenth values round to "zero" via maximumFractionDigits=1; keep the
-  // sentence honest by saying "less than one" instead of "zero".
+  // Very small positive values are awkward to read as decimals; keep the sentence simple.
   if (value > 0 && value < 0.05) {
     return `Less than one ${formatted.unitWordsSingular}.`
   }
 
-  const formattedNumber = value.toLocaleString("en-US", {
-    maximumFractionDigits: 2,
-    useGrouping: false,
-  })
-  const words = spokenNumberEnUsMaxOneDecimal(value)
+  const displayNormalized = formatted.display.replace(/,/g, "")
+  const words = spokenNumberEnUsFromEnUsDisplay(formatted.display)
   const singular =
-    formattedNumber === "1" ||
-    formattedNumber === "1.0" ||
-    formattedNumber === "1.00"
+    displayNormalized === "1" ||
+    displayNormalized === "1.0" ||
+    displayNormalized === "1.00"
   const unitWord = singular
     ? formatted.unitWordsSingular
     : formatted.unitWordsPlural

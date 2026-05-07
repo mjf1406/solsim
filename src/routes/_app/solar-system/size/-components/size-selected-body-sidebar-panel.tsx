@@ -219,8 +219,9 @@ function ScaledDiameterExplainerSection({
         smaller.
       </p>
       <p className="mt-3 text-xs leading-snug text-sidebar-foreground/65">
-        The <span className="font-mono">≈</span> means approximate: catalog data,
-        rounding, and matching the calibrator by eye all leave some uncertainty.
+        The <span className="font-mono">≈</span> means "about". We can say "it's
+        about {formatted.display} {formatted.unit}". We cannot be exact because
+        the screen calibration is not perfect.
       </p>
     </section>
   )
