@@ -43,8 +43,9 @@ export const HeroSection = () => {
           </div>
 
           <p className="mx-auto max-w-screen-sm text-xl text-muted-foreground">
-            Learners explore simulations and leveled readings; teachers get
-            printable activities and worksheets for the same ideas off-screen.
+            Scholars explore interactive models and read leveled texts; teachers
+            get printable activities and worksheets for the same concepts
+            off-screen.
           </p>
 
           <div className="space-y-4 md:space-y-0 md:space-x-4">
