@@ -7,9 +7,9 @@
  * the user hasn't calibrated, in which case the result is approximate).
  *
  * Auto-unit selection picks the smallest sensible unit such that the displayed
- * value is at least 1, capped at km (metric) or mi (imperial). Sub-µm values
- * fall back to scientific notation in µm. Normal values round to two decimal
- * places for display.
+ * value is at least 1, capped at km (metric) or mi (imperial). For metric,
+ * sub-millimeter values stay in mm (never µm), clamped below a hundredth.
+ * Normal values round to two decimal places for display.
  */
 
 import { spokenNumberEnUsFromEnUsDisplay } from "@/lib/reading/spoken-number-en-us"
@@ -23,7 +23,7 @@ const FT_PER_MI = 5280
 
 export type ScaledDiameterUnitSystem = "metric" | "imperial"
 
-export type MetricUnit = "µm" | "mm" | "cm" | "m" | "km"
+export type MetricUnit = "mm" | "cm" | "m" | "km"
 export type ImperialUnit = "in" | "ft" | "mi"
 export type ScaledDiameterUnit = MetricUnit | ImperialUnit
 
@@ -59,13 +59,15 @@ function roundToTwoDecimals(n: number): number {
   return Math.round(n * 100) / 100
 }
 
+function roundToThreeDecimals(n: number): number {
+  return Math.round(n * 1000) / 1000
+}
+
 function unitWords(unit: ScaledDiameterUnit): {
   singular: string
   plural: string
 } {
   switch (unit) {
-    case "µm":
-      return { singular: "micrometer", plural: "micrometers" }
     case "mm":
       return { singular: "millimeter", plural: "millimeters" }
     case "cm":
@@ -91,9 +93,7 @@ function pickMetric(mm: number): { value: number; unit: MetricUnit } {
   if (m >= 1) return { value: m, unit: "m" }
   const cm = mm / 10
   if (cm >= 1) return { value: cm, unit: "cm" }
-  if (mm >= 1) return { value: mm, unit: "mm" }
-  const um = mm * 1000
-  return { value: um, unit: "µm" }
+  return { value: mm, unit: "mm" }
 }
 
 /** Picks the smallest imperial unit where the value is ≥ 1, capped at mi. */
@@ -129,11 +129,21 @@ export function formatScaledDiameter(
   const { value, unit } =
     system === "metric" ? pickMetric(mm) : pickImperial(mm)
 
-  // Sub-µm (or sub-in) values use scientific notation rather than four-plus
-  // leading zeros so the readout stays compact (two decimals in the mantissa).
   let display: string
   let valueInUnit: number
-  if (value > 0 && value < 0.001) {
+  if (system === "metric" && unit === "mm" && value > 0 && value < 1) {
+    if (value < 0.01) {
+      display = "< 0.01"
+      valueInUnit = value
+    } else {
+      valueInUnit = roundToThreeDecimals(value)
+      display = valueInUnit.toLocaleString("en-US", {
+        maximumFractionDigits: 3,
+        minimumFractionDigits: 0,
+      })
+    }
+  } else if (value > 0 && value < 0.001) {
+    // Keep very small values compact for non-mm contexts.
     display = value.toExponential(2)
     valueInUnit = value
   } else {
@@ -159,7 +169,7 @@ export function formatScaledDiameter(
  * `spokenDiameterSentence` in the size page data layer.
  *
  * Falls back to the bare unit word when the value is below the spoken-number
- * helper's resolution (e.g. `1.23e-4 µm` → `"A tiny fraction of a micrometer."`).
+ * helper's resolution (e.g. tiny values that are clamped for display).
  *
  * For normal values, spoken decimals match {@link formatScaledDiameter}'s `display`
  * digit-for-digit after the decimal point.
@@ -171,6 +181,10 @@ export function spokenScaledDiameterSentence(
   const formatted = formatScaledDiameter(mm, system)
   const value = formatted.valueInUnit
   if (!Number.isFinite(value) || value < 0) return ""
+
+  if (system === "metric" && formatted.unit === "mm" && mm > 0 && mm < 0.01) {
+    return "Less than one hundredth of a millimeter."
+  }
 
   // Very small positive values are awkward to read as decimals; keep the sentence simple.
   if (value > 0 && value < 0.05) {
