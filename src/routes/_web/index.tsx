@@ -3,6 +3,7 @@ import { HeroSection } from "./-home-components/hero"
 import { PagesSection } from "./-home-components/pages"
 import { FeaturesSection } from "./-home-components/features"
 import { FAQSection } from "./-home-components/faq"
+import { FooterSection } from "./-home-components/footer"
 
 export const Route = createFileRoute("/_web/")({
   component: Index,
@@ -15,6 +16,7 @@ function Index() {
       <PagesSection />
       <FeaturesSection />
       <FAQSection />
+      <FooterSection />
     </div>
   )
 }

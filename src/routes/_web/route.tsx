@@ -6,7 +6,7 @@ export const Route = createFileRoute("/_web")({
 
 function RouteComponent() {
   return (
-    <div className="max-h-[calc(100svh-var(--app-header-h))] overflow-y-auto p-4 scrollbar-both-edges lg:p-8">
+    <div className="p-4 lg:p-8">
       <Outlet />
     </div>
   )
