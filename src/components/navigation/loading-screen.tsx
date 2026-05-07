@@ -7,7 +7,7 @@ export default function LoadingScreen() {
         className="h-40 w-40 animate-[spin_6s_linear_infinite] select-none"
         draggable={false}
       />
-      <p className="mt-6 font-heading text-lg tracking-wide">Loading</p>
+      <p className="mt-6 font-heading text-lg tracking-wide">Loading...</p>
 
       <a
         href="https://www.magnific.com/free-vector/cool-sun-wearing-sunglasses_132098781.htm"
