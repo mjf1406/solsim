@@ -40,7 +40,7 @@ export function SizePageEducationNoticesSidebarContent() {
   if (allEducationNoticesDismissed()) return null
 
   return (
-    <div className="sticky top-0 z-1 flex shrink-0 flex-col gap-2 pb-2">
+    <div className="sticky top-0 z-10 flex shrink-0 flex-col gap-2 bg-sidebar-surface pb-2">
       <WarningBanner
         storageKey={HEADS_UP_DISMISSED_KEY}
         dismissSrLabel="Dismiss heads up notice"
