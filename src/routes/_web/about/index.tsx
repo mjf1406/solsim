@@ -8,8 +8,8 @@ export const Route = createFileRoute("/_web/about/")({
 
 function AboutPage() {
   return (
-    <>
-      <article className="mx-auto w-full max-w-3xl px-6 pt-6 pb-14 lg:px-8">
+    <div className="mx-auto flex w-full flex-col items-stretch">
+      <article className="w-full max-w-3xl self-center px-6 pt-6 pb-14 lg:px-8">
         <header className="mb-10 space-y-2">
           <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
             About
@@ -234,7 +234,7 @@ function AboutPage() {
           </section>
         </div>
       </article>
-      <FooterSection />
-    </>
+      <FooterSection layout="narrow" />
+    </div>
   )
 }

@@ -1,11 +1,32 @@
 import { Separator } from "@/components/ui/separator"
 import { APP_NAME } from "@/lib/constants"
+import { cn } from "@/lib/utils"
 import { ExternalLink } from "lucide-react"
 import { Link } from "@tanstack/react-router"
 
-export const FooterSection = () => {
+export type FooterSectionProps = {
+  /**
+   * `wide` uses the marketing `container` width (home and similar).
+   * `narrow` matches the about/article column (`max-w-3xl` + horizontal padding).
+   */
+  layout?: "wide" | "narrow"
+  className?: string
+}
+
+export function FooterSection({
+  layout = "wide",
+  className,
+}: FooterSectionProps) {
   return (
-    <footer id="footer" className="container py-24 sm:py-32">
+    <footer
+      id="footer"
+      className={cn(
+        "w-full py-24 sm:py-32",
+        layout === "wide" && "container mx-auto",
+        layout === "narrow" && "max-w-3xl self-center px-6 lg:px-8",
+        className
+      )}
+    >
       <div className="rounded-2xl border border-secondary bg-card p-10">
         <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between md:gap-12">
           <Link to="/" className="flex w-fit items-center font-bold">

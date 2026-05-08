@@ -9,7 +9,7 @@ function RootLayout() {
     <AppHeaderSlotsProvider>
       <TooltipProvider delayDuration={0}>
         <AppHeader />
-        <div className="min-h-svh pt-(--app-header-h)">
+        <div className="flex min-h-svh flex-col pt-(--app-header-h)">
           <Outlet />
         </div>
       </TooltipProvider>

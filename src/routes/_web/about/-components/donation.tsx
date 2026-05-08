@@ -1,24 +1,27 @@
-import { useMemo, useState } from "react"
+import { useMemo } from "react"
 
 import { KofiDonation } from "@/components/third-party-brands/kofi-button"
 import { PatreonDonation } from "@/components/third-party-brands/patreon-button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 
 /**
  * Maintainer: update totals here when you refresh this section.
  * Amounts are USD.
  */
-const DEFAULT_REPORTED_TOTAL_DONATED = ""
-
 const EXPENSE_LINE_ITEMS: ReadonlyArray<{
   id: string
   category: string
   amount: number
 }> = [
   { id: "domain", category: "Domain", amount: 7.5 },
-  { id: "art", category: "Art assets", amount: 175 },
+  { id: "art", category: "Art assets", amount: 195.47 },
 ]
+
+/** Individual donations (USD). Dates are ISO `YYYY-MM-DD`. Maintainer: append rows as they come in. */
+const DONATION_LINE_ITEMS: ReadonlyArray<{
+  id: string
+  date: string
+  amount: number
+}> = []
 
 function formatUsd(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -28,23 +31,31 @@ function formatUsd(value: number) {
   }).format(value)
 }
 
+function formatDonationDate(isoDate: string) {
+  const parts = isoDate.split("-").map(Number)
+  const [y, m, d] = parts
+  if (parts.length !== 3 || !y || !m || !d) return isoDate
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(y, m - 1, d)))
+}
+
 export function AboutDonateSection() {
-  const [totalDonatedInput, setTotalDonatedInput] = useState(
-    DEFAULT_REPORTED_TOTAL_DONATED
-  )
-
-  const totalDonated = useMemo(() => {
-    const n = Number.parseFloat(totalDonatedInput.replace(/,/g, ""))
-    return Number.isFinite(n) && n >= 0 ? n : null
-  }, [totalDonatedInput])
-
   const expenseSum = useMemo(
     () => EXPENSE_LINE_ITEMS.reduce((acc, row) => acc + row.amount, 0),
     []
   )
 
+  const donationSum = useMemo(
+    () => DONATION_LINE_ITEMS.reduce((acc, row) => acc + row.amount, 0),
+    []
+  )
+
   const surplus =
-    totalDonated != null && expenseSum > 0 ? totalDonated - expenseSum : null
+    donationSum > 0 && expenseSum > 0 ? donationSum - expenseSum : null
 
   return (
     <section
@@ -76,26 +87,59 @@ export function AboutDonateSection() {
           Where donations go
         </h3>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Here is how support is allocated. You can enter the cumulative total
-          raised so readers can compare donations to listed costs (figures are
-          updated periodically in the site source).
+          Here is how support is allocated. Listed donations and costs are
+          updated periodically in the site source.
         </p>
 
-        <div className="max-w-xs space-y-2">
-          <Label htmlFor="total-donated-input">
-            Total donated to date (USD)
-          </Label>
-          <Input
-            id="total-donated-input"
-            type="text"
-            inputMode="decimal"
-            placeholder="0.00"
-            autoComplete="off"
-            aria-describedby="total-donated-hint"
-            value={totalDonatedInput}
-            onChange={(e) => setTotalDonatedInput(e.target.value)}
-            className="tabular-nums"
-          />
+        <div className="overflow-x-auto rounded-lg border">
+          <table className="w-full min-w-[18rem] text-left text-sm">
+            <caption className="border-b px-3 py-2 text-left text-muted-foreground">
+              Donations received (USD)
+            </caption>
+            <thead className="bg-muted/50">
+              <tr>
+                <th scope="col" className="px-3 py-2 font-medium">
+                  Date
+                </th>
+                <th scope="col" className="px-3 py-2 font-medium">
+                  Amount
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {DONATION_LINE_ITEMS.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={2}
+                    className="px-3 py-6 text-center text-muted-foreground"
+                  >
+                    No donations recorded yet.
+                  </td>
+                </tr>
+              ) : (
+                DONATION_LINE_ITEMS.map((row) => (
+                  <tr key={row.id} className="border-t">
+                    <td className="px-3 py-2 text-muted-foreground">
+                      {formatDonationDate(row.date)}
+                    </td>
+                    <td className="px-3 py-2 tabular-nums">
+                      {formatUsd(row.amount)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+            <tfoot>
+              <tr className="border-t bg-muted/30 font-medium">
+                <th scope="row" className="px-3 py-2 text-left font-medium">
+                  Total
+                </th>
+                <td className="px-3 py-2 tabular-nums">
+                  {formatUsd(donationSum)}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
 
         <div className="overflow-x-auto rounded-lg border">
@@ -111,7 +155,7 @@ export function AboutDonateSection() {
                 <th scope="col" className="px-3 py-2 font-medium">
                   Amount
                 </th>
-                {totalDonated != null && totalDonated > 0 ? (
+                {donationSum > 0 ? (
                   <th scope="col" className="px-3 py-2 font-medium">
                     Share of donations
                   </th>
@@ -121,9 +165,7 @@ export function AboutDonateSection() {
             <tbody>
               {EXPENSE_LINE_ITEMS.map((row) => {
                 const donationShare =
-                  totalDonated != null && totalDonated > 0
-                    ? (row.amount / totalDonated) * 100
-                    : null
+                  donationSum > 0 ? (row.amount / donationSum) * 100 : null
                 return (
                   <tr key={row.id} className="border-t">
                     <td className="px-3 py-2">{row.category}</td>
@@ -148,9 +190,9 @@ export function AboutDonateSection() {
                   <td className="px-3 py-2 tabular-nums">
                     {formatUsd(expenseSum)}
                   </td>
-                  {totalDonated != null && totalDonated > 0 ? (
+                  {donationSum > 0 ? (
                     <td className="px-3 py-2 text-muted-foreground tabular-nums">
-                      {((expenseSum / totalDonated) * 100).toFixed(1)}%
+                      {((expenseSum / donationSum) * 100).toFixed(1)}%
                     </td>
                   ) : null}
                 </tr>
@@ -158,11 +200,11 @@ export function AboutDonateSection() {
             ) : null}
           </table>
         </div>
-        {totalDonated != null && expenseSum > 0 ? (
+        {donationSum > 0 && expenseSum > 0 ? (
           <p className="text-sm leading-relaxed text-muted-foreground">
             {surplus != null && surplus >= 0 ? (
               <>
-                Entered donations ({formatUsd(totalDonated)}) cover these costs
+                Listed donations ({formatUsd(donationSum)}) cover these costs
                 with{" "}
                 <span className="font-medium text-foreground tabular-nums">
                   {formatUsd(surplus)}
@@ -171,8 +213,8 @@ export function AboutDonateSection() {
               </>
             ) : (
               <>
-                These costs ({formatUsd(expenseSum)}) exceed entered donations (
-                {formatUsd(totalDonated)}) by{" "}
+                These costs ({formatUsd(expenseSum)}) exceed listed donations (
+                {formatUsd(donationSum)}) by{" "}
                 <span className="font-medium text-foreground tabular-nums">
                   {formatUsd(Math.abs(surplus ?? 0))}
                 </span>

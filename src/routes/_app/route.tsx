@@ -31,7 +31,7 @@ function AppShellLayout() {
     <SidebarProvider
       storageKey={SIDEBAR_STORAGE_KEY_LEFT}
       className={cn(
-        "min-h-[calc(100svh-var(--app-header-h))] w-full flex-1",
+        "flex min-h-0 w-full flex-1",
         "[--sidebar-width:14rem] md:[--sidebar-width:15rem]"
       )}
     >

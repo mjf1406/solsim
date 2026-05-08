@@ -6,7 +6,7 @@ export const Route = createFileRoute("/_web")({
 
 function RouteComponent() {
   return (
-    <div className="p-4 lg:p-8">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 scrollbar-stable lg:p-8">
       <Outlet />
     </div>
   )
