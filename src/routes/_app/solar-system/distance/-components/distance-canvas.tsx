@@ -3,19 +3,19 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type CSSProperties,
   type PointerEvent,
 } from "react"
 
 import {
   bodyCircleLabelRect,
-  drawCanvasBodyLabel,
+  CANVAS_BODY_LABEL_FONT,
   inflateCanvasLabelRect,
   leftSliverAnchorCenter,
   OVERSIZED_DISK_VISIBLE_ARC_PX,
   shouldAnchorDiskOnLeft,
   type CanvasBodyLabelRect,
 } from "@/lib/canvas"
-import { getCanvasLocalCssPoint } from "@/lib/pointer/canvas-client-xy"
 import {
   ASSUMED_SIDEBAR_PX_CSS,
   DISTANCE_CANVAS_BASE_INSET_PX,
@@ -35,21 +35,21 @@ import {
 } from "../-data"
 
 /**
- * Distance canvas:
+ * Distance strip (DOM):
  * - x position is proportional to distance from Sun (km) * pxPerKmDistance.
- * - disk diameter uses true scale; bodies smaller than 1 CSS px get a transparent 1 px proxy
- *   disk so labels attach and hit-testing works; the left sidebar still uses true diameter × scale.
+ * - disk diameter uses true scale; bodies smaller than 1 CSS px use a transparent proxy
+ *   hit pad so labels attach and taps work; the left sidebar still uses true diameter × scale.
  * - All name labels are always shown.
+ * - Wide content uses div/img instead of canvas to avoid browser canvas dimension limits.
  */
 
 const PLACEHOLDER_BASE = "/assets/placeholders"
-const SPACE_FLAT_FILL = "#020617"
 
-/** When true diameter is under 1 CSS px, draw this diameter (transparent) for label anchor + hits. */
+/** When true diameter is under 1 CSS px, layout uses this diameter for label anchor math. */
 const PROXY_DISK_DIAMETER_PX = 1
 
-/** Minimum half-width (CSS px) for pointer hit on proxy disks (drawing stays 1 px). */
-const PROXY_DISK_HIT_RADIUS_PX = 10
+/** Transparent hit pad (CSS px) for proxy disks — matches prior ~10px radius hit target. */
+const PROXY_DISK_HIT_PAD_PX = 20
 
 /** Left/right content inset: sidebar width + inner pad (stable — ignores live sidebar toggle). */
 const INSET_LEFT_CSS = ASSUMED_SIDEBAR_PX_CSS + DISTANCE_CANVAS_BASE_INSET_PX
@@ -80,99 +80,16 @@ function placeholderSrc(name: string, kind: DistanceBody["kind"]): string {
   return `${PLACEHOLDER_BASE}/natural-satellite.svg`
 }
 
-const imageCache = new Map<string, Promise<HTMLImageElement>>()
+/** Lazy 2D context for {@link bodyCircleLabelRect} text metrics only (no on-screen canvas). */
+let measureCtxSingleton: CanvasRenderingContext2D | null = null
 
-function loadImage(src: string): Promise<HTMLImageElement> {
-  let p = imageCache.get(src)
-  if (!p) {
-    p = new Promise((resolve, reject) => {
-      const img = new Image()
-      img.onload = () => resolve(img)
-      img.onerror = () => {
-        imageCache.delete(src)
-        reject(new Error(`Failed to load ${src}`))
-      }
-      img.decoding = "async"
-      img.src = src
-    })
-    imageCache.set(src, p)
+function getMeasureCtx(): CanvasRenderingContext2D | null {
+  if (typeof document === "undefined") return null
+  if (!measureCtxSingleton) {
+    const c = document.createElement("canvas")
+    measureCtxSingleton = c.getContext("2d")
   }
-  return p
-}
-
-function drawBody(
-  ctx: CanvasRenderingContext2D,
-  img: HTMLImageElement,
-  cx: number,
-  cy: number,
-  diameterPx: number
-): void {
-  const r = diameterPx / 2
-  if (r <= 0) return
-  ctx.save()
-  ctx.beginPath()
-  ctx.arc(cx, cy, r, 0, Math.PI * 2)
-  ctx.clip()
-  ctx.drawImage(img, cx - r, cy - r, diameterPx, diameterPx)
-  ctx.restore()
-}
-
-/** Invisible 1 CSS px disk: satisfies “always draw” while staying visually empty. */
-function drawTransparentProxyDisk(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number
-): void {
-  const r = PROXY_DISK_DIAMETER_PX / 2
-  ctx.save()
-  ctx.globalAlpha = 0
-  ctx.beginPath()
-  ctx.arc(cx, cy, r, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.restore()
-}
-
-function pointInLabelHitRect(x: number, y: number, rect: CanvasBodyLabelRect): boolean {
-  return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom
-}
-
-type LayoutEntry = DistanceBody & {
-  src: string
-  /** True scale diameter in CSS px (`diameterKm * pxPerKm`). */
-  trueDiameterPx: number
-  /** Disk drawn on canvas (1 px when using transparent proxy). */
-  drawDiameterPx: number
-  isProxyDisk: boolean
-}
-
-type HitLayoutSnapshot = {
-  entries: Array<{
-    canvasId: string
-    drawDiameterPx: number
-    isProxyDisk: boolean
-  }>
-  posById: Map<string, { cx: number; cy: number }>
-  labelRectById: Map<string, CanvasBodyLabelRect>
-}
-
-function hitTestBodyIdAt(snap: HitLayoutSnapshot, x: number, y: number): string | null {
-  for (let i = snap.entries.length - 1; i >= 0; i--) {
-    const entry = snap.entries[i]
-    const pos = snap.posById.get(entry.canvasId)
-    if (!pos) continue
-    const id = entry.canvasId
-    const labelRect = snap.labelRectById.get(id)
-    if (labelRect && pointInLabelHitRect(x, y, labelRect)) {
-      return id
-    }
-    const diskR = entry.isProxyDisk
-      ? PROXY_DISK_HIT_RADIUS_PX
-      : Math.max(0.75, entry.drawDiameterPx / 2)
-    const dx = x - pos.cx
-    const dy = y - pos.cy
-    if (dx * dx + dy * dy <= diskR * diskR) return id
-  }
-  return null
+  return measureCtxSingleton
 }
 
 function expandRectToMinimumHitSize(
@@ -190,6 +107,163 @@ function expandRectToMinimumHitSize(
     right: rect.right + dx,
     bottom: rect.bottom + dy,
   }
+}
+
+type LayoutEntry = DistanceBody & {
+  src: string
+  /** True scale diameter in CSS px (`diameterKm * pxPerKm`). */
+  trueDiameterPx: number
+  /** Layout diameter (1 px when using transparent proxy). */
+  drawDiameterPx: number
+  isProxyDisk: boolean
+}
+
+type DistanceLayoutItem = {
+  canvasId: string
+  name: string
+  src: string
+  cx: number
+  cy: number
+  drawDiameterPx: number
+  isProxyDisk: boolean
+  labelRect: CanvasBodyLabelRect
+  labelHitRect: CanvasBodyLabelRect
+}
+
+function LabelHitArea({
+  canvasId,
+  labelRect,
+  hitRect,
+  name,
+  interactive,
+}: {
+  canvasId: string
+  labelRect: CanvasBodyLabelRect
+  hitRect: CanvasBodyLabelRect
+  name: string
+  interactive: boolean
+}) {
+  const innerLeft = labelRect.left - hitRect.left
+  const innerTop = labelRect.top - hitRect.top
+  return (
+    <div
+      data-body-id={canvasId}
+      className={cn(!interactive && "pointer-events-none")}
+      style={{
+        position: "absolute",
+        left: hitRect.left,
+        top: hitRect.top,
+        width: hitRect.right - hitRect.left,
+        height: hitRect.bottom - hitRect.top,
+        pointerEvents: interactive ? "auto" : "none",
+        cursor: interactive ? "pointer" : "default",
+      }}
+    >
+      <span
+        className="select-none whitespace-nowrap"
+        style={{
+          position: "absolute",
+          left: innerLeft,
+          top: innerTop,
+          font: CANVAS_BODY_LABEL_FONT,
+          color: "#ffffff",
+          WebkitTextStroke: "3px #000000",
+          paintOrder: "stroke fill",
+          lineHeight: 1,
+        }}
+      >
+        {name}
+      </span>
+    </div>
+  )
+}
+
+function DistanceBodyLayers({
+  item,
+  interactive,
+}: {
+  item: DistanceLayoutItem
+  interactive: boolean
+}) {
+  const [imgFailed, setImgFailed] = useState(false)
+  const pe: CSSProperties["pointerEvents"] = interactive ? "auto" : "none"
+  const cursor: CSSProperties["cursor"] = interactive ? "pointer" : "default"
+  const D = item.drawDiameterPx
+  const r = D / 2
+  const halfPad = PROXY_DISK_HIT_PAD_PX / 2
+
+  if (item.isProxyDisk) {
+    return (
+      <>
+        <div
+          data-body-id={item.canvasId}
+          className={cn(!interactive && "pointer-events-none")}
+          style={{
+            position: "absolute",
+            left: item.cx - halfPad,
+            top: item.cy - halfPad,
+            width: PROXY_DISK_HIT_PAD_PX,
+            height: PROXY_DISK_HIT_PAD_PX,
+            pointerEvents: pe,
+            cursor,
+          }}
+          aria-hidden
+        />
+        <LabelHitArea
+          canvasId={item.canvasId}
+          labelRect={item.labelRect}
+          hitRect={item.labelHitRect}
+          name={item.name}
+          interactive={interactive}
+        />
+      </>
+    )
+  }
+
+  const diskStyle = {
+    position: "absolute" as const,
+    left: item.cx - r,
+    top: item.cy - r,
+    width: D,
+    height: D,
+    borderRadius: "50%",
+    pointerEvents: pe,
+    cursor,
+  }
+
+  return (
+    <>
+      {!imgFailed ? (
+        <img
+          src={item.src}
+          alt=""
+          draggable={false}
+          decoding="async"
+          data-body-id={item.canvasId}
+          className={cn("object-cover", !interactive && "pointer-events-none")}
+          style={diskStyle}
+          onError={() => setImgFailed(true)}
+        />
+      ) : (
+        <div
+          data-body-id={item.canvasId}
+          className={cn(!interactive && "pointer-events-none")}
+          style={{
+            ...diskStyle,
+            backgroundColor: "rgba(128, 128, 128, 0.45)",
+          }}
+          aria-hidden
+        />
+      )}
+      <LabelHitArea
+        canvasId={item.canvasId}
+        labelRect={item.labelRect}
+        hitRect={item.labelHitRect}
+        name={item.name}
+        interactive={interactive}
+      />
+    </>
+  )
 }
 
 export function DistanceCanvas({
@@ -213,47 +287,30 @@ export function DistanceCanvas({
   scrollToBodyToken?: number
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const layoutHitRef = useRef<HitLayoutSnapshot | null>(null)
-  const redrawRef = useRef<(() => Promise<void>) | null>(null)
-  const posByIdForScrollRef = useRef<Map<string, { cx: number; cy: number }>>(new Map())
+  const syncLayoutRef = useRef<(() => void) | null>(null)
+  const posByIdForScrollRef = useRef<Map<string, { cx: number; cy: number }>>(
+    new Map()
+  )
   const viewportWForScrollRef = useRef(0)
-  const [canvasWidthPx, setCanvasWidthPx] = useState(0)
+
+  const [contentWidthPx, setContentWidthPx] = useState(0)
+  const [layoutItems, setLayoutItems] = useState<DistanceLayoutItem[]>([])
 
   const bodyDisplayFilterRef = useRef(bodyDisplayFilter)
   const pxPerKmSizeRef = useRef(pxPerKmSize)
   const pxPerKmDistanceRef = useRef(pxPerKmDistance)
 
-  const onCanvasPointerDown = useCallback(
-    (e: PointerEvent<HTMLCanvasElement>) => {
-      const canvas = canvasRef.current
-      const snap = layoutHitRef.current
-      if (!canvas || !snap) return
-      const { x, y } = getCanvasLocalCssPoint(canvas, e.clientX, e.clientY)
+  const onContentPointerDown = useCallback(
+    (e: PointerEvent<HTMLDivElement>) => {
       if (!onBodySelect) return
-      const hit = hitTestBodyIdAt(snap, x, y)
-      onBodySelect(hit)
+      const t = e.target
+      if (!(t instanceof Element)) return
+      const el = t.closest("[data-body-id]")
+      const id = el?.getAttribute("data-body-id")
+      onBodySelect(id ?? null)
     },
     [onBodySelect]
   )
-
-  const onCanvasPointerMove = useCallback(
-    (e: PointerEvent<HTMLCanvasElement>) => {
-      const canvas = canvasRef.current
-      const snap = layoutHitRef.current
-      if (!canvas || !snap) return
-      if (!onBodySelect) return
-      const { x, y } = getCanvasLocalCssPoint(canvas, e.clientX, e.clientY)
-      const hit = hitTestBodyIdAt(snap, x, y)
-      canvas.style.cursor = hit ? "pointer" : "default"
-    },
-    [onBodySelect]
-  )
-
-  const onCanvasPointerLeave = useCallback(() => {
-    const canvas = canvasRef.current
-    if (canvas) canvas.style.cursor = "default"
-  }, [])
 
   /** Vertical wheel (and dominant trackpad axis) scrolls horizontally. */
   useLayoutEffect(() => {
@@ -275,25 +332,16 @@ export function DistanceCanvas({
   }, [])
 
   useLayoutEffect(() => {
-    const canvas = canvasRef.current
     const wrapper = wrapperRef.current
-    if (!canvas || !wrapper) return
+    if (!wrapper) return
 
-    let cancelled = false
-    const resizeObserver = new ResizeObserver(() => {
-      void redraw()
-    })
-    resizeObserver.observe(wrapper)
-    const onWinResize = () => {
-      void redraw()
-    }
-    window.addEventListener("resize", onWinResize)
-
-    async function redraw() {
-      if (!wrapper) return
-      const viewportW = wrapper.clientWidth ?? 0
-      const hCss = wrapper.clientHeight ?? 0
+    function syncLayout() {
+      const viewportW = wrapper!.clientWidth ?? 0
+      const hCss = wrapper!.clientHeight ?? 0
       if (viewportW < 16 || hCss < 16) return
+
+      const ctx = getMeasureCtx()
+      if (!ctx) return
 
       const bodiesAll = collectDistanceBodies(model, json)
 
@@ -323,37 +371,27 @@ export function DistanceCanvas({
         })
         .sort((a, b) => a.drawDiameterPx - b.drawDiameterPx)
 
-      const settled = await Promise.allSettled(entries.map((e) => loadImage(e.src)))
-      if (cancelled) return
-
-      const dpr =
-        typeof window !== "undefined"
-          ? Math.min(window.devicePixelRatio ?? 1, 3)
-          : 1
-
-      const canvasEl = canvasRef.current
-      if (!canvasEl) return
-
-      const ctx = canvasEl.getContext("2d")
-      if (!ctx) return
-
       const midY = hCss / 2
       const posById = new Map<string, { cx: number; cy: number }>()
 
       const parentPosByCatalogId = new Map<string, number>()
       for (const e of entries) {
         if (e.kind === "planet" || e.kind === "dwarf") {
-          const x0 = INSET_LEFT_CSS + e.distanceFromSunKm * pxPerKmDistanceRef.current
+          const x0 =
+            INSET_LEFT_CSS + e.distanceFromSunKm * pxPerKmDistanceRef.current
           parentPosByCatalogId.set(e.row.id, x0)
         }
       }
 
       for (const e of entries) {
-        let cx = INSET_LEFT_CSS + e.distanceFromSunKm * pxPerKmDistanceRef.current
+        let cx =
+          INSET_LEFT_CSS + e.distanceFromSunKm * pxPerKmDistanceRef.current
         if (e.kind === "moon" && e.parentPlanetId) {
           const parentX = parentPosByCatalogId.get(e.parentPlanetId)
           if (parentX != null) {
-            cx = parentX + (e.moonOrbitKm ?? 0) * pxPerKmDistanceRef.current
+            cx =
+              parentX +
+              (e.moonOrbitKm ?? 0) * pxPerKmDistanceRef.current
           }
         }
         posById.set(e.canvasId, { cx, cy: midY })
@@ -361,7 +399,8 @@ export function DistanceCanvas({
 
       for (const e of entries) {
         if (e.kind !== "star") continue
-        if (!shouldAnchorDiskOnLeft(e.drawDiameterPx, viewportW, hCss)) continue
+        if (!shouldAnchorDiskOnLeft(e.drawDiameterPx, viewportW, hCss))
+          continue
         const anchor = leftSliverAnchorCenter(
           e.drawDiameterPx,
           hCss,
@@ -371,17 +410,12 @@ export function DistanceCanvas({
         posById.set(e.canvasId, anchor)
       }
 
-      canvasEl.style.width = `${viewportW}px`
-      canvasEl.style.height = `${hCss}px`
-      canvasEl.width = Math.round(viewportW * dpr) ?? 0
-      canvasEl.height = Math.round(hCss * dpr) ?? 0
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      const items: DistanceLayoutItem[] = []
 
-      const labelRectById = new Map<string, CanvasBodyLabelRect>()
       for (const e of entries) {
         const pos = posById.get(e.canvasId)
         if (!pos) continue
-        const raw = bodyCircleLabelRect(
+        const rawLabel = bodyCircleLabelRect(
           ctx,
           e.row.name,
           pos.cx,
@@ -389,77 +423,54 @@ export function DistanceCanvas({
           e.drawDiameterPx
         )
         const inflatePx = e.isProxyDisk ? 12 : 6
-        labelRectById.set(
-          e.canvasId,
-          expandRectToMinimumHitSize(inflateCanvasLabelRect(raw, inflatePx))
+        const labelHitRect = expandRectToMinimumHitSize(
+          inflateCanvasLabelRect(rawLabel, inflatePx)
         )
+
+        items.push({
+          canvasId: e.canvasId,
+          name: e.row.name,
+          src: e.src,
+          cx: pos.cx,
+          cy: pos.cy,
+          drawDiameterPx: e.drawDiameterPx,
+          isProxyDisk: e.isProxyDisk,
+          labelRect: rawLabel,
+          labelHitRect,
+        })
       }
 
       let rightExtent = viewportW
-      for (const e of entries) {
-        const pos = posById.get(e.canvasId)
-        const labelRect = labelRectById.get(e.canvasId)
-        if (pos) {
-          rightExtent = Math.max(rightExtent, pos.cx + e.drawDiameterPx / 2)
-        }
-        if (labelRect) {
-          rightExtent = Math.max(rightExtent, labelRect.right)
-        }
+      for (const it of items) {
+        rightExtent = Math.max(
+          rightExtent,
+          it.cx + it.drawDiameterPx / 2,
+          it.labelHitRect.right
+        )
       }
-      const canvasWidthPx = Math.max(viewportW, rightExtent + INSET_RIGHT_CSS)
-
-      canvasEl.style.width = `${canvasWidthPx}px`
-      canvasEl.style.height = `${hCss}px`
-      canvasEl.width = Math.round(canvasWidthPx * dpr) ?? 0
-      canvasEl.height = Math.round(hCss * dpr) ?? 0
-      setCanvasWidthPx(canvasWidthPx)
-
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.fillStyle = SPACE_FLAT_FILL
-      ctx.fillRect(0, 0, canvasWidthPx, hCss)
+      const widthPx = Math.max(viewportW, rightExtent + INSET_RIGHT_CSS)
 
       posByIdForScrollRef.current = new Map(posById)
       viewportWForScrollRef.current = viewportW
-
-      layoutHitRef.current = {
-        entries: entries.map((e) => ({
-          canvasId: e.canvasId,
-          drawDiameterPx: e.drawDiameterPx,
-          isProxyDisk: e.isProxyDisk,
-        })),
-        posById,
-        labelRectById,
-      }
-
-      settled.forEach((res, i) => {
-        const e = entries[i]
-        const pos = posById.get(e.canvasId)
-        if (!pos) return
-        const { cx, cy } = pos
-        if (e.isProxyDisk) {
-          drawTransparentProxyDisk(ctx, cx, cy)
-        } else if (res.status === "fulfilled") {
-          drawBody(ctx, res.value, cx, cy, e.drawDiameterPx)
-        } else {
-          const r = e.drawDiameterPx / 2
-          if (!(r > 0)) return
-          ctx.save()
-          ctx.beginPath()
-          ctx.arc(cx, cy, r, 0, Math.PI * 2)
-          ctx.fillStyle = "rgba(128, 128, 128, 0.45)"
-          ctx.fill()
-          ctx.restore()
-        }
-        drawCanvasBodyLabel(ctx, e.row.name, cx, cy, e.drawDiameterPx / 2)
-      })
+      setContentWidthPx(widthPx)
+      setLayoutItems(items)
     }
 
-    redrawRef.current = redraw
-    void redraw()
+    syncLayoutRef.current = syncLayout
+
+    const resizeObserver = new ResizeObserver(() => {
+      syncLayout()
+    })
+    resizeObserver.observe(wrapper)
+    const onWinResize = () => {
+      syncLayout()
+    }
+    window.addEventListener("resize", onWinResize)
+
+    syncLayout()
 
     return () => {
-      cancelled = true
-      redrawRef.current = null
+      syncLayoutRef.current = null
       resizeObserver.disconnect()
       window.removeEventListener("resize", onWinResize)
     }
@@ -467,25 +478,25 @@ export function DistanceCanvas({
 
   useLayoutEffect(() => {
     bodyDisplayFilterRef.current = bodyDisplayFilter
-    void redrawRef.current?.()
+    syncLayoutRef.current?.()
   }, [bodyDisplayFilter])
 
   useLayoutEffect(() => {
     pxPerKmSizeRef.current = pxPerKmSize
-    void redrawRef.current?.()
+    syncLayoutRef.current?.()
   }, [pxPerKmSize])
 
   useLayoutEffect(() => {
     pxPerKmDistanceRef.current = pxPerKmDistance
-    void redrawRef.current?.()
+    syncLayoutRef.current?.()
   }, [pxPerKmDistance])
 
   useLayoutEffect(() => {
     if (scrollToBodyToken <= 0 || scrollToBodyId == null) return
     const wrapper = wrapperRef.current
     const bodyId = scrollToBodyId
-    void (async () => {
-      await redrawRef.current?.()
+    queueMicrotask(() => {
+      syncLayoutRef.current?.()
       if (!wrapper) return
       const posMap = posByIdForScrollRef.current
       const vw = viewportWForScrollRef.current
@@ -503,28 +514,38 @@ export function DistanceCanvas({
         left: Math.max(0, pos.cx - vw / 2),
         behavior: "smooth",
       })
-    })()
+    })
   }, [scrollToBodyId, scrollToBodyToken])
 
-  const canvasInteractive = Boolean(onBodySelect)
+  const interactive = Boolean(onBodySelect)
 
   return (
     <div
       ref={wrapperRef}
       className="fixed inset-x-0 top-(--app-header-h) z-1 h-[calc(100svh-var(--app-header-h))] overflow-x-auto overflow-y-hidden bg-[#020617]"
+      aria-label="Scaled distances: scroll horizontally to reach distant bodies; tap or click a disk or its name label to select."
     >
-      <canvas
-        ref={canvasRef}
+      <div
         className={cn(
-          "block h-full touch-none select-none",
-          canvasInteractive ? "pointer-events-auto" : "pointer-events-none"
+          "relative h-full min-h-full",
+          interactive && "touch-none select-none"
         )}
-        style={{ width: `${canvasWidthPx}px` }}
-        aria-label="Scaled distances: scroll horizontally to reach distant bodies; tap or click a disk or its name label to select."
-        onPointerDown={canvasInteractive ? onCanvasPointerDown : undefined}
-        onPointerMove={canvasInteractive ? onCanvasPointerMove : undefined}
-        onPointerLeave={canvasInteractive ? onCanvasPointerLeave : undefined}
-      />
+        style={{
+          width:
+            contentWidthPx > 0 ? `${contentWidthPx}px` : "100%",
+          minWidth: "100%",
+        }}
+        onPointerDown={interactive ? onContentPointerDown : undefined}
+        role="presentation"
+      >
+        {layoutItems.map((item) => (
+          <DistanceBodyLayers
+            key={item.canvasId}
+            item={item}
+            interactive={interactive}
+          />
+        ))}
+      </div>
     </div>
   )
 }
