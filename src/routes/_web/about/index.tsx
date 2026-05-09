@@ -177,14 +177,35 @@ function AboutPage() {
               </p>
               <ul className="list-inside list-disc space-y-1 pl-1">
                 <li>
-                  Sun with Sunglasses:{" "}
+                  <a href="https://github.com/mjf1406/solsim/blob/main/public/sun-with-sunglasses.webp" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="underline">
+                    Sun with Sunglasses
+                  </a> by{" "}
                   <a
                     href="https://www.magnific.com/free-vector/cool-sun-wearing-sunglasses_132098781.htm"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="underline"
                   >
-                    Image by juicy_fish on Magnific
+                    juicy_fish on Magnific
+                  </a>
+                </li>
+                <li>
+                  <a href="https://github.com/mjf1406/solsim/tree/main/public/assets/planet-symbols" 
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline">
+                      Planet Symbol SVGs
+                  </a> by{" "}
+                  <a
+                    href="https://commons.wikimedia.org/w/index.php?curid=113370842"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline"
+                  >
+                    Kwamikagami - Own work, CC BY-SA 4.0
                   </a>
                 </li>
               </ul>
