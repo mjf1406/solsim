@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { FooterSection } from "../-home-components/footer"
 import { AboutDonateSection } from "./-components/donation"
+import { ExternalLink } from "lucide-react"
 
 export const Route = createFileRoute("/_web/about/")({
   component: AboutPage,
@@ -180,32 +181,49 @@ function AboutPage() {
                   <a href="https://github.com/mjf1406/solsim/blob/main/public/sun-with-sunglasses.webp" 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  className="underline">
+                  className="underline inline-flex items-center gap-1">
                     Sun with Sunglasses
+                    <ExternalLink aria-hidden className="size-3.5 shrink-0" />
                   </a> by{" "}
                   <a
                     href="https://www.magnific.com/free-vector/cool-sun-wearing-sunglasses_132098781.htm"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="underline"
+                    className="underline inline-flex items-center gap-1"
                   >
                     juicy_fish on Magnific
+                    <ExternalLink aria-hidden className="size-3.5 shrink-0" />
                   </a>
                 </li>
                 <li>
                   <a href="https://github.com/mjf1406/solsim/tree/main/public/assets/planet-symbols" 
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="underline">
+                    className="underline inline-flex items-center gap-1">
                       Planet Symbol SVGs
+                      <ExternalLink aria-hidden className="size-3.5 shrink-0" />
                   </a> by{" "}
                   <a
                     href="https://commons.wikimedia.org/w/index.php?curid=113370842"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="underline"
+                    className="underline inline-flex items-center gap-1"
                   >
                     Kwamikagami - Own work, CC BY-SA 4.0
+                    <ExternalLink aria-hidden className="size-3.5 shrink-0" />
+                  </a>
+                </li>
+                <li>
+                  Icons on the site by{" "}
+                  <a 
+                    href="https://lucide.dev/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="underline inline-flex items-center gap-1"
+                  >
+                    Lucide
+                    <ExternalLink aria-hidden className="size-3.5 shrink-0" />
+                    <span className="sr-only">(opens in new tab)</span>
                   </a>
                 </li>
               </ul>
