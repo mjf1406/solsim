@@ -267,21 +267,40 @@ export function pxPerKmForMode(mode: ScaleMode, pxPerMm: number): number {
 const SLIDER_MIN_LINEAR_PAD = 0.95
 const SLIDER_MAX_LINEAR_PAD = 1.05
 
+/** Extra log-slider ticks beyond [`SCALE_MODE_CYCLE`] (e.g. Fit Mars distance-scale alignment). */
+export type CanvasScaleExtraStopInput = {
+  key: string
+  pxPerKm: number
+  label: string
+}
+
 export type SliderRange = {
   minPxPerKm: number
   maxPxPerKm: number
   /** Slider positions of each preset mode. */
   presetSliderValueByMode: Record<ScaleMode, number>
+  /** Extra ticks appended after widening min/max with [`CanvasScaleExtraStopInput`]. */
+  extraSnapStops: ScaleSliderStop[]
 }
 
 /**
  * Computes the log-slider range from the preset extrema (plus mild padding).
  * Values depend on `pxPerMm` (calibration).
+ *
+ * Optional `extraStops` widen the slider bounds so additional ticks (e.g. Fit Neptune)
+ * land inside the log domain alongside the usual Sun/Moon presets.
  */
-export function computeSliderRange(pxPerMm: number): SliderRange {
+export function computeSliderRange(
+  pxPerMm: number,
+  extraStops?: readonly CanvasScaleExtraStopInput[]
+): SliderRange {
   const pxPerKmByMode = SCALE_MODE_CYCLE.map((m) => pxPerKmForMode(m, pxPerMm))
-  const lowest = Math.min(...pxPerKmByMode)
-  const highest = Math.max(...pxPerKmByMode)
+  const extraPxFiltered =
+    extraStops?.map((s) => s.pxPerKm).filter((n) => n > 0 && Number.isFinite(n)) ??
+    []
+  const band = [...pxPerKmByMode, ...extraPxFiltered]
+  const lowest = Math.min(...band)
+  const highest = Math.max(...band)
   const minPxPerKm = lowest * SLIDER_MIN_LINEAR_PAD
   const maxPxPerKm = highest * SLIDER_MAX_LINEAR_PAD
 
@@ -295,7 +314,14 @@ export function computeSliderRange(pxPerMm: number): SliderRange {
     )
   }
 
-  return { minPxPerKm, maxPxPerKm, presetSliderValueByMode }
+  const extraSnapStops: ScaleSliderStop[] =
+    extraStops?.map((s) => ({
+      key: s.key,
+      sliderValue: pxPerKmToSliderValueWithRange(s.pxPerKm, minPxPerKm, maxPxPerKm),
+      caption: s.label,
+    })) ?? []
+
+  return { minPxPerKm, maxPxPerKm, presetSliderValueByMode, extraSnapStops }
 }
 
 function pxPerKmToSliderValueWithRange(
@@ -342,8 +368,8 @@ export function moonPowerOfTwoMultiplierCaption(n: number): string {
   return `x1/${denom}`
 }
 
-/** Moon ladder: bottom tick x1/8 (`n = -3`), top tick x128 (`n = 7`). */
-export const MOON_LADDER_MIN_N = -3
+/** Moon ladder: bottom tick x1/16 (`n = -4`), then x1/8 (`n = -3`) up to x128 (`n = 7`). */
+export const MOON_LADDER_MIN_N = -4
 export const MOON_LADDER_MAX_N = 7
 
 /** Equal-spaced 0..1 slider position for integer exponent `n` on the Moon ladder. */
@@ -393,10 +419,29 @@ export function decadeSnapCaption(power: 1 | 2): string {
 
 export function computeSliderSnapStops(
   range: SliderRange,
-  isCalibrated: boolean
+  isCalibrated: boolean,
+  alwaysUseLogRange = false
 ): ScaleSliderStop[] {
-  if (!isCalibrated) {
+  if (!isCalibrated && !alwaysUseLogRange) {
     return computeMoonPowerOfTwoSnapStops()
+  }
+  if (!isCalibrated && alwaysUseLogRange) {
+    const moon = pxPerKmForMoonOnePx()
+    const ladder: ScaleSliderStop[] = []
+    for (let n = MOON_LADDER_MIN_N; n <= MOON_LADDER_MAX_N; n++) {
+      const px = moon * 2 ** n
+      const sliderValue = pxPerKmToSliderValue(px, range)
+      if (sliderValue > 0 && sliderValue < 1) {
+        ladder.push({
+          key: `moon_power2_${n}`,
+          sliderValue,
+          caption: moonPowerOfTwoMultiplierCaption(n),
+        })
+      }
+    }
+    return [...ladder, ...range.extraSnapStops].sort(
+      (a, b) => a.sliderValue - b.sliderValue
+    )
   }
   const stops: ScaleSliderStop[] = []
   for (const m of SCALE_MODE_CYCLE) {
@@ -406,7 +451,26 @@ export function computeSliderSnapStops(
       caption: scaleModeLabel(m),
     })
   }
+  stops.push(...range.extraSnapStops)
   return stops.slice().sort((a, b) => a.sliderValue - b.sliderValue)
+}
+
+/** Nearest snap stop caption for cycle button labeling when using merged preset lists. */
+export function nearestSnapStopCaption(
+  sliderValue: number,
+  stops: ScaleSliderStop[],
+  tolerance = 0.01
+): string | null {
+  let best: ScaleSliderStop | null = null
+  let bestDist = Infinity
+  for (const s of stops) {
+    const d = Math.abs(s.sliderValue - sliderValue)
+    if (d < bestDist) {
+      bestDist = d
+      best = s
+    }
+  }
+  return bestDist <= tolerance && best ? best.caption : null
 }
 
 /**

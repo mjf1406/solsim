@@ -36,6 +36,7 @@ export const mainNav: MainNavEntry[] = [
         search: SIZE_PAGE_DEFAULT_LINK_SEARCH,
       },
       { to: "/solar-system/distance", label: "Distance" },
+      { to: "/solar-system/orbits", label: "Orbits" },
     ],
   },
   { kind: "link", to: "/about", label: "About" },

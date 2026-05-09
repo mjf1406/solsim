@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Link } from "@tanstack/react-router"
 
 import { SIZE_PAGE_DEFAULT_LINK_SEARCH } from "@/routes/_app/solar-system/size/-url-search"
+import { DISTANCE_PAGE_DEFAULT_LINK_SEARCH } from "@/routes/_app/solar-system/distance/-url-search"
 import { ArrowRight } from "lucide-react"
 
 export const HeroSection = () => {
@@ -25,7 +26,11 @@ export const HeroSection = () => {
                 Size
               </Link>{" "}
               and{" "}
-              <Link to="/solar-system/distance" className="underline">
+              <Link
+                to="/solar-system/distance"
+                search={DISTANCE_PAGE_DEFAULT_LINK_SEARCH}
+                className="underline"
+              >
                 Distance
               </Link>{" "}
               on {new Date("2026-05-06").toLocaleDateString()}!

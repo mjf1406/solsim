@@ -22,6 +22,10 @@ import { cn } from "@/lib/utils"
 import { DisplayCalibrationDialog } from "./display-calibration-dialog"
 
 type ScaleControlSidebarPanelProps = {
+  /** Collapsible title shown in the sidebar. */
+  title?: string
+  /** When false, hides display calibration UI and dialog. */
+  showCalibrationControls?: boolean
   /** Label for the cycle preset button (nearest Moon ladder step or named preset). */
   cycleButtonLabel: string
   /** Slider value, 0..1. */
@@ -59,6 +63,8 @@ export function ScaleControlSidebarPortal(
 }
 
 function ScaleControlCollapsibleSection({
+  title = "Scale",
+  showCalibrationControls = true,
   cycleButtonLabel,
   sliderValue,
   readout,
@@ -89,7 +95,7 @@ function ScaleControlCollapsibleSection({
               "-mx-1 hover:bg-sidebar-accent/60 focus-visible:ring-2"
             )}
           >
-            Scale
+            {title}
           </CollapsibleTrigger>
           <div className="ml-auto flex shrink-0 items-center gap-2">
             <Button
@@ -140,80 +146,87 @@ function ScaleControlCollapsibleSection({
               }
             />
             <ScaleReadoutBlock readout={readout} ratioPrefix={ratioPrefix} />
-            <Collapsible
-              defaultOpen={false}
-              className="group/unlock-scale rounded-lg border border-sidebar-border/70 bg-sidebar-accent/25"
-            >
-              <CollapsibleTrigger
-                className={cn(
-                  "flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left text-[11px] font-medium text-sidebar-foreground ring-sidebar-ring outline-none",
-                  "hover:bg-sidebar-accent/50 focus-visible:ring-2"
-                )}
-              >
-                <ChevronUp
-                  aria-hidden
-                  className="mt-0.5 size-3.5 shrink-0 text-sidebar-foreground/70 transition-transform duration-200 group-data-[state=open]/unlock-scale:rotate-180"
-                />
-                <span className="min-w-0">
-                  Want to make the Sun the same size as real objects, like a
-                  tennis ball or basketball?
-                </span>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="px-2 pt-0 pb-2">
-                <ol className="list-decimal space-y-2 pl-4 text-[11px] text-sidebar-foreground/85">
-                  <li>
-                    Get a ruler, driver&apos;s license, passport, or credit card.
-                  </li>
-                  <li className="marker:font-medium">
-                    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1.5">
-                      <span>Then</span>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="h-7 shrink-0 px-2 text-[11px]"
-                        onClick={() => onCalibrationDialogOpenChange(true)}
-                      >
-                        Calibrate
-                      </Button>
-                    </span>
-                  </li>
-                </ol>
-              </CollapsibleContent>
-            </Collapsible>
-            {calibration.isCalibrated ? (
-              <div className="flex items-center justify-between gap-2 text-[11px]">
-                <span className="text-sidebar-foreground/60">
-                  Display calibrated
-                </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="xs"
-                  className="shrink-0 px-1.5 text-[11px] text-sidebar-foreground/70 hover:text-sidebar-foreground"
-                  onClick={() => calibration.reset()}
-                  aria-label="Clear display calibration and use CSS default pixel density"
+            {showCalibrationControls ? (
+              <>
+                <Collapsible
+                  defaultOpen={false}
+                  className="group/unlock-scale rounded-lg border border-sidebar-border/70 bg-sidebar-accent/25"
                 >
-                  Clear
-                </Button>
-              </div>
-            ) : (
-              <p className="text-[11px] text-sidebar-foreground/60">
-                Using CSS default pixel density
-              </p>
-            )}
+                  <CollapsibleTrigger
+                    className={cn(
+                      "flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left text-[11px] font-medium text-sidebar-foreground ring-sidebar-ring outline-none",
+                      "hover:bg-sidebar-accent/50 focus-visible:ring-2"
+                    )}
+                  >
+                    <ChevronUp
+                      aria-hidden
+                      className="mt-0.5 size-3.5 shrink-0 text-sidebar-foreground/70 transition-transform duration-200 group-data-[state=open]/unlock-scale:rotate-180"
+                    />
+                    <span className="min-w-0">
+                      Want to make the Sun the same size as real objects, like a
+                      tennis ball or basketball?
+                    </span>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="px-2 pt-0 pb-2">
+                    <ol className="list-decimal space-y-2 pl-4 text-[11px] text-sidebar-foreground/85">
+                      <li>
+                        Get a ruler, driver&apos;s license, passport, or credit
+                        card.
+                      </li>
+                      <li className="marker:font-medium">
+                        <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                          <span>Then</span>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="h-7 shrink-0 px-2 text-[11px]"
+                            onClick={() => onCalibrationDialogOpenChange(true)}
+                          >
+                            Calibrate
+                          </Button>
+                        </span>
+                      </li>
+                    </ol>
+                  </CollapsibleContent>
+                </Collapsible>
+                {calibration.isCalibrated ? (
+                  <div className="flex items-center justify-between gap-2 text-[11px]">
+                    <span className="text-sidebar-foreground/60">
+                      Display calibrated
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="xs"
+                      className="shrink-0 px-1.5 text-[11px] text-sidebar-foreground/70 hover:text-sidebar-foreground"
+                      onClick={() => calibration.reset()}
+                      aria-label="Clear display calibration and use CSS default pixel density"
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-sidebar-foreground/60">
+                    Using CSS default pixel density
+                  </p>
+                )}
+              </>
+            ) : null}
           </div>
         </CollapsibleContent>
       </Collapsible>
 
-      <DisplayCalibrationDialog
-        open={calibrationDialogOpen}
-        onOpenChange={onCalibrationDialogOpenChange}
-        pxPerMm={calibration.pxPerMm}
-        cardWidthPx={calibration.cardWidthPx}
-        onApply={calibration.setCardWidthPx}
-        onReset={calibration.reset}
-      />
+      {showCalibrationControls ? (
+        <DisplayCalibrationDialog
+          open={calibrationDialogOpen}
+          onOpenChange={onCalibrationDialogOpenChange}
+          pxPerMm={calibration.pxPerMm}
+          cardWidthPx={calibration.cardWidthPx}
+          onApply={calibration.setCardWidthPx}
+          onReset={calibration.reset}
+        />
+      ) : null}
     </div>
   )
 }

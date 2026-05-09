@@ -11,11 +11,23 @@ export type Physical = {
   mean_radius_km?: number | null
 } | null
 
+export type Elements = {
+  /** AU semi-major axis (mean distance). */
+  a_au?: number | null
+  /** AU periapsis distance. */
+  q_au?: number | null
+  /** AU apoapsis distance. */
+  apoapsis_au?: number | null
+  /** eccentricity (dimensionless). */
+  e?: number | null
+} | null
+
 export type CatalogBody = {
   id: string
   name: string
   category: string
   parent_id?: string | null
+  elements?: Elements
   physical?: Physical
   /** Maintainer note from sci-fi catalog JSON; not shown in UI. */
   source_note?: string

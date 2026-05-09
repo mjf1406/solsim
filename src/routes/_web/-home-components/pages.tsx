@@ -7,12 +7,15 @@ import {
 import { Link } from "@tanstack/react-router"
 
 import { SIZE_PAGE_DEFAULT_LINK_SEARCH } from "@/routes/_app/solar-system/size/-url-search"
+import { DISTANCE_PAGE_DEFAULT_LINK_SEARCH } from "@/routes/_app/solar-system/distance/-url-search"
 
 interface LearningPageProps {
   title: string
   description: string
   to: "/solar-system/size" | "/solar-system/distance"
-  search?: typeof SIZE_PAGE_DEFAULT_LINK_SEARCH
+  search:
+    | typeof SIZE_PAGE_DEFAULT_LINK_SEARCH
+    | typeof DISTANCE_PAGE_DEFAULT_LINK_SEARCH
 }
 
 const pageList: LearningPageProps[] = [
@@ -28,6 +31,7 @@ const pageList: LearningPageProps[] = [
     description:
       "Explore how far apart objects are and how distance scales change what you notice.",
     to: "/solar-system/distance",
+    search: DISTANCE_PAGE_DEFAULT_LINK_SEARCH,
   },
 ]
 

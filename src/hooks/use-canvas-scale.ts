@@ -8,11 +8,11 @@ import {
   computeSliderSnapStops,
   nearestMoonPowerOfTwoCaption,
   nearestPresetMode,
-  nextScaleMode,
+  nearestSnapStopCaption,
   pxPerKmForMode,
   pxPerKmToSliderValue,
   pxPerKmToSliderValueMoonLadder,
-  scaleModeLabel,
+  type CanvasScaleExtraStopInput,
   type ScaleMode,
   type ScaleReadout,
   type ScaleSliderStop,
@@ -30,6 +30,15 @@ export type UseCanvasScaleOptions = {
   initialMode?: ScaleMode
   /** Debounce delay (ms) before the canvas-facing `debouncedPxPerKm` updates. */
   debounceWaitMs?: number
+  /** Widens log range and adds ticks (e.g. Fit Neptune on `/distance`). */
+  extraStops?: readonly CanvasScaleExtraStopInput[]
+  /**
+   * Initial physical scale (px/km). Overrides `initialMode` when set.
+   * Until the user touches the slider, follows updates when `range`/`initialPxPerKm` change (e.g. resize).
+   */
+  initialPxPerKm?: number | null
+  /** Use logarithmic slider + merged snap stops even when display is not calibrated. */
+  alwaysUseLogRange?: boolean
 }
 
 export type UseCanvasScaleResult = {
@@ -76,36 +85,57 @@ export function useCanvasScale({
   isCalibrated,
   initialMode = "moon_one_px",
   debounceWaitMs = 150,
+  extraStops,
+  initialPxPerKm,
+  alwaysUseLogRange = false,
 }: UseCanvasScaleOptions): UseCanvasScaleResult {
-  const range = useMemo(() => computeSliderRange(pxPerMm), [pxPerMm])
+  const range = useMemo(
+    () => computeSliderRange(pxPerMm, extraStops),
+    [extraStops, pxPerMm]
+  )
+
+  const userTouchedRef = useRef(false)
+
+  const logBranch = isCalibrated || alwaysUseLogRange
 
   const [sliderValue, setSliderValueState] = useState(() => {
+    const r = computeSliderRange(pxPerMm, extraStops)
+    if (initialPxPerKm != null && initialPxPerKm > 0 && Number.isFinite(initialPxPerKm)) {
+      return pxPerKmToSliderValue(initialPxPerKm, r)
+    }
     const px = pxPerKmForMode(initialMode, pxPerMm)
-    return isCalibrated
-      ? pxPerKmToSliderValue(px, range)
-      : pxPerKmToSliderValueMoonLadder(px)
+    return logBranch ? pxPerKmToSliderValue(px, r) : pxPerKmToSliderValueMoonLadder(px)
   })
 
   // Track the previous range so we can preserve the *physical* pxPerKm when
   // calibration changes (rather than the slider fraction, which would silently
   // change the chosen scale every time the user re-calibrates).
   const prevRangeRef = useRef<SliderRange>(range)
+  const prevPxMmRef = useRef(pxPerMm)
   useEffect(() => {
     if (prevRangeRef.current === range) return
     const prev = prevRangeRef.current
     prevRangeRef.current = range
-    if (!isCalibrated) return
+    if (!logBranch) return
+    const pxMmChanged = prevPxMmRef.current !== pxPerMm
+    prevPxMmRef.current = pxPerMm
+    // Resize-only range updates (same mm calibration): auto-fit via `initialPxPerKm` effect.
+    if (
+      !pxMmChanged &&
+      initialPxPerKm != null &&
+      !userTouchedRef.current
+    ) {
+      return
+    }
     const prevPxPerKm = sliderValueToPxPerKm(sliderValue, prev)
     const nextSlider = pxPerKmToSliderValue(prevPxPerKm, range)
     setSliderValueState(nextSlider)
-    // We intentionally do not depend on `sliderValue` here — re-running this
-    // every slider tick would cause an infinite ping-pong; we only realign on
-    // range (i.e. calibration) changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [range, isCalibrated])
+  }, [initialPxPerKm, logBranch, pxPerMm, range])
 
   const prevIsCalibratedRef = useRef(isCalibrated)
   useEffect(() => {
+    if (alwaysUseLogRange) return
     if (prevIsCalibratedRef.current === isCalibrated) return
     const wasCalibrated = prevIsCalibratedRef.current
     prevIsCalibratedRef.current = isCalibrated
@@ -116,14 +146,20 @@ export function useCanvasScale({
       const px = sliderValueToPxPerKmMoonLadder(sliderValue)
       setSliderValueState(pxPerKmToSliderValue(px, range))
     }
-  }, [isCalibrated, range, sliderValue])
+  }, [alwaysUseLogRange, isCalibrated, range, sliderValue])
+
+  useEffect(() => {
+    if (initialPxPerKm == null || !(initialPxPerKm > 0) || !Number.isFinite(initialPxPerKm)) {
+      return
+    }
+    if (userTouchedRef.current) return
+    setSliderValueState(pxPerKmToSliderValue(initialPxPerKm, range))
+  }, [initialPxPerKm, range])
 
   const pxPerKm = useMemo(
     () =>
-      isCalibrated
-        ? sliderValueToPxPerKm(sliderValue, range)
-        : sliderValueToPxPerKmMoonLadder(sliderValue),
-    [isCalibrated, sliderValue, range]
+      logBranch ? sliderValueToPxPerKm(sliderValue, range) : sliderValueToPxPerKmMoonLadder(sliderValue),
+    [logBranch, sliderValue, range]
   )
 
   const [debouncedPxPerKm] = useDebouncedValue(pxPerKm, {
@@ -131,35 +167,36 @@ export function useCanvasScale({
   })
 
   const mode = useMemo(
-    () =>
-      isCalibrated ? nearestPresetMode(sliderValue, range, 0.008) : null,
-    [isCalibrated, sliderValue, range]
+    () => (logBranch ? nearestPresetMode(sliderValue, range, 0.008) : null),
+    [logBranch, sliderValue, range]
+  )
+
+  const snapStops = useMemo(
+    () => computeSliderSnapStops(range, isCalibrated, alwaysUseLogRange),
+    [alwaysUseLogRange, isCalibrated, range]
   )
 
   const cycleButtonLabel = useMemo(() => {
-    if (isCalibrated) {
-      return mode != null ? scaleModeLabel(mode) : "Custom"
+    if (logBranch) {
+      return nearestSnapStopCaption(sliderValue, snapStops, 0.012) ?? "Custom"
     }
     return nearestMoonPowerOfTwoCaption(sliderValue)
-  }, [isCalibrated, mode, sliderValue])
+  }, [logBranch, sliderValue, snapStops])
 
   const readout = useMemo(
     () => computeScaleReadout(pxPerKm, pxPerMm),
     [pxPerKm, pxPerMm]
   )
 
-  const snapStops = useMemo(
-    () => computeSliderSnapStops(range, isCalibrated),
-    [range, isCalibrated]
-  )
-
   const setSliderValue = useCallback((value: number) => {
     if (!Number.isFinite(value)) return
+    userTouchedRef.current = true
     setSliderValueState(Math.min(1, Math.max(0, value)))
   }, [])
 
   const selectMode = useCallback(
     (m: ScaleMode) => {
+      userTouchedRef.current = true
       const v = range.presetSliderValueByMode[m]
       setSliderValueState(v)
     },
@@ -167,9 +204,21 @@ export function useCanvasScale({
   )
 
   const cycleMode = useCallback(() => {
-    if (isCalibrated) {
-      const current = mode ?? initialMode
-      selectMode(nextScaleMode(current))
+    userTouchedRef.current = true
+    if (logBranch) {
+      const stops = computeSliderSnapStops(range, isCalibrated, alwaysUseLogRange)
+      if (stops.length === 0) return
+      let bestI = 0
+      let bestD = Infinity
+      for (let i = 0; i < stops.length; i++) {
+        const d = Math.abs(stops[i]!.sliderValue - sliderValue)
+        if (d < bestD) {
+          bestD = d
+          bestI = i
+        }
+      }
+      const nextI = (bestI + 1) % stops.length
+      setSliderValueState(stops[nextI]!.sliderValue)
       return
     }
     const stops = computeMoonPowerOfTwoSnapStops()
@@ -185,7 +234,7 @@ export function useCanvasScale({
     }
     const nextI = (bestI + 1) % stops.length
     setSliderValueState(stops[nextI]!.sliderValue)
-  }, [isCalibrated, initialMode, mode, selectMode, sliderValue])
+  }, [alwaysUseLogRange, isCalibrated, logBranch, range, sliderValue])
 
   const isPending = pxPerKm !== debouncedPxPerKm
 
