@@ -39,6 +39,11 @@ export const mainNav: MainNavEntry[] = [
       { to: "/solar-system/orbits", label: "Orbits" },
     ],
   },
+  {
+    kind: "group",
+    label: "Lessons",
+    items: [{ to: "/lessons/scale", label: "Scale" }],
+  },
   { kind: "link", to: "/about", label: "About" },
   { kind: "link", to: "/teacher", label: "Teachers" },
 ]

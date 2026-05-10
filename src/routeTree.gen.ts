@@ -15,6 +15,7 @@ import { Route as WebIndexRouteImport } from './routes/_web/index'
 import { Route as WebTeacherIndexRouteImport } from './routes/_web/teacher/index'
 import { Route as WebLoadingIndexRouteImport } from './routes/_web/loading/index'
 import { Route as WebAboutIndexRouteImport } from './routes/_web/about/index'
+import { Route as WebLessonsScaleIndexRouteImport } from './routes/_web/lessons/scale/index'
 import { Route as AppSolarSystemSizeIndexRouteImport } from './routes/_app/solar-system/size/index'
 import { Route as AppSolarSystemOrbitsIndexRouteImport } from './routes/_app/solar-system/orbits/index'
 import { Route as AppSolarSystemDistanceIndexRouteImport } from './routes/_app/solar-system/distance/index'
@@ -46,6 +47,11 @@ const WebLoadingIndexRoute = WebLoadingIndexRouteImport.update({
 const WebAboutIndexRoute = WebAboutIndexRouteImport.update({
   id: '/about/',
   path: '/about/',
+  getParentRoute: () => WebRouteRoute,
+} as any)
+const WebLessonsScaleIndexRoute = WebLessonsScaleIndexRouteImport.update({
+  id: '/lessons/scale/',
+  path: '/lessons/scale/',
   getParentRoute: () => WebRouteRoute,
 } as any)
 const AppSolarSystemSizeIndexRoute = AppSolarSystemSizeIndexRouteImport.update({
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/solar-system/distance/': typeof AppSolarSystemDistanceIndexRoute
   '/solar-system/orbits/': typeof AppSolarSystemOrbitsIndexRoute
   '/solar-system/size/': typeof AppSolarSystemSizeIndexRoute
+  '/lessons/scale/': typeof WebLessonsScaleIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof WebIndexRoute
@@ -90,6 +97,7 @@ export interface FileRoutesByTo {
   '/solar-system/distance': typeof AppSolarSystemDistanceIndexRoute
   '/solar-system/orbits': typeof AppSolarSystemOrbitsIndexRoute
   '/solar-system/size': typeof AppSolarSystemSizeIndexRoute
+  '/lessons/scale': typeof WebLessonsScaleIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -103,6 +111,7 @@ export interface FileRoutesById {
   '/_app/solar-system/distance/': typeof AppSolarSystemDistanceIndexRoute
   '/_app/solar-system/orbits/': typeof AppSolarSystemOrbitsIndexRoute
   '/_app/solar-system/size/': typeof AppSolarSystemSizeIndexRoute
+  '/_web/lessons/scale/': typeof WebLessonsScaleIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/solar-system/distance/'
     | '/solar-system/orbits/'
     | '/solar-system/size/'
+    | '/lessons/scale/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -125,6 +135,7 @@ export interface FileRouteTypes {
     | '/solar-system/distance'
     | '/solar-system/orbits'
     | '/solar-system/size'
+    | '/lessons/scale'
   id:
     | '__root__'
     | '/_app'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '/_app/solar-system/distance/'
     | '/_app/solar-system/orbits/'
     | '/_app/solar-system/size/'
+    | '/_web/lessons/scale/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -186,6 +198,13 @@ declare module '@tanstack/react-router' {
       path: '/about'
       fullPath: '/about/'
       preLoaderRoute: typeof WebAboutIndexRouteImport
+      parentRoute: typeof WebRouteRoute
+    }
+    '/_web/lessons/scale/': {
+      id: '/_web/lessons/scale/'
+      path: '/lessons/scale'
+      fullPath: '/lessons/scale/'
+      preLoaderRoute: typeof WebLessonsScaleIndexRouteImport
       parentRoute: typeof WebRouteRoute
     }
     '/_app/solar-system/size/': {
@@ -242,6 +261,7 @@ interface WebRouteRouteChildren {
   WebAboutIndexRoute: typeof WebAboutIndexRoute
   WebLoadingIndexRoute: typeof WebLoadingIndexRoute
   WebTeacherIndexRoute: typeof WebTeacherIndexRoute
+  WebLessonsScaleIndexRoute: typeof WebLessonsScaleIndexRoute
 }
 
 const WebRouteRouteChildren: WebRouteRouteChildren = {
@@ -249,6 +269,7 @@ const WebRouteRouteChildren: WebRouteRouteChildren = {
   WebAboutIndexRoute: WebAboutIndexRoute,
   WebLoadingIndexRoute: WebLoadingIndexRoute,
   WebTeacherIndexRoute: WebTeacherIndexRoute,
+  WebLessonsScaleIndexRoute: WebLessonsScaleIndexRoute,
 }
 
 const WebRouteRouteWithChildren = WebRouteRoute._addFileChildren(
