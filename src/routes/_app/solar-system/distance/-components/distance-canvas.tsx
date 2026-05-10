@@ -26,6 +26,7 @@ import {
   DISTANCE_CANVAS_BASE_INSET_PX,
 } from "@/hooks/use-distance-scale"
 import { BODY_CLASS_STYLE } from "@/lib/constants"
+import { LIGHT_SPEED_KM_PER_S } from "@/lib/solar-system/distance/distance-units"
 import {
   applyBodyTypePreset,
   filterSizeCanvasBodiesForDisplay,
@@ -41,6 +42,7 @@ import {
   type SolarSystemJson,
   type SizePageModel,
 } from "../-data"
+import { LightSpeedPhoton } from "./light-speed-photon"
 
 /**
  * Distance strip (DOM):
@@ -592,6 +594,9 @@ export function DistanceCanvas({
   scrollToBodyToken = 0,
   orbitOn = false,
   onCenterKmFromSunChange,
+  lightSpeedActive = false,
+  lightSpeedMultiplier = 1,
+  onLightSpeedReachedEnd,
 }: {
   model: SizePageModel
   json: SolarSystemJson
@@ -607,6 +612,11 @@ export function DistanceCanvas({
   orbitOn?: boolean
   /** Kilometers from the Sun at horizontal viewport center (scroll + distance scale). */
   onCenterKmFromSunChange?: (km: number | null) => void
+  /** Auto-scroll strip at scaled light speed; disables user scroll / taps on bodies. */
+  lightSpeedActive?: boolean
+  lightSpeedMultiplier?: number
+  /** Called once when scroll reaches the right edge while light speed is active. */
+  onLightSpeedReachedEnd?: () => void
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const syncLayoutRef = useRef<(() => void) | null>(null)
@@ -627,9 +637,24 @@ export function DistanceCanvas({
   const orbitOnRef = useRef(orbitOn)
   const selectedBodyIdRef = useRef(selectedBodyId)
   const onCenterKmFromSunChangeRef = useRef(onCenterKmFromSunChange)
+  const lightSpeedActiveRef = useRef(lightSpeedActive)
+  const lightSpeedMultiplierRef = useRef(lightSpeedMultiplier)
+  const onLightSpeedReachedEndRef = useRef(onLightSpeedReachedEnd)
 
   useLayoutEffect(() => {
     onCenterKmFromSunChangeRef.current = onCenterKmFromSunChange
+  })
+
+  useLayoutEffect(() => {
+    lightSpeedActiveRef.current = lightSpeedActive
+  }, [lightSpeedActive])
+
+  useLayoutEffect(() => {
+    lightSpeedMultiplierRef.current = lightSpeedMultiplier
+  }, [lightSpeedMultiplier])
+
+  useLayoutEffect(() => {
+    onLightSpeedReachedEndRef.current = onLightSpeedReachedEnd
   })
 
   const onContentPointerDown = useCallback(
@@ -649,6 +674,10 @@ export function DistanceCanvas({
     const wrapper = wrapperRef.current
     if (!wrapper) return
     const onWheel = (e: WheelEvent) => {
+      if (lightSpeedActiveRef.current) {
+        e.preventDefault()
+        return
+      }
       if (e.ctrlKey) return
       const dy = e.deltaY
       const dx = e.deltaX
@@ -1223,18 +1252,74 @@ export function DistanceCanvas({
     })
   }, [scrollToBodyId, scrollToBodyToken])
 
-  const interactive = Boolean(onBodySelect)
+  /** Auto-scroll at scaled c while light-speed visualizer is on. */
+  useLayoutEffect(() => {
+    if (!lightSpeedActive) return
+    const wrapper = wrapperRef.current
+    if (!wrapper) return
+
+    let raf = 0
+    let last = performance.now()
+    let ended = false
+
+    const tick = (now: number) => {
+      if (ended) return
+      const w = wrapperRef.current
+      if (!w || !lightSpeedActiveRef.current) return
+
+      const dt = Math.min(0.08, Math.max(0, (now - last) / 1000))
+      last = now
+
+      const pxD = pxPerKmDistanceRef.current
+      const mult = lightSpeedMultiplierRef.current
+      const pxPerSec = LIGHT_SPEED_KM_PER_S * pxD * mult
+
+      const maxScroll = w.scrollWidth - w.clientWidth
+      if (!(maxScroll > 0)) {
+        ended = true
+        onLightSpeedReachedEndRef.current?.()
+        return
+      }
+
+      const next = w.scrollLeft + pxPerSec * dt
+      if (next >= maxScroll - 0.25) {
+        w.scrollLeft = maxScroll
+        ended = true
+        onLightSpeedReachedEndRef.current?.()
+        return
+      }
+      w.scrollLeft = next
+      raf = requestAnimationFrame(tick)
+    }
+
+    raf = requestAnimationFrame(tick)
+    return () => {
+      ended = true
+      cancelAnimationFrame(raf)
+    }
+  }, [lightSpeedActive])
+
+  const interactive = Boolean(onBodySelect) && !lightSpeedActive
 
   return (
     <div
       ref={wrapperRef}
-      className="fixed inset-x-0 top-(--app-header-h) z-1 h-[calc(100svh-var(--app-header-h))] overflow-x-auto overflow-y-hidden bg-[#020617]"
-      aria-label="Scaled distances: scroll horizontally to reach distant bodies; tap or click a disk or its name label to select."
+      className={cn(
+        "fixed inset-x-0 top-(--app-header-h) z-1 h-[calc(100svh-var(--app-header-h))] overflow-x-auto overflow-y-hidden bg-[#020617]",
+        lightSpeedActive && "touch-none"
+      )}
+      style={lightSpeedActive ? { touchAction: "none" } : undefined}
+      aria-label={
+        lightSpeedActive
+          ? "Light speed visualizer: auto-scrolling at scaled light speed."
+          : "Scaled distances: scroll horizontally to reach distant bodies; tap or click a disk or its name label to select."
+      }
     >
       <div
         className={cn(
           "relative h-full min-h-full",
-          interactive && "touch-none select-none"
+          interactive && "touch-none select-none",
+          lightSpeedActive && "pointer-events-none"
         )}
         style={{
           width:
@@ -1257,6 +1342,7 @@ export function DistanceCanvas({
           />
         ))}
         {orbitOverlay ? <OrbitApsisMarkers overlay={orbitOverlay} /> : null}
+        <LightSpeedPhoton wrapperRef={wrapperRef} active={lightSpeedActive} />
       </div>
     </div>
   )

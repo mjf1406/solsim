@@ -39,8 +39,13 @@ import {
 } from "./-data"
 import { isDistancePageBodySelectable } from "./-distance-page-select"
 import type { DistanceUnitOrAll } from "@/lib/solar-system/distance/distance-units"
+import type { LightSpeedMultiplier } from "@/lib/solar-system/distance/light-speed"
 
 import { DistanceCanvas } from "./-components/distance-canvas"
+import { LightSpeedBanner } from "./-components/light-speed-banner"
+import { LightSpeedEtaReadout } from "./-components/light-speed-eta-readout"
+import { LightSpeedMultiplierControl } from "./-components/light-speed-multiplier-control"
+import { LightSpeedSidebarPortal } from "./-components/light-speed-sidebar-panel"
 import { OrbitToolSidebarPortal } from "./-components/orbit-tool-sidebar-panel"
 import { DistanceSymbolBar } from "./-components/distance-symbol-bar"
 import { DistanceTraveledReadout } from "./-components/distance-traveled-readout"
@@ -162,6 +167,10 @@ function SolarSystemDistancePage() {
   const [centerKmFromSun, setCenterKmFromSun] = useState<number | null>(null)
   const [distanceUnit, setDistanceUnit] =
     useState<DistanceUnitOrAll>("km")
+  const [lightSpeedOn, setLightSpeedOn] = useState(false)
+  const [lightSpeedMult, setLightSpeedMult] =
+    useState<LightSpeedMultiplier>(1)
+  const priorDistanceUnitRef = useRef<DistanceUnitOrAll | null>(null)
 
   const calibration = useDisplayCalibration()
   const [calibrationDialogOpen, setCalibrationDialogOpen] = useState(false)
@@ -380,6 +389,30 @@ function SolarSystemDistancePage() {
     setScrollToBodyListToken((t) => t + 1)
   }, [])
 
+  const turnLightSpeedOff = useCallback(() => {
+    setLightSpeedOn(false)
+    setLightSpeedMult(1)
+    const saved = priorDistanceUnitRef.current
+    priorDistanceUnitRef.current = null
+    if (saved != null) setDistanceUnit(saved)
+  }, [])
+
+  const turnLightSpeedOn = useCallback(() => {
+    setDistanceUnit((current) => {
+      priorDistanceUnitRef.current = current
+      return "ltime"
+    })
+    setLightSpeedOn(true)
+  }, [])
+
+  const onLightSpeedSidebarChange = useCallback(
+    (next: boolean) => {
+      if (next) turnLightSpeedOn()
+      else turnLightSpeedOff()
+    },
+    [turnLightSpeedOff, turnLightSpeedOn]
+  )
+
   useEffect(() => {
     if (
       !selectedBodyId ||
@@ -426,13 +459,40 @@ function SolarSystemDistancePage() {
           scrollToBodyToken={scrollToBodyListToken}
           orbitOn={orbitOn}
           onCenterKmFromSunChange={setCenterKmFromSun}
+          lightSpeedActive={lightSpeedOn}
+          lightSpeedMultiplier={lightSpeedMult}
+          onLightSpeedReachedEnd={turnLightSpeedOff}
         />
+
+        {lightSpeedOn ? <LightSpeedBanner multiplier={lightSpeedMult} /> : null}
+
+        {lightSpeedOn ? (
+          <LightSpeedEtaReadout
+            distanceBodies={distanceBodies}
+            bodyDisplayFilter={bodyDisplayFilter}
+            pxPerKmSize={sizeScale.debouncedPxPerKm}
+            centerKmFromSun={centerKmFromSun}
+            multiplier={lightSpeedMult}
+            onSelectBody={setSelectedBodyId}
+          />
+        ) : null}
 
         <DistanceTraveledReadout
           km={centerKmFromSun}
           pxPerKmDistance={distanceScale.debouncedPxPerKm}
           unit={distanceUnit}
           onUnitChange={setDistanceUnit}
+          disableUnitSelect={lightSpeedOn}
+          trailingControl={
+            lightSpeedOn ? (
+              <LightSpeedMultiplierControl
+                multiplier={lightSpeedMult}
+                onMultiplierChange={setLightSpeedMult}
+                distanceUnit={distanceUnit}
+                pxPerKmDistance={distanceScale.debouncedPxPerKm}
+              />
+            ) : null
+          }
         />
 
         <DistanceSymbolBar
@@ -495,6 +555,11 @@ function SolarSystemDistancePage() {
           hasOrbitData={orbitSidebarProps.hasOrbitData}
           orbitOn={orbitOn}
           onOrbitOnChange={setOrbitOn}
+        />
+
+        <LightSpeedSidebarPortal
+          lightSpeedOn={lightSpeedOn}
+          onLightSpeedOnChange={onLightSpeedSidebarChange}
         />
 
         <DistancePageLeftSidebarPortal

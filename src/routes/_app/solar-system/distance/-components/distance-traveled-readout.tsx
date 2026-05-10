@@ -1,3 +1,5 @@
+import type { ReactNode } from "react"
+
 import {
   DISTANCE_UNIT_LABELS,
   DISTANCE_UNITS,
@@ -21,17 +23,54 @@ export function DistanceTraveledReadout({
   pxPerKmDistance,
   unit,
   onUnitChange,
+  trailingControl,
+  disableUnitSelect = false,
 }: {
   km: number | null
   /** Distance scale: CSS pixels per km (same as DistanceCanvas `pxPerKmDistance`). */
   pxPerKmDistance: number
   unit: DistanceUnitOrAll
   onUnitChange: (unit: DistanceUnitOrAll) => void
+  /** Rendered just before the unit select (e.g. light-speed multiplier). */
+  trailingControl?: ReactNode
+  /** When true, unit dropdown is disabled (e.g. light-speed mode locks to light time). */
+  disableUnitSelect?: boolean
 }) {
   if (km == null || km < 0) return null
 
   const selectValue = unit === "all" ? SELECT_ALL : unit
   const isAll = unit === "all"
+
+  const compactUnitSelect = (
+    <Select
+      value={selectValue}
+      disabled={disableUnitSelect}
+      onValueChange={(v) => {
+        if (v === SELECT_ALL) {
+          onUnitChange("all")
+          return
+        }
+        if (DISTANCE_UNITS.includes(v as DistanceUnit)) {
+          onUnitChange(v as DistanceUnit)
+        }
+      }}
+    >
+      <SelectTrigger
+        size="sm"
+        className="h-7 shrink-0 rounded-full px-2 text-xs"
+      >
+        <SelectValue aria-label="Distance unit" />
+      </SelectTrigger>
+      <SelectContent position="popper" align="end">
+        {DISTANCE_UNITS.map((u) => (
+          <SelectItem key={u} value={u}>
+            {DISTANCE_UNIT_LABELS[u]}
+          </SelectItem>
+        ))}
+        <SelectItem value={SELECT_ALL}>All</SelectItem>
+      </SelectContent>
+    </Select>
+  )
 
   return (
     <div
@@ -47,7 +86,7 @@ export function DistanceTraveledReadout({
           "pointer-events-auto border border-border/60 bg-background/90 shadow-lg backdrop-blur-md",
           isAll
             ? "flex w-full max-w-lg flex-col gap-2 rounded-xl px-3 py-2 sm:max-w-xl"
-            : "flex max-w-[min(100%,36rem)] flex-wrap items-center gap-x-3 gap-y-1 rounded-full px-3 py-1.5"
+            : "flex max-w-[min(100%,48rem)] flex-nowrap items-center gap-x-2 overflow-x-auto rounded-full px-3 py-1.5 sm:gap-x-3"
         )}
       >
         {isAll ? (
@@ -78,9 +117,11 @@ export function DistanceTraveledReadout({
               ))}
             </ul>
 
-            <div className="flex items-center justify-end gap-2 border-t border-border/40 pt-2">
+            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border/40 pt-2">
+              {trailingControl}
               <Select
                 value={selectValue}
+                disabled={disableUnitSelect}
                 onValueChange={(v) => {
                   if (v === SELECT_ALL) {
                     onUnitChange("all")
@@ -114,39 +155,24 @@ export function DistanceTraveledReadout({
               From Sun:
             </span>
 
-            <div className="min-w-0 flex-1 text-xs text-foreground">
-              <span className="font-jetbrains-mono tabular-nums">
+            <div className="min-w-0 flex-1 basis-0 text-xs text-foreground">
+              <span className="inline-block max-w-full truncate font-jetbrains-mono tabular-nums">
                 {formatDistance(km, unit, pxPerKmDistance)}
               </span>
             </div>
 
-            <Select
-              value={selectValue}
-              onValueChange={(v) => {
-                if (v === SELECT_ALL) {
-                  onUnitChange("all")
-                  return
-                }
-                if (DISTANCE_UNITS.includes(v as DistanceUnit)) {
-                  onUnitChange(v as DistanceUnit)
-                }
-              }}
-            >
-              <SelectTrigger
-                size="sm"
-                className="h-7 shrink-0 rounded-full px-2 text-xs"
-              >
-                <SelectValue aria-label="Distance unit" />
-              </SelectTrigger>
-              <SelectContent position="popper" align="end">
-                {DISTANCE_UNITS.map((u) => (
-                  <SelectItem key={u} value={u}>
-                    {DISTANCE_UNIT_LABELS[u]}
-                  </SelectItem>
-                ))}
-                <SelectItem value={SELECT_ALL}>All</SelectItem>
-              </SelectContent>
-            </Select>
+            {trailingControl ? (
+              <>
+                <div className="flex shrink-0 items-center border-l border-border/50 pl-2 sm:pl-3">
+                  {trailingControl}
+                </div>
+                <div className="shrink-0 border-l border-border/50 pl-2 sm:pl-3">
+                  {compactUnitSelect}
+                </div>
+              </>
+            ) : (
+              compactUnitSelect
+            )}
           </>
         )}
       </div>
