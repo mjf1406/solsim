@@ -181,9 +181,11 @@ function LabelHitArea({
 function DistanceBodyLayers({
   item,
   interactive,
+  selected,
 }: {
   item: DistanceLayoutItem
   interactive: boolean
+  selected: boolean
 }) {
   const [imgFailed, setImgFailed] = useState(false)
   const pe: CSSProperties["pointerEvents"] = interactive ? "auto" : "none"
@@ -191,10 +193,20 @@ function DistanceBodyLayers({
   const D = item.drawDiameterPx
   const r = D / 2
   const halfPad = PROXY_DISK_HIT_PAD_PX / 2
+  const indicatorSize = Math.max(18, D + Math.max(8, Math.min(20, D * 0.16)))
+  const indicatorStyle: CSSProperties = {
+    position: "absolute",
+    left: item.cx - indicatorSize / 2,
+    top: item.cy - indicatorSize / 2,
+    width: indicatorSize,
+    height: indicatorSize,
+    pointerEvents: "none",
+  }
 
   if (item.isProxyDisk) {
     return (
       <>
+        {selected ? <SelectionIndicator style={indicatorStyle} /> : null}
         <div
           data-body-id={item.canvasId}
           className={cn(!interactive && "pointer-events-none")}
@@ -233,6 +245,7 @@ function DistanceBodyLayers({
 
   return (
     <>
+      {selected ? <SelectionIndicator style={indicatorStyle} /> : null}
       {!imgFailed ? (
         <img
           src={item.src}
@@ -266,10 +279,21 @@ function DistanceBodyLayers({
   )
 }
 
+function SelectionIndicator({ style }: { style: CSSProperties }) {
+  return (
+    <span
+      aria-hidden
+      className="absolute z-20 rounded-full border-2 border-sky-400/90 shadow-[0_0_18px_rgba(56,189,248,0.55)] animate-pulse"
+      style={style}
+    />
+  )
+}
+
 export function DistanceCanvas({
   model,
   json,
   onBodySelect,
+  selectedBodyId = null,
   bodyDisplayFilter = applyBodyTypePreset("planets"),
   pxPerKmSize,
   pxPerKmDistance,
@@ -279,6 +303,7 @@ export function DistanceCanvas({
   model: SizePageModel
   json: SolarSystemJson
   onBodySelect?: (bodyId: string | null) => void
+  selectedBodyId?: string | null
   bodyDisplayFilter?: SizeBodyDisplayFilter
   pxPerKmSize: number
   pxPerKmDistance: number
@@ -543,6 +568,7 @@ export function DistanceCanvas({
             key={item.canvasId}
             item={item}
             interactive={interactive}
+            selected={item.canvasId === selectedBodyId}
           />
         ))}
       </div>

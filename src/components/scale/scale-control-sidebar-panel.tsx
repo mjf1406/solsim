@@ -9,6 +9,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { Slider } from "@/components/ui/slider"
+import { Switch } from "@/components/ui/switch"
 import { type DisplayCalibration } from "@/hooks/use-display-calibration"
 import {
   formatKmPerPx,
@@ -38,6 +39,10 @@ type ScaleControlSidebarPanelProps = {
   cycleMode: () => void
   snapStops: ScaleSliderStop[]
   calibration: DisplayCalibration
+  /** Optional scale-link switch, used by pages with multiple scale controls. */
+  linked?: boolean
+  onLinkedChange?: (linked: boolean) => void
+  linkLabel?: string
   /** Controlled display calibration dialog (lifted so other panels can open it). */
   calibrationDialogOpen: boolean
   onCalibrationDialogOpenChange: (open: boolean) => void
@@ -73,6 +78,9 @@ function ScaleControlCollapsibleSection({
   cycleMode,
   snapStops,
   calibration,
+  linked,
+  onLinkedChange,
+  linkLabel = "Link scales",
   calibrationDialogOpen,
   onCalibrationDialogOpenChange,
 }: ScaleControlSidebarPanelProps) {
@@ -213,6 +221,13 @@ function ScaleControlCollapsibleSection({
                 )}
               </>
             ) : null}
+            {onLinkedChange ? (
+              <ScaleLinkToggle
+                checked={linked ?? false}
+                onCheckedChange={onLinkedChange}
+                label={linkLabel}
+              />
+            ) : null}
           </div>
         </CollapsibleContent>
       </Collapsible>
@@ -227,6 +242,29 @@ function ScaleControlCollapsibleSection({
           onReset={calibration.reset}
         />
       ) : null}
+    </div>
+  )
+}
+
+function ScaleLinkToggle({
+  checked,
+  onCheckedChange,
+  label,
+}: {
+  checked: boolean
+  onCheckedChange: (checked: boolean) => void
+  label: string
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-sidebar-border/70 bg-sidebar-accent/25 px-2 py-2">
+      <span className="min-w-0 text-[11px] font-medium text-sidebar-foreground">
+        {label}
+      </span>
+      <Switch
+        checked={checked}
+        onCheckedChange={onCheckedChange}
+        aria-label={label}
+      />
     </div>
   )
 }

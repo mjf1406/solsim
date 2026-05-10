@@ -14,11 +14,13 @@ import { useDisplayCalibration } from "@/hooks/use-display-calibration"
 import {
   DISTANCE_FIT_ORBIT_PX_OPTIONS,
   pxPerKmForFitDistance,
-  pxPerKmToSliderValueForDistanceRange,
   useAssumedDistanceFitViewportWidthPx,
-  useDistanceScale,
 } from "@/hooks/use-distance-scale"
-import { pxPerKmToSliderValue } from "@/lib/solar-system/scale/scale-presets"
+import {
+  pxPerKmToSliderValue,
+  sliderValueToPxPerKm,
+  type ScaleSliderStop,
+} from "@/lib/solar-system/scale/scale-presets"
 
 import {
   isSizeBodyIdVisibleUnderFilter,
@@ -108,6 +110,25 @@ function DistancePageLeftSidebarPortal({
   )
 }
 
+function nextScaleStopSliderValue(
+  currentSliderValue: number,
+  snapStops: ScaleSliderStop[]
+): number | null {
+  if (snapStops.length === 0) return null
+  let bestIndex = 0
+  let bestDistance = Infinity
+  for (let i = 0; i < snapStops.length; i++) {
+    const stop = snapStops[i]
+    if (!stop) continue
+    const distance = Math.abs(stop.sliderValue - currentSliderValue)
+    if (distance < bestDistance) {
+      bestDistance = distance
+      bestIndex = i
+    }
+  }
+  return snapStops[(bestIndex + 1) % snapStops.length]?.sliderValue ?? null
+}
+
 function SolarSystemDistancePage() {
   const { model, json } = Route.useLoaderData()
   const search = Route.useSearch()
@@ -128,6 +149,7 @@ function SolarSystemDistancePage() {
 
   const calibration = useDisplayCalibration()
   const [calibrationDialogOpen, setCalibrationDialogOpen] = useState(false)
+  const [scaleLinked, setScaleLinked] = useState(false)
 
   const fitWidthPx = useAssumedDistanceFitViewportWidthPx()
 
@@ -173,7 +195,7 @@ function SolarSystemDistancePage() {
     ] as const
   }, [fitWidthPx])
 
-  const fitMarsPxPerKmSize = useMemo(
+  const fitMarsPxPerKm = useMemo(
     () =>
       pxPerKmForFitDistance(
         1.523679 * KM_PER_AU,
@@ -188,9 +210,69 @@ function SolarSystemDistancePage() {
     isCalibrated: calibration.isCalibrated,
     alwaysUseLogRange: true,
     extraStops: distanceSizeExtraStops,
-    initialPxPerKm: fitMarsPxPerKmSize,
+    initialPxPerKm: fitMarsPxPerKm,
   })
-  const distanceScale = useDistanceScale()
+  const distanceScale = useCanvasScale({
+    pxPerMm: calibration.pxPerMm,
+    isCalibrated: calibration.isCalibrated,
+    alwaysUseLogRange: true,
+    extraStops: distanceSizeExtraStops,
+    initialPxPerKm: fitMarsPxPerKm,
+  })
+
+  const handleScaleLinkedChange = useCallback(
+    (nextLinked: boolean) => {
+      setScaleLinked(nextLinked)
+      if (!nextLinked) return
+      sizeScale.setSliderValue(
+        pxPerKmToSliderValue(distanceScale.pxPerKm, sizeScale.range)
+      )
+    },
+    [distanceScale.pxPerKm, sizeScale]
+  )
+
+  const setSizeSliderValue = useCallback(
+    (value: number) => {
+      sizeScale.setSliderValue(value)
+      if (!scaleLinked) return
+      const pxPerKm = sliderValueToPxPerKm(value, sizeScale.range)
+      distanceScale.setSliderValue(
+        pxPerKmToSliderValue(pxPerKm, distanceScale.range)
+      )
+    },
+    [distanceScale, scaleLinked, sizeScale]
+  )
+
+  const setDistanceSliderValue = useCallback(
+    (value: number) => {
+      distanceScale.setSliderValue(value)
+      if (!scaleLinked) return
+      const pxPerKm = sliderValueToPxPerKm(value, distanceScale.range)
+      sizeScale.setSliderValue(pxPerKmToSliderValue(pxPerKm, sizeScale.range))
+    },
+    [distanceScale, scaleLinked, sizeScale]
+  )
+
+  const cycleSizeScale = useCallback(() => {
+    if (!scaleLinked) {
+      sizeScale.cycleMode()
+      return
+    }
+    const next = nextScaleStopSliderValue(sizeScale.sliderValue, sizeScale.snapStops)
+    if (next != null) setSizeSliderValue(next)
+  }, [scaleLinked, setSizeSliderValue, sizeScale])
+
+  const cycleDistanceScale = useCallback(() => {
+    if (!scaleLinked) {
+      distanceScale.cycleMode()
+      return
+    }
+    const next = nextScaleStopSliderValue(
+      distanceScale.sliderValue,
+      distanceScale.snapStops
+    )
+    if (next != null) setDistanceSliderValue(next)
+  }, [distanceScale, scaleLinked, setDistanceSliderValue])
 
   const searchRef = useRef(search)
   useEffect(() => {
@@ -219,7 +301,7 @@ function SolarSystemDistancePage() {
   useEffect(() => {
     if (search.zoom_dist == null) return
     distanceScale.setSliderValue(
-      pxPerKmToSliderValueForDistanceRange(search.zoom_dist, distanceScale.range)
+      pxPerKmToSliderValue(search.zoom_dist, distanceScale.range)
     )
     /* eslint-disable-next-line react-hooks/exhaustive-deps -- omit distanceScale identity churn */
   }, [search.zoom_dist, distanceScale.range, distanceScale.setSliderValue])
@@ -283,6 +365,7 @@ function SolarSystemDistancePage() {
           model={model}
           json={json}
           onBodySelect={setSelectedBodyId}
+          selectedBodyId={selectedBodyId}
           bodyDisplayFilter={bodyDisplayFilter}
           pxPerKmSize={sizeScale.debouncedPxPerKm}
           pxPerKmDistance={distanceScale.debouncedPxPerKm}
@@ -299,54 +382,60 @@ function SolarSystemDistancePage() {
           onSelectBody={selectBodyFromBodyTypesList}
         />
 
-      <ScaleControlSidebarPortal
-        title="Scale Size"
-        cycleButtonLabel={sizeScale.cycleButtonLabel}
-        sliderValue={sizeScale.sliderValue}
-        readout={sizeScale.readout}
-        isPending={sizeScale.isPending}
-        setSliderValue={sizeScale.setSliderValue}
-        cycleMode={sizeScale.cycleMode}
-        snapStops={sizeScale.snapStops}
-        calibration={calibration}
-        calibrationDialogOpen={calibrationDialogOpen}
-        onCalibrationDialogOpenChange={setCalibrationDialogOpen}
-      />
+        <ScaleControlSidebarPortal
+          title="Scale Size"
+          cycleButtonLabel={sizeScale.cycleButtonLabel}
+          sliderValue={sizeScale.sliderValue}
+          readout={sizeScale.readout}
+          isPending={sizeScale.isPending}
+          setSliderValue={setSizeSliderValue}
+          cycleMode={cycleSizeScale}
+          snapStops={sizeScale.snapStops}
+          calibration={calibration}
+          linked={scaleLinked}
+          onLinkedChange={handleScaleLinkedChange}
+          linkLabel="Link with Scale Distance"
+          calibrationDialogOpen={calibrationDialogOpen}
+          onCalibrationDialogOpenChange={setCalibrationDialogOpen}
+        />
 
-      <ScaleControlSidebarPortal
-        title="Scale Distance"
-        showCalibrationControls={false}
-        cycleButtonLabel={distanceScale.cycleButtonLabel}
-        sliderValue={distanceScale.sliderValue}
-        readout={distanceScale.readout}
-        isPending={distanceScale.isPending}
-        setSliderValue={distanceScale.setSliderValue}
-        cycleMode={distanceScale.cycleMode}
-        snapStops={distanceScale.snapStops}
-        calibration={calibration}
-        calibrationDialogOpen={false}
-        onCalibrationDialogOpenChange={() => {}}
-      />
+        <ScaleControlSidebarPortal
+          title="Scale Distance"
+          showCalibrationControls={false}
+          cycleButtonLabel={distanceScale.cycleButtonLabel}
+          sliderValue={distanceScale.sliderValue}
+          readout={distanceScale.readout}
+          isPending={distanceScale.isPending}
+          setSliderValue={setDistanceSliderValue}
+          cycleMode={cycleDistanceScale}
+          snapStops={distanceScale.snapStops}
+          calibration={calibration}
+          linked={scaleLinked}
+          onLinkedChange={handleScaleLinkedChange}
+          linkLabel="Link with Scale Size"
+          calibrationDialogOpen={false}
+          onCalibrationDialogOpenChange={() => {}}
+        />
 
-      <SizePageBodyTypesSidebarPortal
-        model={model}
-        bodyDisplayFilter={bodyDisplayFilter}
-        setBodyDisplayFilter={setBodyDisplayFilter}
-        pxPerKm={sizeScale.debouncedPxPerKm}
-        selectedBodyId={selectedBodyId}
-        onSelectBody={selectBodyFromBodyTypesList}
-      />
+        <SizePageBodyTypesSidebarPortal
+          model={model}
+          bodyDisplayFilter={bodyDisplayFilter}
+          setBodyDisplayFilter={setBodyDisplayFilter}
+          pxPerKm={sizeScale.debouncedPxPerKm}
+          selectedBodyId={selectedBodyId}
+          onSelectBody={selectBodyFromBodyTypesList}
+        />
 
-      <DistancePageLeftSidebarPortal
-        model={model}
-        json={json}
-        selectedBodyId={selectedBodyId}
-        pxPerKmSize={sizeScale.pxPerKm}
-        pxPerKmDistance={distanceScale.pxPerKm}
-        pxPerMm={calibration.pxPerMm}
-        isCalibrated={calibration.isCalibrated}
-        onOpenCalibration={() => setCalibrationDialogOpen(true)}
-      />
+        <DistancePageLeftSidebarPortal
+          model={model}
+          json={json}
+          selectedBodyId={selectedBodyId}
+          pxPerKmSize={sizeScale.pxPerKm}
+          pxPerKmDistance={distanceScale.pxPerKm}
+          pxPerMm={calibration.pxPerMm}
+          isCalibrated={calibration.isCalibrated}
+          onOpenCalibration={() => setCalibrationDialogOpen(true)}
+        />
       </div>
     </TooltipProvider>
   )

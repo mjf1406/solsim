@@ -362,7 +362,7 @@ export type ScaleSliderStop = {
 
 /** Caption for `pxPerKm = moonOnePx × 2**n` (n may be negative). */
 export function moonPowerOfTwoMultiplierCaption(n: number): string {
-  if (n === 0) return "x1"
+  if (n === 0) return "1-px Moon"
   if (n > 0) return `x${2 ** n}`
   const denom = 2 ** -n
   return `x1/${denom}`
