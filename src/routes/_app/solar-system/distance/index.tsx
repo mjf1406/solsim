@@ -36,9 +36,12 @@ import {
   type SolarSystemJson,
   type SizePageModel,
 } from "./-data"
+import type { DistanceUnitOrAll } from "@/lib/solar-system/distance/distance-units"
+
 import { DistanceCanvas } from "./-components/distance-canvas"
 import { OrbitToolSidebarPortal } from "./-components/orbit-tool-sidebar-panel"
 import { DistanceSymbolBar } from "./-components/distance-symbol-bar"
+import { DistanceTraveledReadout } from "./-components/distance-traveled-readout"
 import { DistanceSelectedBodySidebarContent } from "./-components/distance-selected-body-sidebar-panel"
 import { SizePageBodyTypesSidebarPortal } from "../size/-components/size-body-types-sidebar-panel"
 import {
@@ -149,6 +152,9 @@ function SolarSystemDistancePage() {
     null
   )
   const [orbitOn, setOrbitOn] = useState(() => search.orbit === true)
+  const [centerKmFromSun, setCenterKmFromSun] = useState<number | null>(null)
+  const [distanceUnit, setDistanceUnit] =
+    useState<DistanceUnitOrAll>("km")
 
   const calibration = useDisplayCalibration()
   const [calibrationDialogOpen, setCalibrationDialogOpen] = useState(false)
@@ -393,6 +399,14 @@ function SolarSystemDistancePage() {
           scrollToBodyId={scrollToBodyListId}
           scrollToBodyToken={scrollToBodyListToken}
           orbitOn={orbitOn}
+          onCenterKmFromSunChange={setCenterKmFromSun}
+        />
+
+        <DistanceTraveledReadout
+          km={centerKmFromSun}
+          pxPerKmDistance={distanceScale.debouncedPxPerKm}
+          unit={distanceUnit}
+          onUnitChange={setDistanceUnit}
         />
 
         <DistanceSymbolBar

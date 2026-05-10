@@ -234,27 +234,6 @@ export function DistanceSelectedBodySidebarContent({
           )}
 
           <dl className="space-y-2 text-base text-sidebar-foreground/90">
-            {isMoon ? (
-              <DistanceRow
-                title="Distance from Sun"
-                km={Number.isFinite(kmFromSun) ? kmFromSun : null}
-                pxPerKmDistance={pxPerKmDistance}
-                pxPerMm={pxPerMm}
-                isCalibrated={isCalibrated}
-                onOpenCalibration={onOpenCalibration}
-                distanceUnit={distanceUnit}
-                onToggleUnit={() =>
-                  setDistanceUnit((u) => (u === "km" ? "mi" : "km"))
-                }
-                scaledUnitSystem={scaledUnitSystem}
-                onToggleScaledUnit={() =>
-                  setScaledUnitSystem((s) =>
-                    s === "metric" ? "imperial" : "metric"
-                  )
-                }
-                sayThisTitle="Say this distance from the Sun"
-              />
-            ) : null}
             <DistanceRow
               title={
                 isMoon ? (
@@ -405,7 +384,7 @@ export function DistanceSelectedBodySidebarContent({
                   : "Say this aphelion distance"
               }
             />
-            {detailDistance.prevSunOrbiterId ? (
+            {!isMoon && detailDistance.prevSunOrbiterId ? (
               <DistanceRow
                 title={
                   prevName
@@ -434,7 +413,7 @@ export function DistanceSelectedBodySidebarContent({
                 }
               />
             ) : null}
-            {detailDistance.nextSunOrbiterId ? (
+            {!isMoon && detailDistance.nextSunOrbiterId ? (
               <DistanceRow
                 title={
                   nextName

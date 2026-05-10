@@ -1,4 +1,5 @@
 import { spokenNumberEnUsMaxOneDecimal } from "@/lib/reading/spoken-number-en-us"
+import { KM_PER_AU } from "@/lib/solar-system/distance/distance-units"
 import type {
   CatalogBody,
   Elements,
@@ -11,7 +12,6 @@ import {
   findSizeRowNameById,
   kindLabel,
 } from "../size/-data"
-
 export {
   SOLAR_SYSTEM_JSON_URL,
   SCI_FI_SIZE_CATALOG_URL,
@@ -26,8 +26,7 @@ export {
   type SolarSystemJson,
 } from "../size/-data"
 
-/** Exact from snapshot metadata: `AU_km`. */
-export const KM_PER_AU = 149_597_870.7
+export { KM_PER_AU }
 
 /** Kilometers to statute miles (exact definition uses 1 mi = 1.609344 km). */
 const KM_TO_MI = 1 / 1.609344

@@ -590,6 +590,7 @@ export function DistanceCanvas({
   scrollToBodyId = null,
   scrollToBodyToken = 0,
   orbitOn = false,
+  onCenterKmFromSunChange,
 }: {
   model: SizePageModel
   json: SolarSystemJson
@@ -603,6 +604,8 @@ export function DistanceCanvas({
   scrollToBodyToken?: number
   /** Show perihelion/aphelion range overlay for the selected body. */
   orbitOn?: boolean
+  /** Kilometers from the Sun at horizontal viewport center (scroll + distance scale). */
+  onCenterKmFromSunChange?: (km: number | null) => void
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const syncLayoutRef = useRef<(() => void) | null>(null)
@@ -622,6 +625,11 @@ export function DistanceCanvas({
   const pxPerKmDistanceRef = useRef(pxPerKmDistance)
   const orbitOnRef = useRef(orbitOn)
   const selectedBodyIdRef = useRef(selectedBodyId)
+  const onCenterKmFromSunChangeRef = useRef(onCenterKmFromSunChange)
+
+  useLayoutEffect(() => {
+    onCenterKmFromSunChangeRef.current = onCenterKmFromSunChange
+  })
 
   const onContentPointerDown = useCallback(
     (e: PointerEvent<HTMLDivElement>) => {
@@ -658,15 +666,42 @@ export function DistanceCanvas({
     const wrapper = wrapperRef.current
     if (!wrapper) return
 
+    function emitCenterKmFromSun() {
+      const cb = onCenterKmFromSunChangeRef.current
+      if (!cb) return
+      const w = wrapperRef.current
+      if (!w) {
+        cb(null)
+        return
+      }
+      const vw = w.clientWidth ?? 0
+      const hCss = w.clientHeight ?? 0
+      if (vw < 16 || hCss < 16) {
+        cb(null)
+        return
+      }
+      const pxD = pxPerKmDistanceRef.current
+      if (!(pxD > 0)) {
+        cb(null)
+        return
+      }
+      const km = Math.max(
+        0,
+        (w.scrollLeft + vw / 2 - INSET_LEFT_CSS) / pxD
+      )
+      cb(km)
+    }
+
     function syncLayout() {
-      const viewportW = wrapper!.clientWidth ?? 0
-      const hCss = wrapper!.clientHeight ?? 0
-      if (viewportW < 16 || hCss < 16) return
+      try {
+        const viewportW = wrapper!.clientWidth ?? 0
+        const hCss = wrapper!.clientHeight ?? 0
+        if (viewportW < 16 || hCss < 16) return
 
-      const ctx = getMeasureCtx()
-      if (!ctx) return
+        const ctx = getMeasureCtx()
+        if (!ctx) return
 
-      const bodiesAll = collectDistanceBodies(model, json)
+        const bodiesAll = collectDistanceBodies(model, json)
 
       const bodiesFiltered = filterSizeCanvasBodiesForDisplay(
         bodiesAll,
@@ -1078,6 +1113,9 @@ export function DistanceCanvas({
       setContentWidthPx(widthPx)
       setLayoutItems(resolvedItems)
       setOrbitOverlay(orbitOverlayNext)
+      } finally {
+        emitCenterKmFromSun()
+      }
     }
 
     syncLayoutRef.current = syncLayout
@@ -1089,7 +1127,11 @@ export function DistanceCanvas({
     const onWinResize = () => {
       syncLayout()
     }
+    const onScroll = () => {
+      emitCenterKmFromSun()
+    }
     window.addEventListener("resize", onWinResize)
+    wrapper.addEventListener("scroll", onScroll, { passive: true })
 
     syncLayout()
 
@@ -1097,6 +1139,7 @@ export function DistanceCanvas({
       syncLayoutRef.current = null
       resizeObserver.disconnect()
       window.removeEventListener("resize", onWinResize)
+      wrapper.removeEventListener("scroll", onScroll)
     }
   }, [model, json])
 
