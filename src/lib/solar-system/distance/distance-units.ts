@@ -172,15 +172,18 @@ const UNIT_SUFFIX: Record<DistanceUnit, string> = {
 export function formatDistance(
   km: number,
   unit: DistanceUnit,
-  pxPerKmDistance?: number
+  pxPerKmDistance?: number,
+  opts?: { omitUnitSuffix?: boolean }
 ): string {
+  const omitSuffix = opts?.omitUnitSuffix === true
+
   if (unit === "ltime") {
     return formatLightTimeFromKm(km)
   }
 
   const value = kmToUnitValue(km, unit, pxPerKmDistance)
   if (unit === "px" && !Number.isFinite(value)) {
-    return "— px"
+    return omitSuffix ? "—" : "— px"
   }
 
   const formatted = new Intl.NumberFormat(undefined, {
@@ -195,5 +198,5 @@ export function formatDistance(
             : 3,
   }).format(value)
 
-  return `${formatted}${UNIT_SUFFIX[unit]}`
+  return omitSuffix ? formatted : `${formatted}${UNIT_SUFFIX[unit]}`
 }
