@@ -31,11 +31,13 @@ import {
   buildSizePageModel,
   fetchSciFiSizeCatalog,
   fetchSolarSystemJson,
+  findDistanceBodyDetail,
   KM_PER_AU,
   type SolarSystemJson,
   type SizePageModel,
 } from "./-data"
 import { DistanceCanvas } from "./-components/distance-canvas"
+import { OrbitToolSidebarPortal } from "./-components/orbit-tool-sidebar-panel"
 import { DistanceSymbolBar } from "./-components/distance-symbol-bar"
 import { DistanceSelectedBodySidebarContent } from "./-components/distance-selected-body-sidebar-panel"
 import { SizePageBodyTypesSidebarPortal } from "../size/-components/size-body-types-sidebar-panel"
@@ -146,6 +148,7 @@ function SolarSystemDistancePage() {
   const [scrollToBodyListId, setScrollToBodyListId] = useState<string | null>(
     null
   )
+  const [orbitOn, setOrbitOn] = useState(() => search.orbit === true)
 
   const calibration = useDisplayCalibration()
   const [calibrationDialogOpen, setCalibrationDialogOpen] = useState(false)
@@ -284,6 +287,7 @@ function SolarSystemDistancePage() {
     /* eslint-disable react-hooks/set-state-in-effect -- sync URL → UI */
     setBodyDisplayFilter(distanceSearchToBodyDisplayFilter(search))
     setSelectedBodyId(search.body ?? null)
+    setOrbitOn(search.orbit === true)
     setScrollToBodyListToken(0)
     setScrollToBodyListId(null)
     /* eslint-enable react-hooks/set-state-in-effect */
@@ -312,6 +316,7 @@ function SolarSystemDistancePage() {
       bodyDisplayFilter,
       debouncedPxPerKmSize: sizeScale.debouncedPxPerKm,
       debouncedPxPerKmDistance: distanceScale.debouncedPxPerKm,
+      orbitOn,
     })
     const nextSearch = finalizeNavigateSearch(partial)
     const id = window.setTimeout(() => {
@@ -328,7 +333,23 @@ function SolarSystemDistancePage() {
     selectedBodyId,
     sizeScale.debouncedPxPerKm,
     distanceScale.debouncedPxPerKm,
+    orbitOn,
   ])
+
+  const orbitSidebarProps = useMemo(() => {
+    const detail = findDistanceBodyDetail(model, json, selectedBodyId)
+    const selectedBodyKind = detail?.kind ?? null
+    const hasOrbitData =
+      detail != null &&
+      detail.kind !== "star" &&
+      detail.perihelionKm != null &&
+      detail.aphelionKm != null &&
+      Number.isFinite(detail.perihelionKm) &&
+      Number.isFinite(detail.aphelionKm) &&
+      detail.perihelionKm >= 0 &&
+      detail.aphelionKm >= 0
+    return { selectedBodyKind, hasOrbitData }
+  }, [model, json, selectedBodyId])
 
   const selectBodyFromBodyTypesList = useCallback((bodyId: string) => {
     setSelectedBodyId(bodyId)
@@ -371,6 +392,7 @@ function SolarSystemDistancePage() {
           pxPerKmDistance={distanceScale.debouncedPxPerKm}
           scrollToBodyId={scrollToBodyListId}
           scrollToBodyToken={scrollToBodyListToken}
+          orbitOn={orbitOn}
         />
 
         <DistanceSymbolBar
@@ -424,6 +446,13 @@ function SolarSystemDistancePage() {
           pxPerKm={sizeScale.debouncedPxPerKm}
           selectedBodyId={selectedBodyId}
           onSelectBody={selectBodyFromBodyTypesList}
+        />
+
+        <OrbitToolSidebarPortal
+          selectedBodyKind={orbitSidebarProps.selectedBodyKind}
+          hasOrbitData={orbitSidebarProps.hasOrbitData}
+          orbitOn={orbitOn}
+          onOrbitOnChange={setOrbitOn}
         />
 
         <DistancePageLeftSidebarPortal

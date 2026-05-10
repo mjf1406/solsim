@@ -20,6 +20,8 @@ export type DistanceRouteSearch = {
   zoom_size?: number
   /** pxPerKm used for x-axis distances (distance scale). */
   zoom_dist?: number
+  /** When true, show perihelion/aphelion range overlay for the selected body. */
+  orbit?: boolean
 }
 
 /** Minimal validated search for `<Link to="/solar-system/distance">` without query params. */
@@ -61,6 +63,17 @@ function parseZoom(value: unknown): number | undefined {
   if (typeof value === "string") {
     const n = Number.parseFloat(value.trim())
     if (Number.isFinite(n) && n > 0) return n
+  }
+  return undefined
+}
+
+function parseOrbit(value: unknown): boolean | undefined {
+  if (value === true) return true
+  if (value === false) return false
+  if (typeof value === "string") {
+    const s = value.trim().toLowerCase()
+    if (s === "1" || s === "true") return true
+    if (s === "0" || s === "false") return false
   }
   return undefined
 }
@@ -122,10 +135,13 @@ export function serializeDistancePageSearch(opts: {
   bodyDisplayFilter: SizeBodyDisplayFilter
   debouncedPxPerKmSize: number
   debouncedPxPerKmDistance: number
+  orbitOn: boolean
 }): Partial<DistanceRouteSearch> {
   const out: Partial<DistanceRouteSearch> = {}
 
   if (opts.selectedBodyId) out.body = opts.selectedBodyId
+
+  if (opts.orbitOn) out.orbit = true
 
   const classified = classifyBodyTypePreset(opts.bodyDisplayFilter)
   if (classified === "custom") {
@@ -168,6 +184,7 @@ export function parseDistanceRouteSearch(
   const moon = parseMoon(search.moon)
   const zoomSize = parseZoom(search.zoom_size)
   const zoomDist = parseZoom(search.zoom_dist)
+  const orbit = parseOrbit(search.orbit)
 
   const out: DistanceRouteSearch = {
     labels: "on",
@@ -178,6 +195,7 @@ export function parseDistanceRouteSearch(
       moon,
       zoom_size: zoomSize,
       zoom_dist: zoomDist,
+      orbit,
     }),
   }
 

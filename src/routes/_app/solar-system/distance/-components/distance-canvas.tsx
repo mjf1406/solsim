@@ -25,11 +25,13 @@ import {
   ASSUMED_SIDEBAR_PX_CSS,
   DISTANCE_CANVAS_BASE_INSET_PX,
 } from "@/hooks/use-distance-scale"
+import { BODY_CLASS_STYLE } from "@/lib/constants"
 import {
   applyBodyTypePreset,
   filterSizeCanvasBodiesForDisplay,
   type SizeBodyDisplayFilter,
 } from "@/lib/solar-system/body-type-display"
+import { sizeBodyKindToBodyClass } from "@/lib/solar-system/body-class"
 import { cn } from "@/lib/utils"
 
 import {
@@ -69,6 +71,41 @@ const PLANET_LABEL_GAP_ABOVE_DISK_PX = 50
 
 /** Minimum horizontal copies of the label that must fit inscribed before using inside-disk placement. */
 const DISTANCE_INSIDE_LABEL_HORIZONTAL_COUNT = 3
+
+/** Min vertical extent of the orbit-range band (px). */
+const ORBIT_ZONE_MIN_HEIGHT_PX = 16
+
+type OrbitOverlayLayout = {
+  zoneLeft: number
+  zoneTop: number
+  zoneWidth: number
+  zoneHeight: number
+  svgLeft: number
+  svgTop: number
+  svgWidth: number
+  svgHeight: number
+  lineX1Local: number
+  lineYLocal: number
+  lineX2Local: number
+  lineY2Local: number
+  strokeDasharray: string | undefined
+  stroke: string
+  strokeWidth: number
+  strokeOpacity: number
+  peri: OrbitApsisMarkerLayout
+  apo: OrbitApsisMarkerLayout
+}
+
+type OrbitApsisMarkerLayout = {
+  cx: number
+  cy: number
+  src: string
+  drawDiameterPx: number
+  isProxyDisk: boolean
+  label: string
+  labelLeft: number
+  labelTop: number
+}
 
 function placeholderSrc(name: string, kind: DistanceBody["kind"]): string {
   const n = name.trim().toLowerCase()
@@ -152,12 +189,14 @@ function LabelHitArea({
   hitRect,
   name,
   interactive,
+  zIndex = 5,
 }: {
   canvasId: string
   labelRect: CanvasBodyLabelRect
   hitRect: CanvasBodyLabelRect
   name: string
   interactive: boolean
+  zIndex?: number
 }) {
   const innerLeft = labelRect.left - hitRect.left
   const innerTop = labelRect.top - hitRect.top
@@ -171,7 +210,7 @@ function LabelHitArea({
         top: hitRect.top,
         width: hitRect.right - hitRect.left,
         height: hitRect.bottom - hitRect.top,
-        zIndex: 5,
+        zIndex,
         pointerEvents: interactive ? "auto" : "none",
         cursor: interactive ? "pointer" : "default",
       }}
@@ -205,7 +244,13 @@ function leaderPolylinePointsLocal(
     .join(" ")
 }
 
-function DistanceLabelLeaderSvg({ leader }: { leader: DistanceLabelLeader }) {
+function DistanceLabelLeaderSvg({
+  leader,
+  zIndex = 1,
+}: {
+  leader: DistanceLabelLeader
+  zIndex?: number
+}) {
   const xs = leader.points.map((p) => p.x)
   const ys = leader.points.map((p) => p.y)
   const minX = Math.min(...xs)
@@ -222,8 +267,8 @@ function DistanceLabelLeaderSvg({ leader }: { leader: DistanceLabelLeader }) {
   return (
     <svg
       aria-hidden
-      className="pointer-events-none absolute z-[1] overflow-visible"
-      style={{ left, top, width, height }}
+      className="pointer-events-none absolute overflow-visible"
+      style={{ left, top, width, height, zIndex }}
       viewBox={`0 0 ${width} ${height}`}
     >
       <polyline
@@ -250,10 +295,13 @@ function DistanceBodyLayers({
   item,
   interactive,
   selected,
+  stackBase = 5,
 }: {
   item: DistanceLayoutItem
   interactive: boolean
   selected: boolean
+  /** Base z-index for this body's layers (orbit overlay keeps selected bodies above apsis markers). */
+  stackBase?: number
 }) {
   const [imgFailed, setImgFailed] = useState(false)
   const pe: CSSProperties["pointerEvents"] = interactive ? "auto" : "none"
@@ -269,6 +317,7 @@ function DistanceBodyLayers({
     width: indicatorSize,
     height: indicatorSize,
     pointerEvents: "none",
+    zIndex: stackBase + 20,
   }
 
   if (item.isProxyDisk) {
@@ -286,11 +335,12 @@ function DistanceBodyLayers({
             height: PROXY_DISK_HIT_PAD_PX,
             pointerEvents: pe,
             cursor,
+            zIndex: stackBase,
           }}
           aria-hidden
         />
         {item.leader ? (
-          <DistanceLabelLeaderSvg leader={item.leader} />
+          <DistanceLabelLeaderSvg leader={item.leader} zIndex={stackBase + 1} />
         ) : null}
         <LabelHitArea
           canvasId={item.canvasId}
@@ -298,6 +348,7 @@ function DistanceBodyLayers({
           hitRect={item.labelHitRect}
           name={item.name}
           interactive={interactive}
+          zIndex={stackBase + 5}
         />
       </>
     )
@@ -312,6 +363,7 @@ function DistanceBodyLayers({
     borderRadius: "50%",
     pointerEvents: pe,
     cursor,
+    zIndex: stackBase,
   }
 
   return (
@@ -340,7 +392,7 @@ function DistanceBodyLayers({
         />
       )}
       {item.leader ? (
-        <DistanceLabelLeaderSvg leader={item.leader} />
+        <DistanceLabelLeaderSvg leader={item.leader} zIndex={stackBase + 1} />
       ) : null}
       <LabelHitArea
         canvasId={item.canvasId}
@@ -348,6 +400,7 @@ function DistanceBodyLayers({
         hitRect={item.labelHitRect}
         name={item.name}
         interactive={interactive}
+        zIndex={stackBase + 5}
       />
     </>
   )
@@ -357,9 +410,172 @@ function SelectionIndicator({ style }: { style: CSSProperties }) {
   return (
     <span
       aria-hidden
-      className="absolute z-20 rounded-full border-2 border-sky-400/90 shadow-[0_0_18px_rgba(56,189,248,0.55)] animate-pulse"
+      className="absolute rounded-full border-2 border-sky-400/90 shadow-[0_0_18px_rgba(56,189,248,0.55)] animate-pulse"
       style={style}
     />
+  )
+}
+
+function OrbitUnderlay({ overlay }: { overlay: OrbitOverlayLayout }) {
+  const strokeOpacity =
+    overlay.strokeOpacity > 0 ? overlay.strokeOpacity : 0.45
+  return (
+    <>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute bg-[rgba(255,255,255,0.04)]"
+        style={{
+          left: overlay.zoneLeft,
+          top: overlay.zoneTop,
+          width: overlay.zoneWidth,
+          height: overlay.zoneHeight,
+          zIndex: 0,
+        }}
+      />
+      <svg
+        aria-hidden
+        className="pointer-events-none absolute overflow-visible"
+        style={{
+          left: overlay.svgLeft,
+          top: overlay.svgTop,
+          width: overlay.svgWidth,
+          height: overlay.svgHeight,
+          zIndex: 1,
+        }}
+        viewBox={`0 0 ${overlay.svgWidth} ${overlay.svgHeight}`}
+      >
+        <line
+          x1={overlay.lineX1Local}
+          y1={overlay.lineYLocal}
+          x2={overlay.lineX2Local}
+          y2={overlay.lineY2Local}
+          stroke={overlay.stroke}
+          strokeWidth={overlay.strokeWidth}
+          strokeOpacity={strokeOpacity}
+          strokeDasharray={overlay.strokeDasharray}
+          strokeLinecap="round"
+        />
+      </svg>
+    </>
+  )
+}
+
+function OrbitApsisDiskDecor({
+  marker,
+  zDisk,
+  zLabel,
+}: {
+  marker: OrbitApsisMarkerLayout
+  zDisk: number
+  zLabel: number
+}) {
+  const [imgFailed, setImgFailed] = useState(false)
+  const D = marker.drawDiameterPx
+  const r = D / 2
+
+  if (marker.isProxyDisk) {
+    return (
+      <>
+        <div
+          aria-hidden
+          className="pointer-events-none absolute rounded-full bg-white/15 ring-1 ring-white/25"
+          style={{
+            left: marker.cx - r,
+            top: marker.cy - r,
+            width: D,
+            height: D,
+            opacity: 0.75,
+            zIndex: zDisk,
+          }}
+        />
+        <span
+          aria-hidden
+          className="pointer-events-none select-none whitespace-nowrap"
+          style={{
+            position: "absolute",
+            left: marker.labelLeft,
+            top: marker.labelTop,
+            font: CANVAS_BODY_LABEL_FONT_LARGE,
+            color: "#ffffff",
+            WebkitTextStroke: "3px #000000",
+            paintOrder: "stroke fill",
+            lineHeight: 1,
+            zIndex: zLabel,
+          }}
+        >
+          {marker.label}
+        </span>
+      </>
+    )
+  }
+
+  const diskStyle: CSSProperties = {
+    position: "absolute",
+    left: marker.cx - r,
+    top: marker.cy - r,
+    width: D,
+    height: D,
+    borderRadius: "50%",
+    opacity: 0.75,
+    pointerEvents: "none",
+    zIndex: zDisk,
+  }
+
+  return (
+    <>
+      {!imgFailed ? (
+        <img
+          src={marker.src}
+          alt=""
+          draggable={false}
+          decoding="async"
+          className="pointer-events-none object-cover"
+          style={diskStyle}
+          onError={() => setImgFailed(true)}
+        />
+      ) : (
+        <div
+          aria-hidden
+          className="pointer-events-none"
+          style={{
+            ...diskStyle,
+            backgroundColor: "rgba(128, 128, 128, 0.45)",
+          }}
+        />
+      )}
+      <span
+        aria-hidden
+        className="pointer-events-none select-none whitespace-nowrap"
+        style={{
+          position: "absolute",
+          left: marker.labelLeft,
+          top: marker.labelTop,
+          font: CANVAS_BODY_LABEL_FONT_LARGE,
+          color: "#ffffff",
+          WebkitTextStroke: "3px #000000",
+          paintOrder: "stroke fill",
+          lineHeight: 1,
+          zIndex: zLabel,
+        }}
+      >
+        {marker.label}
+      </span>
+    </>
+  )
+}
+
+function OrbitApsisMarkers({ overlay }: { overlay: OrbitOverlayLayout }) {
+  const zDisk = 6
+  const zLabel = 7
+  return (
+    <>
+      <OrbitApsisDiskDecor
+        marker={overlay.peri}
+        zDisk={zDisk}
+        zLabel={zLabel}
+      />
+      <OrbitApsisDiskDecor marker={overlay.apo} zDisk={zDisk} zLabel={zLabel} />
+    </>
   )
 }
 
@@ -373,6 +589,7 @@ export function DistanceCanvas({
   pxPerKmDistance,
   scrollToBodyId = null,
   scrollToBodyToken = 0,
+  orbitOn = false,
 }: {
   model: SizePageModel
   json: SolarSystemJson
@@ -384,6 +601,8 @@ export function DistanceCanvas({
   /** Body id to center when `scrollToBodyToken` increments (body-types list only). */
   scrollToBodyId?: string | null
   scrollToBodyToken?: number
+  /** Show perihelion/aphelion range overlay for the selected body. */
+  orbitOn?: boolean
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const syncLayoutRef = useRef<(() => void) | null>(null)
@@ -394,10 +613,15 @@ export function DistanceCanvas({
 
   const [contentWidthPx, setContentWidthPx] = useState(0)
   const [layoutItems, setLayoutItems] = useState<DistanceLayoutItem[]>([])
+  const [orbitOverlay, setOrbitOverlay] = useState<OrbitOverlayLayout | null>(
+    null
+  )
 
   const bodyDisplayFilterRef = useRef(bodyDisplayFilter)
   const pxPerKmSizeRef = useRef(pxPerKmSize)
   const pxPerKmDistanceRef = useRef(pxPerKmDistance)
+  const orbitOnRef = useRef(orbitOn)
+  const selectedBodyIdRef = useRef(selectedBodyId)
 
   const onContentPointerDown = useCallback(
     (e: PointerEvent<HTMLDivElement>) => {
@@ -683,12 +907,177 @@ export function DistanceCanvas({
           }
         }
       }
+
+      let orbitOverlayNext: OrbitOverlayLayout | null = null
+      const pxD = pxPerKmDistanceRef.current
+      if (
+        orbitOnRef.current &&
+        selectedBodyIdRef.current &&
+        pxD > 0
+      ) {
+        const selId = selectedBodyIdRef.current
+        const bodyForOrbit = bodiesAll.find((b) => b.canvasId === selId)
+        if (bodyForOrbit && bodyForOrbit.kind !== "star") {
+          const periKm = bodyForOrbit.perihelionKm
+          const apKm = bodyForOrbit.aphelionKm
+          if (
+            periKm != null &&
+            apKm != null &&
+            Number.isFinite(periKm) &&
+            Number.isFinite(apKm) &&
+            periKm >= 0 &&
+            apKm >= 0
+          ) {
+            let parentX: number | null = null
+            if (
+              bodyForOrbit.kind === "moon" &&
+              bodyForOrbit.parentPlanetId
+            ) {
+              const parentBody = bodiesAll.find(
+                (p) =>
+                  (p.kind === "planet" || p.kind === "dwarf") &&
+                  p.row.id === bodyForOrbit.parentPlanetId
+              )
+              if (
+                parentBody &&
+                Number.isFinite(parentBody.distanceFromSunKm)
+              ) {
+                parentX =
+                  INSET_LEFT_CSS + parentBody.distanceFromSunKm * pxD
+              }
+            } else {
+              parentX = INSET_LEFT_CSS
+            }
+
+            if (parentX != null) {
+              const periX = parentX + periKm * pxD
+              const apoX = parentX + apKm * pxD
+              const entry = entries.find((e) => e.canvasId === selId)
+              if (entry) {
+                const D = entry.drawDiameterPx
+                const r = D / 2
+                const cy = midY
+                const minCx = Math.min(periX, apoX)
+                const maxCx = Math.max(periX, apoX)
+                const zoneHeight = Math.max(D, ORBIT_ZONE_MIN_HEIGHT_PX)
+                const zoneTop = midY - zoneHeight / 2
+                const zoneLeft = minCx - r
+                const zoneWidth = Math.max(D, maxCx - minCx + D)
+
+                const orbitKindClass = sizeBodyKindToBodyClass(
+                  bodyForOrbit.kind
+                )
+                const orbitStyle = BODY_CLASS_STYLE[orbitKindClass]
+                const dashArr =
+                  orbitStyle.dash.length > 0
+                    ? orbitStyle.dash.join(" ")
+                    : undefined
+
+                const periLabel =
+                  bodyForOrbit.kind === "moon" ? "Periapsis" : "Perihelion"
+                const apoLabel =
+                  bodyForOrbit.kind === "moon" ? "Apoapsis" : "Aphelion"
+
+                const { w: periLw, h: periLh } = measureCanvasLabelBox(
+                  ctx,
+                  periLabel,
+                  CANVAS_BODY_LABEL_FONT_LARGE
+                )
+                const { w: apoLw } = measureCanvasLabelBox(
+                  ctx,
+                  apoLabel,
+                  CANVAS_BODY_LABEL_FONT_LARGE
+                )
+
+                const labelGap = 6
+                const proxyLabelGap = 8
+                let periLabelLeft: number
+                let periLabelTop: number
+                let apoLabelLeft: number
+                let apoLabelTop: number
+
+                if (entry.isProxyDisk) {
+                  periLabelLeft = periX - periLw / 2
+                  periLabelTop = cy - proxyLabelGap - periLh
+                  apoLabelLeft = apoX - apoLw / 2
+                  apoLabelTop = cy + proxyLabelGap
+                } else {
+                  periLabelLeft = periX - periLw / 2
+                  periLabelTop = cy - r - labelGap - periLh
+                  apoLabelLeft = apoX - apoLw / 2
+                  apoLabelTop = cy + r + labelGap
+                }
+
+                const lineY = midY
+                const linePad = 4
+                const svgLeft = minCx - linePad
+                const svgTop = lineY - linePad
+                const svgWidth = Math.max(1, maxCx - minCx + 2 * linePad)
+                const svgHeight = 2 * linePad
+
+                const strokeOpacityRaw = orbitStyle.alpha
+                const strokeOpacity =
+                  strokeOpacityRaw > 0 ? strokeOpacityRaw : 0.45
+
+                orbitOverlayNext = {
+                  zoneLeft,
+                  zoneTop,
+                  zoneWidth,
+                  zoneHeight,
+                  svgLeft,
+                  svgTop,
+                  svgWidth,
+                  svgHeight,
+                  lineX1Local: minCx - svgLeft,
+                  lineYLocal: lineY - svgTop,
+                  lineX2Local: maxCx - svgLeft,
+                  lineY2Local: lineY - svgTop,
+                  strokeDasharray: dashArr,
+                  stroke: orbitStyle.color,
+                  strokeWidth: orbitStyle.width,
+                  strokeOpacity,
+                  peri: {
+                    cx: periX,
+                    cy,
+                    src: entry.src,
+                    drawDiameterPx: D,
+                    isProxyDisk: entry.isProxyDisk,
+                    label: periLabel,
+                    labelLeft: periLabelLeft,
+                    labelTop: periLabelTop,
+                  },
+                  apo: {
+                    cx: apoX,
+                    cy,
+                    src: entry.src,
+                    drawDiameterPx: D,
+                    isProxyDisk: entry.isProxyDisk,
+                    label: apoLabel,
+                    labelLeft: apoLabelLeft,
+                    labelTop: apoLabelTop,
+                  },
+                }
+
+                rightExtent = Math.max(
+                  rightExtent,
+                  zoneLeft + zoneWidth,
+                  periLabelLeft + periLw,
+                  apoLabelLeft + apoLw,
+                  maxCx + r
+                )
+              }
+            }
+          }
+        }
+      }
+
       const widthPx = Math.max(viewportW, rightExtent + INSET_RIGHT_CSS)
 
       posByIdForScrollRef.current = new Map(posById)
       viewportWForScrollRef.current = viewportW
       setContentWidthPx(widthPx)
       setLayoutItems(resolvedItems)
+      setOrbitOverlay(orbitOverlayNext)
     }
 
     syncLayoutRef.current = syncLayout
@@ -725,6 +1114,16 @@ export function DistanceCanvas({
     pxPerKmDistanceRef.current = pxPerKmDistance
     syncLayoutRef.current?.()
   }, [pxPerKmDistance])
+
+  useLayoutEffect(() => {
+    orbitOnRef.current = orbitOn
+    syncLayoutRef.current?.()
+  }, [orbitOn])
+
+  useLayoutEffect(() => {
+    selectedBodyIdRef.current = selectedBodyId
+    syncLayoutRef.current?.()
+  }, [selectedBodyId])
 
   useLayoutEffect(() => {
     if (scrollToBodyToken <= 0 || scrollToBodyId == null) return
@@ -773,14 +1172,19 @@ export function DistanceCanvas({
         onPointerDown={interactive ? onContentPointerDown : undefined}
         role="presentation"
       >
+        {orbitOverlay ? <OrbitUnderlay overlay={orbitOverlay} /> : null}
         {layoutItems.map((item) => (
           <DistanceBodyLayers
             key={item.canvasId}
             item={item}
             interactive={interactive}
             selected={item.canvasId === selectedBodyId}
+            stackBase={
+              orbitOverlay && item.canvasId === selectedBodyId ? 10 : 5
+            }
           />
         ))}
+        {orbitOverlay ? <OrbitApsisMarkers overlay={orbitOverlay} /> : null}
       </div>
     </div>
   )
