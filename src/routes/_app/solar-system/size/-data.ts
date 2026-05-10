@@ -108,7 +108,7 @@ function topMoonsForParent(
   map: Map<string, CatalogBody[]>,
   parentId: string,
   limit: number
-): SizeRow[] {
+): (SizeRow & { diameterKm: number })[] {
   const list = map.get(parentId) ?? []
   return list
     .map(bodyToRow)
