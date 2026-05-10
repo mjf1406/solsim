@@ -21,7 +21,8 @@ export function SolarSystemSizeDataTables({ model }: { model: SizePageModel }) {
           from the snapshot when present; otherwise{" "}
           <code className="text-foreground">2 × mean_radius_km</code>. Dwarf
           planets: five largest in this dataset by that diameter. Moons: five
-          largest per planet or dwarf planet.
+          largest per planet or dwarf planet, plus curated additions where listed
+          (e.g. Enceladus at Saturn).
         </p>
       </header>
 
@@ -145,7 +146,7 @@ function PlanetAccordion({
             ) : (
               <BodyTable
                 rows={section.moons}
-                caption={`Largest moons of ${section.body.name} (up to five, by diameter in snapshot)`}
+                caption={`Moons of ${section.body.name} (five largest by diameter in snapshot, plus curated picks)`}
               />
             )}
           </AccordionContent>

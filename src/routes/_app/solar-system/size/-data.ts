@@ -119,6 +119,45 @@ function topMoonsForParent(
     .slice(0, limit)
 }
 
+/**
+ * Horizons catalog moon ids always included for a host, in addition to the
+ * largest-N-by-diameter slice (Body types sidebar, size/distance canvases).
+ */
+const BODY_TYPES_EXTRA_MOON_IDS_BY_PARENT: Readonly<
+  Record<string, readonly string[]>
+> = {
+  /** Saturn — Enceladus */
+  "699": ["602"],
+}
+
+function moonsForParentSection(
+  map: Map<string, CatalogBody[]>,
+  parentId: string,
+  limit: number
+): SizeRow[] {
+  const top = topMoonsForParent(map, parentId, limit)
+  const extraIds = BODY_TYPES_EXTRA_MOON_IDS_BY_PARENT[parentId]
+  if (!extraIds?.length) return top
+
+  const parentMoons = map.get(parentId) ?? []
+  const byCatalogId = new Map(parentMoons.map((b) => [b.id, b]))
+  const seen = new Set(top.map((r) => r.id))
+  const merged: (SizeRow & { diameterKm: number })[] = [...top]
+
+  for (const id of extraIds) {
+    if (seen.has(id)) continue
+    const body = byCatalogId.get(id)
+    if (!body) continue
+    const row = bodyToRow(body)
+    if (row.diameterKm == null || !Number.isFinite(row.diameterKm)) continue
+    merged.push(row as SizeRow & { diameterKm: number })
+    seen.add(id)
+  }
+
+  merged.sort((a, b) => b.diameterKm - a.diameterKm)
+  return merged
+}
+
 function topByDiameter(bodies: CatalogBody[], limit: number): SizeRow[] {
   return bodies
     .map(bodyToRow)
@@ -169,13 +208,13 @@ export function buildSizePageModel(
 
   const planets: PlanetSection[] = (data.categories.planets ?? []).map((p) => ({
     body: bodyToRow(p),
-    moons: topMoonsForParent(byParent, p.id, moonLimit),
+    moons: moonsForParentSection(byParent, p.id, moonLimit),
   }))
 
   const dwarfPlanets: PlanetSection[] = (data.categories.dwarf_planets ?? [])
     .map((p) => ({
       body: bodyToRow(p),
-      moons: topMoonsForParent(byParent, p.id, moonLimit),
+      moons: moonsForParentSection(byParent, p.id, moonLimit),
     }))
     .filter(
       (s): s is PlanetSection & { body: SizeRow & { diameterKm: number } } =>

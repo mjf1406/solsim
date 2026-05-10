@@ -221,7 +221,7 @@ export function collectDistanceBodies(
 
     const moonOrbitKm =
       b.kind === "moon"
-        ? moonOrbitFallbackKmById[b.row.id] ?? null
+        ? semiMajorAxisKm ?? moonOrbitFallbackKmById[b.row.id] ?? null
         : null
 
     return {

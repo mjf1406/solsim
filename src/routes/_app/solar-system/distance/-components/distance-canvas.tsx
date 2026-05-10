@@ -9,12 +9,14 @@ import {
 
 import {
   bodyCircleLabelRect,
-  CANVAS_BODY_LABEL_FONT,
+  CANVAS_BODY_LABEL_FONT_LARGE,
   inflateCanvasLabelRect,
   leftSliverAnchorCenter,
   OVERSIZED_DISK_VISIBLE_ARC_PX,
+  resolveDistanceLabelLanes,
   shouldAnchorDiskOnLeft,
   type CanvasBodyLabelRect,
+  type DistanceLabelLeader,
 } from "@/lib/canvas"
 import {
   ASSUMED_SIDEBAR_PX_CSS,
@@ -54,6 +56,13 @@ const PROXY_DISK_HIT_PAD_PX = 20
 /** Left/right content inset: sidebar width + inner pad (stable — ignores live sidebar toggle). */
 const INSET_LEFT_CSS = ASSUMED_SIDEBAR_PX_CSS + DISTANCE_CANVAS_BASE_INSET_PX
 const INSET_RIGHT_CSS = ASSUMED_SIDEBAR_PX_CSS + DISTANCE_CANVAS_BASE_INSET_PX
+
+/**
+ * Vertical gap between the planet disk's top edge and the planet label's
+ * bottom edge. Fixed regardless of moon count; the leader uses an elbow shape
+ * so an inflated stack of moon labels doesn't push the planet name further up.
+ */
+const PLANET_LABEL_GAP_ABOVE_DISK_PX = 50
 
 function placeholderSrc(name: string, kind: DistanceBody["kind"]): string {
   const n = name.trim().toLowerCase()
@@ -128,6 +137,7 @@ type DistanceLayoutItem = {
   isProxyDisk: boolean
   labelRect: CanvasBodyLabelRect
   labelHitRect: CanvasBodyLabelRect
+  leader: DistanceLabelLeader | null
 }
 
 function LabelHitArea({
@@ -155,6 +165,7 @@ function LabelHitArea({
         top: hitRect.top,
         width: hitRect.right - hitRect.left,
         height: hitRect.bottom - hitRect.top,
+        zIndex: 5,
         pointerEvents: interactive ? "auto" : "none",
         cursor: interactive ? "pointer" : "default",
       }}
@@ -165,7 +176,7 @@ function LabelHitArea({
           position: "absolute",
           left: innerLeft,
           top: innerTop,
-          font: CANVAS_BODY_LABEL_FONT,
+          font: CANVAS_BODY_LABEL_FONT_LARGE,
           color: "#ffffff",
           WebkitTextStroke: "3px #000000",
           paintOrder: "stroke fill",
@@ -175,6 +186,57 @@ function LabelHitArea({
         {name}
       </span>
     </div>
+  )
+}
+
+function leaderPolylinePointsLocal(
+  leader: DistanceLabelLeader,
+  originLeft: number,
+  originTop: number
+): string {
+  return leader.points
+    .map((p) => `${p.x - originLeft},${p.y - originTop}`)
+    .join(" ")
+}
+
+function DistanceLabelLeaderSvg({ leader }: { leader: DistanceLabelLeader }) {
+  const xs = leader.points.map((p) => p.x)
+  const ys = leader.points.map((p) => p.y)
+  const minX = Math.min(...xs)
+  const maxX = Math.max(...xs)
+  const minY = Math.min(...ys)
+  const maxY = Math.max(...ys)
+  const pad = 6
+  const left = minX - pad
+  const top = minY - pad
+  const width = Math.max(1, maxX - minX + 2 * pad)
+  const height = Math.max(1, maxY - minY + 2 * pad)
+  const points = leaderPolylinePointsLocal(leader, left, top)
+
+  return (
+    <svg
+      aria-hidden
+      className="pointer-events-none absolute z-[1] overflow-visible"
+      style={{ left, top, width, height }}
+      viewBox={`0 0 ${width} ${height}`}
+    >
+      <polyline
+        fill="none"
+        points={points}
+        stroke="#000000"
+        strokeWidth={3}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <polyline
+        fill="none"
+        points={points}
+        stroke="#ffffff"
+        strokeWidth={1.25}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   )
 }
 
@@ -221,6 +283,9 @@ function DistanceBodyLayers({
           }}
           aria-hidden
         />
+        {item.leader ? (
+          <DistanceLabelLeaderSvg leader={item.leader} />
+        ) : null}
         <LabelHitArea
           canvasId={item.canvasId}
           labelRect={item.labelRect}
@@ -268,6 +333,9 @@ function DistanceBodyLayers({
           aria-hidden
         />
       )}
+      {item.leader ? (
+        <DistanceLabelLeaderSvg leader={item.leader} />
+      ) : null}
       <LabelHitArea
         canvasId={item.canvasId}
         labelRect={item.labelRect}
@@ -435,18 +503,79 @@ export function DistanceCanvas({
         posById.set(e.canvasId, anchor)
       }
 
+      const moonPreferredLaneByCanvasId = new Map<string, number>()
+      const moonsByParentCatalogId = new Map<string, LayoutEntry[]>()
+      for (const e of entries) {
+        if (e.kind !== "moon" || !e.parentPlanetId) continue
+        const pid = e.parentPlanetId
+        const arr = moonsByParentCatalogId.get(pid) ?? []
+        arr.push(e)
+        moonsByParentCatalogId.set(pid, arr)
+      }
+      for (const group of moonsByParentCatalogId.values()) {
+        group.sort((a, b) => {
+          const ao = a.moonOrbitKm
+          const bo = b.moonOrbitKm
+          if (ao != null && bo != null && ao !== bo) return ao - bo
+          if (ao != null && bo == null) return -1
+          if (ao == null && bo != null) return 1
+          const ax = posById.get(a.canvasId)?.cx ?? 0
+          const bx = posById.get(b.canvasId)?.cx ?? 0
+          const pid = a.parentPlanetId!
+          const px = parentPosByCatalogId.get(pid) ?? 0
+          return ax - px - (bx - px)
+        })
+        const N = group.length
+        for (let i = 0; i < N; i++) {
+          const sign = i % 2 === 0 ? -1 : 1
+          const lane = sign * (N - i)
+          moonPreferredLaneByCanvasId.set(group[i]!.canvasId, lane)
+        }
+      }
+
+      const laneHintsByCanvasId = new Map<
+        string,
+        {
+          preferredLane?: number
+          lockNaturalRect?: boolean
+          leaderAttachment?: "right" | "top"
+        }
+      >()
+      for (const [canvasId, lane] of moonPreferredLaneByCanvasId) {
+        laneHintsByCanvasId.set(canvasId, { preferredLane: lane })
+      }
+
       const items: DistanceLayoutItem[] = []
 
       for (const e of entries) {
         const pos = posById.get(e.canvasId)
         if (!pos) continue
-        const rawLabel = bodyCircleLabelRect(
+        let rawLabel = bodyCircleLabelRect(
           ctx,
           e.row.name,
           pos.cx,
           pos.cy,
-          e.drawDiameterPx
+          e.drawDiameterPx,
+          { forceOutside: true, font: CANVAS_BODY_LABEL_FONT_LARGE }
         )
+        if (e.kind === "planet") {
+          const labelWidth = rawLabel.right - rawLabel.left
+          const labelHeight = rawLabel.bottom - rawLabel.top
+          const gap = 6
+          const rDisk = e.drawDiameterPx / 2
+          const right = pos.cx - rDisk - gap
+          const bottom = (pos.cy - rDisk) - PLANET_LABEL_GAP_ABOVE_DISK_PX
+          rawLabel = {
+            left: right - labelWidth,
+            top: bottom - labelHeight,
+            right,
+            bottom,
+          }
+          laneHintsByCanvasId.set(e.canvasId, {
+            lockNaturalRect: true,
+            leaderAttachment: "left-elbow",
+          })
+        }
         const inflatePx = e.isProxyDisk ? 12 : 6
         const labelHitRect = expandRectToMinimumHitSize(
           inflateCanvasLabelRect(rawLabel, inflatePx)
@@ -462,23 +591,62 @@ export function DistanceCanvas({
           isProxyDisk: e.isProxyDisk,
           labelRect: rawLabel,
           labelHitRect,
+          leader: null,
         })
       }
 
+      const laneInputs = items.map((it) => {
+        const hint = laneHintsByCanvasId.get(it.canvasId)
+        return {
+          id: it.canvasId,
+          cx: it.cx,
+          cy: it.cy,
+          diskRadiusPx: it.drawDiameterPx / 2,
+          isLabelInsideDisk: false,
+          naturalRect: it.labelRect,
+          preferredLane: hint?.preferredLane,
+          lockNaturalRect: hint?.lockNaturalRect,
+          leaderAttachment: hint?.leaderAttachment,
+        }
+      })
+
+      const placements = resolveDistanceLabelLanes(laneInputs)
+
+      const resolvedItems: DistanceLayoutItem[] = items.map((it) => {
+        const p = placements.get(it.canvasId)
+        const labelRect = p?.labelRect ?? it.labelRect
+        const leader = p?.leader ?? null
+        const inflatePx = it.isProxyDisk ? 12 : 6
+        const labelHitRect = expandRectToMinimumHitSize(
+          inflateCanvasLabelRect(labelRect, inflatePx)
+        )
+        return {
+          ...it,
+          labelRect,
+          labelHitRect,
+          leader,
+        }
+      })
+
       let rightExtent = viewportW
-      for (const it of items) {
+      for (const it of resolvedItems) {
         rightExtent = Math.max(
           rightExtent,
           it.cx + it.drawDiameterPx / 2,
           it.labelHitRect.right
         )
+        if (it.leader) {
+          for (const p of it.leader.points) {
+            if (p.x > rightExtent) rightExtent = p.x
+          }
+        }
       }
       const widthPx = Math.max(viewportW, rightExtent + INSET_RIGHT_CSS)
 
       posByIdForScrollRef.current = new Map(posById)
       viewportWForScrollRef.current = viewportW
       setContentWidthPx(widthPx)
-      setLayoutItems(items)
+      setLayoutItems(resolvedItems)
     }
 
     syncLayoutRef.current = syncLayout

@@ -77,7 +77,7 @@ describe("distance data layer", () => {
     const earth = bodies.find((b) => b.row.name === "Earth")!
     const moon = bodies.find((b) => b.row.name === "Moon")!
     expect(moon.distanceFromSunKm).toBeCloseTo(earth.distanceFromSunKm, 6)
-    expect(moon.moonOrbitKm).toBeGreaterThan(100_000) // uses fallback table
+    expect(moon.moonOrbitKm).toBeGreaterThan(100_000) // semi-major axis from elements
     expect(moon.semiMajorAxisKm).toBeCloseTo(0.002588599856872054 * KM_PER_AU, 3)
   })
 

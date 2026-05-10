@@ -1,16 +1,28 @@
 export {
   bodyCircleLabelRect,
+  type BodyCircleLabelRectOptions,
   CANVAS_BODY_LABEL_AVOIDANCE_PAD,
   CANVAS_BODY_LABEL_FONT,
+  CANVAS_BODY_LABEL_FONT_LARGE,
   CANVAS_BODY_LABEL_OUTSIDE_GAP_PX,
   CANVAS_BODY_LABEL_STROKE_WIDTH,
   canvasLabelFitsInsideDisk,
   canvasLabelRectsOverlap,
   type CanvasBodyLabelRect,
   drawCanvasBodyLabel,
+  type DrawCanvasBodyLabelOptions,
   inflateCanvasLabelRect,
   measureCanvasLabelBox,
 } from "./body-label"
+export {
+  DISTANCE_LABEL_UNDERLINE_GAP_PX,
+  resolveDistanceLabelLanes,
+  type DistanceLabelLeader,
+  type DistanceLabelLeaderAttachment,
+  type DistanceLaneInput,
+  type DistanceLanePlacement,
+  type ResolveDistanceLabelLanesOptions,
+} from "./distance-label-lanes"
 export {
   clampDragOffsetForLeftAnchoredDisk,
   clampOversizedStarDragsIfAnchored,
