@@ -21,7 +21,20 @@ export function LightSpeedBanner({
         <h2 className="font-heading text-balance break-words text-center text-2xl leading-snug tracking-tight text-foreground sm:text-4xl sm:leading-tight md:text-5xl">
           {title}
         </h2>
-        <p className="mt-3 text-pretty text-sm leading-snug text-foreground/90 sm:text-base">
+        {multiplier !== 1 ? (
+          <p className="mt-3 text-pretty text-sm font-medium leading-snug text-amber-600 dark:text-amber-400 sm:text-base">
+            You&apos;re breaking the laws of physics! In reality,
+            nothing can travel faster than light. This simulation is just
+            speeding up the map so you can get places more quickly.
+          </p>
+        ) : null}
+        <p
+          className={
+            multiplier !== 1
+              ? "mt-2 text-pretty text-sm leading-snug text-foreground/90 sm:text-base"
+              : "mt-3 text-pretty text-sm leading-snug text-foreground/90 sm:text-base"
+          }
+        >
           Light is special because it is both a particle and a wave. The
           particle is called the{" "}
           <span className="font-medium text-foreground">photon</span>, which you
@@ -30,8 +43,7 @@ export function LightSpeedBanner({
           you can see represented by the squiggly line behind the photon.
         </p>
         <p className="mt-2 text-pretty text-xs italic leading-snug text-muted-foreground sm:text-sm">
-          Light particles (photons) are not really this big — they&apos;re
-          enlarged here so you can see them easily.
+          Light particles (photons) are not really this big. The one you see below is made bigger so you can see it.
         </p>
       </div>
     </div>
