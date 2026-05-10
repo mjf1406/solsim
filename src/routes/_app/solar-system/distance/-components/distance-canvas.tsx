@@ -10,13 +10,16 @@ import {
 import {
   bodyCircleLabelRect,
   CANVAS_BODY_LABEL_FONT_LARGE,
+  canvasLabelFitsInsideDiskHorizontalCount,
   inflateCanvasLabelRect,
   leftSliverAnchorCenter,
+  measureCanvasLabelBox,
   OVERSIZED_DISK_VISIBLE_ARC_PX,
   resolveDistanceLabelLanes,
   shouldAnchorDiskOnLeft,
   type CanvasBodyLabelRect,
   type DistanceLabelLeader,
+  type DistanceLabelLeaderAttachment,
 } from "@/lib/canvas"
 import {
   ASSUMED_SIDEBAR_PX_CSS,
@@ -58,11 +61,14 @@ const INSET_LEFT_CSS = ASSUMED_SIDEBAR_PX_CSS + DISTANCE_CANVAS_BASE_INSET_PX
 const INSET_RIGHT_CSS = ASSUMED_SIDEBAR_PX_CSS + DISTANCE_CANVAS_BASE_INSET_PX
 
 /**
- * Vertical gap between the planet disk's top edge and the planet label's
+ * Vertical gap between a planet/dwarf disk's top edge and the body label's
  * bottom edge. Fixed regardless of moon count; the leader uses an elbow shape
- * so an inflated stack of moon labels doesn't push the planet name further up.
+ * so an inflated stack of moon labels doesn't push the body name further up.
  */
 const PLANET_LABEL_GAP_ABOVE_DISK_PX = 50
+
+/** Minimum horizontal copies of the label that must fit inscribed before using inside-disk placement. */
+const DISTANCE_INSIDE_LABEL_HORIZONTAL_COUNT = 3
 
 function placeholderSrc(name: string, kind: DistanceBody["kind"]): string {
   const n = name.trim().toLowerCase()
@@ -538,7 +544,8 @@ export function DistanceCanvas({
         {
           preferredLane?: number
           lockNaturalRect?: boolean
-          leaderAttachment?: "right" | "top"
+          leaderAttachment?: DistanceLabelLeaderAttachment
+          isLabelInsideDisk?: boolean
         }
       >()
       for (const [canvasId, lane] of moonPreferredLaneByCanvasId) {
@@ -550,31 +557,66 @@ export function DistanceCanvas({
       for (const e of entries) {
         const pos = posById.get(e.canvasId)
         if (!pos) continue
-        let rawLabel = bodyCircleLabelRect(
+
+        const rDisk = e.drawDiameterPx / 2
+        const { w: labelW, h: labelH } = measureCanvasLabelBox(
           ctx,
           e.row.name,
-          pos.cx,
-          pos.cy,
-          e.drawDiameterPx,
-          { forceOutside: true, font: CANVAS_BODY_LABEL_FONT_LARGE }
+          CANVAS_BODY_LABEL_FONT_LARGE
         )
-        if (e.kind === "planet") {
-          const labelWidth = rawLabel.right - rawLabel.left
-          const labelHeight = rawLabel.bottom - rawLabel.top
-          const gap = 6
-          const rDisk = e.drawDiameterPx / 2
-          const right = pos.cx - rDisk - gap
-          const bottom = (pos.cy - rDisk) - PLANET_LABEL_GAP_ABOVE_DISK_PX
+
+        const starAnchoredLeft =
+          e.kind === "star" &&
+          shouldAnchorDiskOnLeft(e.drawDiameterPx, viewportW, hCss)
+
+        const canTryInsideDisk =
+          (e.kind === "planet" ||
+            e.kind === "dwarf" ||
+            e.kind === "star") &&
+          !starAnchoredLeft &&
+          canvasLabelFitsInsideDiskHorizontalCount(
+            labelW,
+            labelH,
+            rDisk,
+            DISTANCE_INSIDE_LABEL_HORIZONTAL_COUNT
+          )
+
+        let rawLabel: CanvasBodyLabelRect
+
+        if (canTryInsideDisk) {
           rawLabel = {
-            left: right - labelWidth,
-            top: bottom - labelHeight,
-            right,
-            bottom,
+            left: pos.cx - labelW / 2,
+            top: pos.cy - labelH / 2,
+            right: pos.cx + labelW / 2,
+            bottom: pos.cy + labelH / 2,
           }
-          laneHintsByCanvasId.set(e.canvasId, {
-            lockNaturalRect: true,
-            leaderAttachment: "left-elbow",
-          })
+          laneHintsByCanvasId.set(e.canvasId, { isLabelInsideDisk: true })
+        } else {
+          rawLabel = bodyCircleLabelRect(
+            ctx,
+            e.row.name,
+            pos.cx,
+            pos.cy,
+            e.drawDiameterPx,
+            { forceOutside: true, font: CANVAS_BODY_LABEL_FONT_LARGE }
+          )
+          if (e.kind === "planet" || e.kind === "dwarf") {
+            const labelWidth = rawLabel.right - rawLabel.left
+            const labelHeight = rawLabel.bottom - rawLabel.top
+            const gap = 6
+            const right = pos.cx - rDisk - gap
+            const bottom = (pos.cy - rDisk) - PLANET_LABEL_GAP_ABOVE_DISK_PX
+            rawLabel = {
+              left: right - labelWidth,
+              top: bottom - labelHeight,
+              right,
+              bottom,
+            }
+            laneHintsByCanvasId.set(e.canvasId, {
+              lockNaturalRect: true,
+              leaderAttachment: "left-elbow",
+            })
+          }
         }
         const inflatePx = e.isProxyDisk ? 12 : 6
         const labelHitRect = expandRectToMinimumHitSize(
@@ -602,7 +644,7 @@ export function DistanceCanvas({
           cx: it.cx,
           cy: it.cy,
           diskRadiusPx: it.drawDiameterPx / 2,
-          isLabelInsideDisk: false,
+          isLabelInsideDisk: hint?.isLabelInsideDisk === true,
           naturalRect: it.labelRect,
           preferredLane: hint?.preferredLane,
           lockNaturalRect: hint?.lockNaturalRect,

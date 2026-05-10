@@ -7,6 +7,7 @@ export {
   CANVAS_BODY_LABEL_OUTSIDE_GAP_PX,
   CANVAS_BODY_LABEL_STROKE_WIDTH,
   canvasLabelFitsInsideDisk,
+  canvasLabelFitsInsideDiskHorizontalCount,
   canvasLabelRectsOverlap,
   type CanvasBodyLabelRect,
   drawCanvasBodyLabel,

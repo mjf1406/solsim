@@ -394,7 +394,7 @@ function SolarSystemDistancePage() {
           calibration={calibration}
           linked={scaleLinked}
           onLinkedChange={handleScaleLinkedChange}
-          linkLabel="Link with Scale Distance"
+          linkLabel="Link with Distance"
           calibrationDialogOpen={calibrationDialogOpen}
           onCalibrationDialogOpenChange={setCalibrationDialogOpen}
         />
@@ -412,7 +412,7 @@ function SolarSystemDistancePage() {
           calibration={calibration}
           linked={scaleLinked}
           onLinkedChange={handleScaleLinkedChange}
-          linkLabel="Link with Scale Size"
+          linkLabel="Link with Size"
           calibrationDialogOpen={false}
           onCalibrationDialogOpenChange={() => {}}
         />

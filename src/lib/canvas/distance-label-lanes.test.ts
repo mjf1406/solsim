@@ -241,4 +241,22 @@ describe("resolveDistanceLabelLanes", () => {
       { x: 90, y: 134 },
     ])
   })
+
+  it("isLabelInsideDisk keeps natural rect and suppresses leader", () => {
+    const natural = rect(90, 190, 130, 206)
+    const inputs: DistanceLaneInput[] = [
+      {
+        id: "inside",
+        cx: 110,
+        cy: 200,
+        diskRadiusPx: 40,
+        isLabelInsideDisk: true,
+        naturalRect: natural,
+      },
+    ]
+    const m = resolveDistanceLabelLanes(inputs, { padPx: 4 })
+    const placed = m.get("inside")
+    expect(placed?.labelRect).toEqual(natural)
+    expect(placed?.leader).toBeNull()
+  })
 })

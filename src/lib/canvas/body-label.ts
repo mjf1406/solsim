@@ -59,6 +59,20 @@ export function canvasLabelFitsInsideDisk(
   return hw * hw + hh * hh <= r * r * 0.96
 }
 
+/**
+ * Whether `count` copies of a label of size `w`×`h`, laid side-by-side horizontally,
+ * fit inscribed in a disk of radius `r` (same criterion as {@link canvasLabelFitsInsideDisk}).
+ */
+export function canvasLabelFitsInsideDiskHorizontalCount(
+  w: number,
+  h: number,
+  r: number,
+  count: number
+): boolean {
+  if (!(count > 0)) return false
+  return canvasLabelFitsInsideDisk(w * count, h, r)
+}
+
 export function inflateCanvasLabelRect(
   r: CanvasBodyLabelRect,
   pad: number
