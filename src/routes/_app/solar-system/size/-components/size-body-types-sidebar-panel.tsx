@@ -7,9 +7,11 @@ import {
   BODY_TYPE_PRESET_BUTTON_WIDTH_REF,
   bodyCanvasInclusion,
   cycleBodyTypePreset,
+  LABEL_BEYOND_DISTANCE_RENDER_LIMIT,
   presetCycleButtonLabel,
   SIZE_BODY_KIND_ORDER,
   statsByKindForModelUnderFilter,
+  type DistanceInclusionContext,
   type KindRowVisibility,
   type SizeBodyDisplayFilter,
 } from "@/lib/solar-system/body-type-display"
@@ -37,6 +39,8 @@ type SizePageBodyTypesSidebarPortalProps = {
   pxPerKm: number
   selectedBodyId: string | null
   onSelectBody: (bodyId: string) => void
+  /** When set (e.g. `/distance`), inclusion reflects browser layout limits on the strip. */
+  distanceInclusionContext?: DistanceInclusionContext | null
 }
 
 export function SizePageBodyTypesSidebarPortal({
@@ -46,6 +50,7 @@ export function SizePageBodyTypesSidebarPortal({
   pxPerKm,
   selectedBodyId,
   onSelectBody,
+  distanceInclusionContext = null,
 }: SizePageBodyTypesSidebarPortalProps) {
   const { rightSidebarContentMount } = useAppHeaderSlots()
   if (!rightSidebarContentMount) return null
@@ -57,6 +62,7 @@ export function SizePageBodyTypesSidebarPortal({
       pxPerKm={pxPerKm}
       selectedBodyId={selectedBodyId}
       onSelectBody={onSelectBody}
+      distanceInclusionContext={distanceInclusionContext}
     />,
     rightSidebarContentMount
   )
@@ -69,6 +75,7 @@ function SizeBodyTypesCollapsibleSection({
   pxPerKm,
   selectedBodyId,
   onSelectBody,
+  distanceInclusionContext = null,
 }: SizePageBodyTypesSidebarPortalProps) {
   const setKindVisibility = useCallback(
     (kind: SizeBodyKind, v: KindRowVisibility) => {
@@ -109,22 +116,33 @@ function SizeBodyTypesCollapsibleSection({
                 bodyDisplayFilter,
                 allBodies,
                 pxPerKm,
-                1
+                1,
+                distanceInclusionContext ?? undefined
               )
               const isSelected = selectedBodyId === b.canvasId
+              const selectDisabled =
+                distanceInclusionContext != null &&
+                !onCanvas &&
+                reasonLabel === LABEL_BEYOND_DISTANCE_RENDER_LIMIT
               return (
                 <li key={b.canvasId} className="leading-snug">
                   <button
                     type="button"
+                    disabled={selectDisabled}
                     className={cn(
                       "flex w-full items-start justify-between gap-2 rounded-md px-1 py-0.5 text-left text-[11px] ring-sidebar-ring transition-colors",
                       "hover:bg-sidebar-accent/55 focus-visible:ring-2 focus-visible:outline-none",
+                      selectDisabled &&
+                        "cursor-not-allowed opacity-60 hover:bg-transparent",
                       isSelected &&
                         "bg-sidebar-accent/70 text-sidebar-foreground ring-1 ring-sky-400/60"
                     )}
                     aria-label={`Select ${b.row.name} on canvas`}
                     aria-pressed={isSelected}
-                    onClick={() => onSelectBody(b.canvasId)}
+                    onClick={() => {
+                      if (selectDisabled) return
+                      onSelectBody(b.canvasId)
+                    }}
                   >
                     <span className="min-w-0 truncate text-sidebar-foreground/95">
                       {b.row.name}
@@ -163,6 +181,7 @@ function SizeBodyTypesCollapsibleSection({
     setKindVisibility,
     selectedBodyId,
     onSelectBody,
+    distanceInclusionContext,
   ])
 
   const onCycleMode = useCallback(() => {

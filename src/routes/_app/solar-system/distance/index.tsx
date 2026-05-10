@@ -12,6 +12,8 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { useCanvasScale } from "@/hooks/use-canvas-scale"
 import { useDisplayCalibration } from "@/hooks/use-display-calibration"
 import {
+  ASSUMED_SIDEBAR_PX_CSS,
+  DISTANCE_CANVAS_BASE_INSET_PX,
   DISTANCE_FIT_ORBIT_PX_OPTIONS,
   pxPerKmForFitDistance,
   useAssumedDistanceFitViewportWidthPx,
@@ -22,13 +24,12 @@ import {
   type ScaleSliderStop,
 } from "@/lib/solar-system/scale/scale-presets"
 
-import {
-  isSizeBodyIdVisibleUnderFilter,
-  type SizeBodyDisplayFilter,
-} from "@/lib/solar-system/body-type-display"
+import { type SizeBodyDisplayFilter } from "@/lib/solar-system/body-type-display"
+import type { DistanceInclusionContext } from "@/lib/solar-system/distance-render-limit"
 
 import {
   buildSizePageModel,
+  collectDistanceBodies,
   fetchSciFiSizeCatalog,
   fetchSolarSystemJson,
   findDistanceBodyDetail,
@@ -36,6 +37,7 @@ import {
   type SolarSystemJson,
   type SizePageModel,
 } from "./-data"
+import { isDistancePageBodySelectable } from "./-distance-page-select"
 import type { DistanceUnitOrAll } from "@/lib/solar-system/distance/distance-units"
 
 import { DistanceCanvas } from "./-components/distance-canvas"
@@ -139,6 +141,11 @@ function SolarSystemDistancePage() {
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
 
+  const distanceBodies = useMemo(
+    () => collectDistanceBodies(model, json),
+    [model, json]
+  )
+
   const [selectedBodyId, setSelectedBodyId] = useState<string | null>(
     () => search.body ?? null
   )
@@ -228,6 +235,16 @@ function SolarSystemDistancePage() {
     extraStops: distanceSizeExtraStops,
     initialPxPerKm: fitMarsPxPerKm,
   })
+
+  const distanceInclusionContext =
+    useMemo<DistanceInclusionContext | null>(() => {
+      if (!(distanceScale.debouncedPxPerKm > 0)) return null
+      return {
+        bodies: distanceBodies,
+        pxPerKmDistance: distanceScale.debouncedPxPerKm,
+        insetLeftPx: ASSUMED_SIDEBAR_PX_CSS + DISTANCE_CANVAS_BASE_INSET_PX,
+      }
+    }, [distanceBodies, distanceScale.debouncedPxPerKm])
 
   const handleScaleLinkedChange = useCallback(
     (nextLinked: boolean) => {
@@ -366,12 +383,14 @@ function SolarSystemDistancePage() {
   useEffect(() => {
     if (
       !selectedBodyId ||
-      isSizeBodyIdVisibleUnderFilter(
+      isDistancePageBodySelectable(
         model,
+        json,
         bodyDisplayFilter,
         selectedBodyId,
         sizeScale.debouncedPxPerKm,
-        0
+        distanceScale.debouncedPxPerKm,
+        ASSUMED_SIDEBAR_PX_CSS + DISTANCE_CANVAS_BASE_INSET_PX
       )
     ) {
       return
@@ -383,7 +402,14 @@ function SolarSystemDistancePage() {
     return () => {
       active = false
     }
-  }, [model, bodyDisplayFilter, selectedBodyId, sizeScale.debouncedPxPerKm])
+  }, [
+    model,
+    json,
+    bodyDisplayFilter,
+    selectedBodyId,
+    sizeScale.debouncedPxPerKm,
+    distanceScale.debouncedPxPerKm,
+  ])
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -414,6 +440,7 @@ function SolarSystemDistancePage() {
           json={json}
           bodyDisplayFilter={bodyDisplayFilter}
           pxPerKmSize={sizeScale.debouncedPxPerKm}
+          pxPerKmDistance={distanceScale.debouncedPxPerKm}
           selectedBodyId={selectedBodyId}
           onSelectBody={selectBodyFromBodyTypesList}
         />
@@ -460,6 +487,7 @@ function SolarSystemDistancePage() {
           pxPerKm={sizeScale.debouncedPxPerKm}
           selectedBodyId={selectedBodyId}
           onSelectBody={selectBodyFromBodyTypesList}
+          distanceInclusionContext={distanceInclusionContext}
         />
 
         <OrbitToolSidebarPortal

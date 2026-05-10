@@ -1,9 +1,15 @@
 import {
+  isBodyBeyondDistanceRenderLimit,
+  type DistanceInclusionContext,
+} from "@/lib/solar-system/distance-render-limit"
+import {
   collectSizeCanvasBodies,
   type SizeBodyKind,
   type SizeCanvasBody,
   type SizePageModel,
 } from "@/routes/_app/solar-system/size/-data"
+
+export type { DistanceInclusionContext }
 
 export const SIZE_BODY_KIND_ORDER: SizeBodyKind[] = [
   "star",
@@ -237,6 +243,9 @@ const LABEL_KIND_HIDDEN = "Kind hidden"
 const LABEL_UNDER_MIN_PX = "Under 1 px at this scale"
 const LABEL_MOON_PARENT_DWARF_DISABLED = "Dwarf planets disabled"
 const LABEL_MOON_PARENT_PLANETS_ONLY = "Major-planet moons only"
+/** Shown in body-types sidebar on `/distance` when scale exceeds browser layout limits. */
+export const LABEL_BEYOND_DISTANCE_RENDER_LIMIT =
+  "Beyond render limit at this scale"
 
 /**
  * Same inclusion rules as {@link bodyPassesDisplayFilter} / the size canvas, with a
@@ -247,7 +256,8 @@ export function bodyCanvasInclusion(
   filter: SizeBodyDisplayFilter,
   bodies: SizeCanvasBody[],
   pxPerKm: number,
-  minPx: number
+  minPx: number,
+  distanceContext?: DistanceInclusionContext
 ): BodyCanvasInclusion {
   if (filter.kindVisibility[body.kind] === "hidden") {
     return { onCanvas: false, reasonLabel: LABEL_KIND_HIDDEN }
@@ -275,6 +285,22 @@ export function bodyCanvasInclusion(
         return { onCanvas: true, reasonLabel: LABEL_ON_CANVAS }
       }
       return { onCanvas: false, reasonLabel: LABEL_MOON_PARENT_PLANETS_ONLY }
+    }
+  }
+  if (distanceContext) {
+    const db =
+      distanceContext.bodies.find((d) => d.canvasId === body.canvasId) ??
+      distanceContext.bodies.find((d) => d.row.id === body.row.id)
+    if (
+      db &&
+      isBodyBeyondDistanceRenderLimit(
+        db,
+        distanceContext.bodies,
+        distanceContext.pxPerKmDistance,
+        distanceContext.insetLeftPx
+      )
+    ) {
+      return { onCanvas: false, reasonLabel: LABEL_BEYOND_DISTANCE_RENDER_LIMIT }
     }
   }
   return { onCanvas: true, reasonLabel: LABEL_ON_CANVAS }

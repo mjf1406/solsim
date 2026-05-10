@@ -31,6 +31,7 @@ import {
   filterSizeCanvasBodiesForDisplay,
   type SizeBodyDisplayFilter,
 } from "@/lib/solar-system/body-type-display"
+import { MAX_SAFE_DISTANCE_RENDER_PX } from "@/lib/solar-system/distance-render-limit"
 import { sizeBodyKindToBodyClass } from "@/lib/solar-system/body-class"
 import { cn } from "@/lib/utils"
 
@@ -816,6 +817,12 @@ export function DistanceCanvas({
       for (const e of entries) {
         const pos = posById.get(e.canvasId)
         if (!pos) continue
+        if (
+          !Number.isFinite(pos.cx) ||
+          pos.cx > MAX_SAFE_DISTANCE_RENDER_PX
+        ) {
+          continue
+        }
 
         const rDisk = e.drawDiameterPx / 2
         const { w: labelW, h: labelH } = measureCanvasLabelBox(
@@ -952,7 +959,16 @@ export function DistanceCanvas({
       ) {
         const selId = selectedBodyIdRef.current
         const bodyForOrbit = bodiesAll.find((b) => b.canvasId === selId)
-        if (bodyForOrbit && bodyForOrbit.kind !== "star") {
+        const selPosForOrbit = posById.get(selId)
+        const selPastRenderLimit =
+          selPosForOrbit != null &&
+          Number.isFinite(selPosForOrbit.cx) &&
+          selPosForOrbit.cx > MAX_SAFE_DISTANCE_RENDER_PX
+        if (
+          bodyForOrbit &&
+          bodyForOrbit.kind !== "star" &&
+          !selPastRenderLimit
+        ) {
           const periKm = bodyForOrbit.perihelionKm
           const apKm = bodyForOrbit.aphelionKm
           if (
@@ -987,6 +1003,11 @@ export function DistanceCanvas({
             if (parentX != null) {
               const periX = parentX + periKm * pxD
               const apoX = parentX + apKm * pxD
+              if (
+                Math.max(periX, apoX) > MAX_SAFE_DISTANCE_RENDER_PX
+              ) {
+                /* Orbit markers would exceed browser layout limits */
+              } else {
               const entry = entries.find((e) => e.canvasId === selId)
               if (entry) {
                 const D = entry.drawDiameterPx
@@ -1101,14 +1122,22 @@ export function DistanceCanvas({
                   maxCx + r
                 )
               }
+              }
             }
           }
         }
       }
 
-      const widthPx = Math.max(viewportW, rightExtent + INSET_RIGHT_CSS)
+      const widthPx = Math.min(
+        MAX_SAFE_DISTANCE_RENDER_PX + INSET_RIGHT_CSS,
+        Math.max(viewportW, rightExtent + INSET_RIGHT_CSS)
+      )
 
-      posByIdForScrollRef.current = new Map(posById)
+      const scrollPosById = new Map<string, { cx: number; cy: number }>()
+      for (const it of resolvedItems) {
+        scrollPosById.set(it.canvasId, { cx: it.cx, cy: it.cy })
+      }
+      posByIdForScrollRef.current = scrollPosById
       viewportWForScrollRef.current = viewportW
       setContentWidthPx(widthPx)
       setLayoutItems(resolvedItems)
