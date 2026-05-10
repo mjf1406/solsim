@@ -11,6 +11,11 @@ import {
   spokenScaledDiameterSentence,
   type ScaledDiameterUnitSystem,
 } from "@/lib/solar-system/scale/scaled-diameter-format"
+import {
+  findDistanceRegionByCanvasId,
+  formatDistanceRegionAuTitle,
+  type DistanceRegion,
+} from "@/lib/solar-system/distance-regions"
 
 import {
   collectDistanceBodies,
@@ -32,6 +37,98 @@ const ORBIT_KEYWORD_POPOVER_PROPS = {
   align: "start" as const,
   className:
     "border border-sidebar-border bg-sidebar/95 text-sidebar-foreground backdrop-blur-sm max-w-xs",
+}
+
+function DistanceRegionSidebarPanel({
+  region,
+  pxPerKmDistance,
+  pxPerMm,
+  isCalibrated,
+  onOpenCalibration,
+}: {
+  region: DistanceRegion
+  pxPerKmDistance: number
+  pxPerMm: number
+  isCalibrated: boolean
+  onOpenCalibration: () => void
+}) {
+  const [distanceUnit, setDistanceUnit] = useState<"km" | "mi">("km")
+  const [scaledUnitSystem, setScaledUnitSystem] =
+    useState<ScaledDiameterUnitSystem>("metric")
+
+  const innerKm = region.innerKm
+  const outerKm = region.outerKm
+  const widthKm = outerKm - innerKm
+  const innerAuTitle = formatDistanceRegionAuTitle(region.innerAu)
+  const outerAuTitle = formatDistanceRegionAuTitle(region.outerAu)
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div>
+        <h2 className="font-heading text-lg font-semibold text-sidebar-foreground">
+          {region.label}
+        </h2>
+        <p className="mt-2 text-base leading-snug text-sidebar-foreground/85">
+          {region.description}
+        </p>
+      </div>
+      <dl className="space-y-2 text-base text-sidebar-foreground/90">
+        <DistanceRow
+          title={
+            <span className="text-sidebar-foreground/60">
+              Inner edge ({innerAuTitle})
+            </span>
+          }
+          km={innerKm}
+          pxPerKmDistance={pxPerKmDistance}
+          pxPerMm={pxPerMm}
+          isCalibrated={isCalibrated}
+          onOpenCalibration={onOpenCalibration}
+          distanceUnit={distanceUnit}
+          onToggleUnit={() => setDistanceUnit((u) => (u === "km" ? "mi" : "km"))}
+          scaledUnitSystem={scaledUnitSystem}
+          onToggleScaledUnit={() =>
+            setScaledUnitSystem((s) => (s === "metric" ? "imperial" : "metric"))
+          }
+          sayThisTitle={`Say this ${region.label} inner edge distance`}
+        />
+        <DistanceRow
+          title={
+            <span className="text-sidebar-foreground/60">
+              Outer edge ({outerAuTitle})
+            </span>
+          }
+          km={outerKm}
+          pxPerKmDistance={pxPerKmDistance}
+          pxPerMm={pxPerMm}
+          isCalibrated={isCalibrated}
+          onOpenCalibration={onOpenCalibration}
+          distanceUnit={distanceUnit}
+          onToggleUnit={() => setDistanceUnit((u) => (u === "km" ? "mi" : "km"))}
+          scaledUnitSystem={scaledUnitSystem}
+          onToggleScaledUnit={() =>
+            setScaledUnitSystem((s) => (s === "metric" ? "imperial" : "metric"))
+          }
+          sayThisTitle={`Say this ${region.label} outer edge distance`}
+        />
+        <DistanceRow
+          title={<span className="text-sidebar-foreground/60">Approximate width</span>}
+          km={widthKm}
+          pxPerKmDistance={pxPerKmDistance}
+          pxPerMm={pxPerMm}
+          isCalibrated={isCalibrated}
+          onOpenCalibration={onOpenCalibration}
+          distanceUnit={distanceUnit}
+          onToggleUnit={() => setDistanceUnit((u) => (u === "km" ? "mi" : "km"))}
+          scaledUnitSystem={scaledUnitSystem}
+          onToggleScaledUnit={() =>
+            setScaledUnitSystem((s) => (s === "metric" ? "imperial" : "metric"))
+          }
+          sayThisTitle={`Say this ${region.label} width`}
+        />
+      </dl>
+    </div>
+  )
 }
 
 type DistanceSelectedBodySidebarProps = {
@@ -58,9 +155,6 @@ export function DistanceSelectedBodySidebarContent({
   isCalibrated,
   onOpenCalibration,
 }: DistanceSelectedBodySidebarProps) {
-  const detailSize = findSizeBodyDetail(model, selectedBodyId, pxPerKmSize)
-  const detailDistance = findDistanceBodyDetail(model, json, selectedBodyId)
-
   const bodies = useMemo(
     () => collectDistanceBodies(model, json),
     [model, json]
@@ -76,6 +170,22 @@ export function DistanceSelectedBodySidebarContent({
   const [distanceUnit, setDistanceUnit] = useState<"km" | "mi">("km")
   const [scaledUnitSystem, setScaledUnitSystem] =
     useState<ScaledDiameterUnitSystem>("metric")
+
+  const distanceRegion = findDistanceRegionByCanvasId(selectedBodyId)
+  if (distanceRegion) {
+    return (
+      <DistanceRegionSidebarPanel
+        region={distanceRegion}
+        pxPerKmDistance={pxPerKmDistance}
+        pxPerMm={pxPerMm}
+        isCalibrated={isCalibrated}
+        onOpenCalibration={onOpenCalibration}
+      />
+    )
+  }
+
+  const detailSize = findSizeBodyDetail(model, selectedBodyId, pxPerKmSize)
+  const detailDistance = findDistanceBodyDetail(model, json, selectedBodyId)
 
   if (!detailSize || !detailDistance) {
     return (

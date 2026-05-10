@@ -11,11 +11,16 @@ import {
   DISTANCE_CANVAS_BASE_INSET_PX,
 } from "@/hooks/use-distance-scale"
 import {
+  DISTANCE_REGIONS,
+  type DistanceRegion,
+} from "@/lib/solar-system/distance-regions"
+import {
   isSizeBodyIdVisibleUnderFilter,
   type SizeBodyDisplayFilter,
 } from "@/lib/solar-system/body-type-display"
 import {
   isBodyBeyondDistanceRenderLimit,
+  MAX_SAFE_DISTANCE_RENDER_PX,
 } from "@/lib/solar-system/distance-render-limit"
 import { planetSymbolHrefForDisplayName } from "@/lib/solar-system/planet-symbol"
 import { cn } from "@/lib/utils"
@@ -40,6 +45,10 @@ function isSymbolBarBody(b: DistanceBody): boolean {
 }
 
 const INSET_LEFT_CSS = ASSUMED_SIDEBAR_PX_CSS + DISTANCE_CANVAS_BASE_INSET_PX
+
+type SymbolBarRow =
+  | { kind: "body"; body: DistanceBody; href: string }
+  | { kind: "region"; region: DistanceRegion }
 
 function DistanceSymbolBarEntry({
   b,
@@ -103,6 +112,67 @@ function DistanceSymbolBarEntry({
   )
 }
 
+function DistanceSymbolBarRegionEntry({
+  region,
+  selected,
+  beyondLimit,
+  onSelectBody,
+}: {
+  region: DistanceRegion
+  selected: boolean
+  beyondLimit: boolean
+  onSelectBody: (bodyId: string) => void
+}) {
+  const [tooltipOpen, setTooltipOpen] = useState(false)
+  const tooltipBeyond = `${region.label} — beyond the render limit at this scale. Try a smaller Distance scale.`
+
+  return (
+    <Tooltip
+      open={beyondLimit ? tooltipOpen : undefined}
+      onOpenChange={beyondLimit ? setTooltipOpen : undefined}
+    >
+      <TooltipTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "size-9 shrink-0 rounded-full p-0",
+            selected &&
+              "ring-2 ring-primary ring-offset-2 ring-offset-background",
+            beyondLimit && "cursor-default opacity-40 grayscale"
+          )}
+          aria-label={region.label}
+          aria-pressed={selected}
+          aria-disabled={beyondLimit}
+          onClick={(e) => {
+            if (beyondLimit) {
+              e.preventDefault()
+              setTooltipOpen((v) => !v)
+              return
+            }
+            onSelectBody(region.canvasId)
+          }}
+        >
+          <img
+            src={region.iconSrc}
+            alt=""
+            className={cn(
+              "size-7",
+              !region.iconKeepColors &&
+                "dark:[filter:invert(1)_brightness(1.1)]"
+            )}
+            draggable={false}
+          />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="top" sideOffset={6}>
+        {beyondLimit ? tooltipBeyond : region.label}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
 export function DistanceSymbolBar({
   model,
   json,
@@ -125,7 +195,7 @@ export function DistanceSymbolBar({
     [model, json]
   )
 
-  const entries = useMemo(() => {
+  const rows = useMemo(() => {
     const filtered = distanceBodies.filter(
       (b) =>
         isSymbolBarBody(b) &&
@@ -138,14 +208,52 @@ export function DistanceSymbolBar({
         )
     )
     const sun = filtered.find((b) => b.kind === "star")
-    const rest = filtered
+    const nonSun = filtered
       .filter((b) => b.kind !== "star")
       .slice()
       .sort((a, b) => a.distanceFromSunKm - b.distanceFromSunKm)
-    return sun ? [sun, ...rest] : rest
+
+    type Sortable =
+      | { kind: "body"; body: DistanceBody; href: string; sortKm: number }
+      | { kind: "region"; region: DistanceRegion; sortKm: number }
+
+    const merged: Sortable[] = []
+    for (const b of nonSun) {
+      const href = symbolHref(b)
+      if (!href) continue
+      merged.push({
+        kind: "body",
+        body: b,
+        href,
+        sortKm: b.distanceFromSunKm,
+      })
+    }
+    for (const region of DISTANCE_REGIONS) {
+      merged.push({
+        kind: "region",
+        region,
+        sortKm: (region.innerKm + region.outerKm) / 2,
+      })
+    }
+    merged.sort((a, b) => a.sortKm - b.sortKm)
+
+    const out: SymbolBarRow[] = []
+    if (sun) {
+      const href = symbolHref(sun)
+      if (href) out.push({ kind: "body", body: sun, href })
+    }
+    for (const m of merged) {
+      if (m.kind === "body") {
+        out.push({ kind: "body", body: m.body, href: m.href })
+      } else {
+        out.push({ kind: "region", region: m.region })
+      }
+    }
+
+    return out
   }, [distanceBodies, model, bodyDisplayFilter, pxPerKmSize])
 
-  if (entries.length === 0) return null
+  if (rows.length === 0) return null
 
   return (
     <div
@@ -153,11 +261,27 @@ export function DistanceSymbolBar({
       aria-label="Jump to a major body by symbol"
     >
       <div
-        className="pointer-events-auto flex max-w-[min(100%,42rem)] items-center gap-0.5 overflow-x-auto rounded-full border border-border/60 bg-background/85 px-1.5 py-1 shadow-lg backdrop-blur-md"
+        className="pointer-events-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-0.5 rounded-full border border-border/60 bg-background/85 px-1.5 py-1 shadow-lg backdrop-blur-md"
       >
-        {entries.map((b) => {
-          const href = symbolHref(b)
-          if (!href) return null
+        {rows.map((row) => {
+          if (row.kind === "region") {
+            const r = row.region
+            const beyondLimit =
+              pxPerKmDistance > 0 &&
+              INSET_LEFT_CSS + r.outerKm * pxPerKmDistance >
+                MAX_SAFE_DISTANCE_RENDER_PX
+            return (
+              <DistanceSymbolBarRegionEntry
+                key={`symbol-bar-${r.canvasId}`}
+                region={r}
+                selected={selectedBodyId === r.canvasId}
+                beyondLimit={beyondLimit}
+                onSelectBody={onSelectBody}
+              />
+            )
+          }
+
+          const b = row.body
           const selected = b.canvasId === selectedBodyId
           const beyondLimit =
             pxPerKmDistance > 0 &&
@@ -172,7 +296,7 @@ export function DistanceSymbolBar({
             <DistanceSymbolBarEntry
               key={b.canvasId}
               b={b}
-              href={href}
+              href={row.href}
               selected={selected}
               beyondLimit={beyondLimit}
               tooltipPlain={b.row.name}

@@ -24,6 +24,7 @@ import {
   type ScaleSliderStop,
 } from "@/lib/solar-system/scale/scale-presets"
 
+import { findDistanceRegionByCanvasId } from "@/lib/solar-system/distance-regions"
 import { type SizeBodyDisplayFilter } from "@/lib/solar-system/body-type-display"
 import type { DistanceInclusionContext } from "@/lib/solar-system/distance-render-limit"
 
@@ -369,6 +370,8 @@ function SolarSystemDistancePage() {
   ])
 
   const orbitSidebarProps = useMemo(() => {
+    const distanceRegion = findDistanceRegionByCanvasId(selectedBodyId)
+    const distanceRegionLabel = distanceRegion?.label ?? null
     const detail = findDistanceBodyDetail(model, json, selectedBodyId)
     const selectedBodyKind = detail?.kind ?? null
     const hasOrbitData =
@@ -380,7 +383,7 @@ function SolarSystemDistancePage() {
       Number.isFinite(detail.aphelionKm) &&
       detail.perihelionKm >= 0 &&
       detail.aphelionKm >= 0
-    return { selectedBodyKind, hasOrbitData }
+    return { selectedBodyKind, hasOrbitData, distanceRegionLabel }
   }, [model, json, selectedBodyId])
 
   const selectBodyFromBodyTypesList = useCallback((bodyId: string) => {
@@ -553,6 +556,7 @@ function SolarSystemDistancePage() {
         <OrbitToolSidebarPortal
           selectedBodyKind={orbitSidebarProps.selectedBodyKind}
           hasOrbitData={orbitSidebarProps.hasOrbitData}
+          distanceRegionLabel={orbitSidebarProps.distanceRegionLabel}
           orbitOn={orbitOn}
           onOrbitOnChange={setOrbitOn}
         />

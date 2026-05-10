@@ -1,4 +1,5 @@
 import { isSizeBodyIdVisibleUnderFilter } from "@/lib/solar-system/body-type-display"
+import { isDistanceRegionCanvasId } from "@/lib/solar-system/distance-regions"
 import { isBodyBeyondDistanceRenderLimit } from "@/lib/solar-system/distance-render-limit"
 
 import {
@@ -19,6 +20,7 @@ export function isDistancePageBodySelectable(
   insetLeftPx: number
 ): boolean {
   if (!id) return false
+  if (isDistanceRegionCanvasId(id)) return pxPerKmDistance > 0
   if (
     !isSizeBodyIdVisibleUnderFilter(model, filter, id, pxPerKmSize, 0)
   ) {

@@ -26,6 +26,11 @@ import {
   DISTANCE_CANVAS_BASE_INSET_PX,
 } from "@/hooks/use-distance-scale"
 import { BODY_CLASS_STYLE } from "@/lib/constants"
+import {
+  DISTANCE_REGIONS,
+  computeDistanceRegionStripLayout,
+  type DistanceRegionStripLayout,
+} from "@/lib/solar-system/distance-regions"
 import { LIGHT_SPEED_KM_PER_S } from "@/lib/solar-system/distance/distance-units"
 import {
   applyBodyTypePreset,
@@ -582,6 +587,187 @@ function OrbitApsisMarkers({ overlay }: { overlay: OrbitOverlayLayout }) {
   )
 }
 
+const REGION_STRIP_TICK_HALF_PX = 8
+
+/** Vertical half-extent of invisible hit strips along the region baseline (comfortable tap target). */
+const REGION_STRIP_LINE_HIT_HALF_PX = 14
+
+/** Half-width of invisible hit pad centered on each end tick. */
+const REGION_STRIP_TICK_HIT_HALF_PX = 6
+
+function DistanceRegionStrip({
+  layout,
+  selected,
+  interactive,
+}: {
+  layout: DistanceRegionStripLayout
+  selected: boolean
+  interactive: boolean
+}) {
+  const baseStyle = BODY_CLASS_STYLE[layout.region.strokeBodyClass]
+  const dashArr =
+    baseStyle.dash.length > 0 ? baseStyle.dash.join(" ") : undefined
+  /** Region strips use higher idle opacity than generic orbit glyphs so they read on the dark canvas. */
+  const strokeOpacityIdle = 0.82
+
+  const stroke = selected ? "#38bdf8" : baseStyle.color
+  const strokeWidth = selected
+    ? Math.max(baseStyle.width, 1.25)
+    : baseStyle.width
+  const strokeOpacityUse = selected ? 0.95 : strokeOpacityIdle
+
+  const rid = layout.region.canvasId
+  const svgPad = 1
+  const svgLeft = layout.xInner - svgPad
+  const svgTop = layout.y - REGION_STRIP_TICK_HALF_PX
+  const svgWidth = Math.max(1, layout.xOuter - layout.xInner + 2 * svgPad)
+  const svgHeight = 2 * REGION_STRIP_TICK_HALF_PX
+  const midLocal = layout.y - svgTop
+
+  return (
+    <>
+      <svg
+        aria-hidden
+        className="pointer-events-none absolute overflow-visible"
+        style={{
+          left: svgLeft,
+          top: svgTop,
+          width: svgWidth,
+          height: svgHeight,
+          zIndex: 3,
+        }}
+        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+      >
+        {layout.segments.map((seg, i) => {
+          const x1 = seg.x1 - svgLeft
+          const x2 = seg.x2 - svgLeft
+          return (
+            <line
+              key={`${rid}-seg-${i}`}
+              x1={x1}
+              y1={midLocal}
+              x2={x2}
+              y2={midLocal}
+              stroke={stroke}
+              strokeWidth={strokeWidth}
+              strokeOpacity={strokeOpacityUse}
+              strokeDasharray={dashArr}
+              strokeLinecap="round"
+            />
+          )
+        })}
+        <line
+          x1={layout.xInner - svgLeft}
+          y1={midLocal - REGION_STRIP_TICK_HALF_PX + 2}
+          x2={layout.xInner - svgLeft}
+          y2={midLocal + REGION_STRIP_TICK_HALF_PX - 2}
+          stroke={stroke}
+          strokeWidth={strokeWidth}
+          strokeOpacity={strokeOpacityUse}
+          strokeLinecap="round"
+        />
+        <line
+          x1={layout.xOuter - svgLeft}
+          y1={midLocal - REGION_STRIP_TICK_HALF_PX + 2}
+          x2={layout.xOuter - svgLeft}
+          y2={midLocal + REGION_STRIP_TICK_HALF_PX - 2}
+          stroke={stroke}
+          strokeWidth={strokeWidth}
+          strokeOpacity={strokeOpacityUse}
+          strokeLinecap="round"
+        />
+      </svg>
+      {interactive
+        ? layout.segments.map((seg, i) => {
+            const w = Math.max(1, seg.x2 - seg.x1)
+            return (
+              <div
+                key={`${rid}-line-hit-${i}`}
+                data-body-id={rid}
+                aria-hidden
+                className="absolute bg-transparent"
+                style={{
+                  left: seg.x1,
+                  top: layout.y - REGION_STRIP_LINE_HIT_HALF_PX,
+                  width: w,
+                  height: 2 * REGION_STRIP_LINE_HIT_HALF_PX,
+                  zIndex: 3,
+                  cursor: "pointer",
+                }}
+              />
+            )
+          })
+        : null}
+      {interactive ? (
+        <>
+          <div
+            data-body-id={rid}
+            aria-hidden
+            className="absolute bg-transparent"
+            style={{
+              left: layout.xInner - REGION_STRIP_TICK_HIT_HALF_PX,
+              top: layout.y - REGION_STRIP_TICK_HALF_PX,
+              width: 2 * REGION_STRIP_TICK_HIT_HALF_PX,
+              height: 2 * REGION_STRIP_TICK_HALF_PX,
+              zIndex: 3,
+              cursor: "pointer",
+            }}
+          />
+          <div
+            data-body-id={rid}
+            aria-hidden
+            className="absolute bg-transparent"
+            style={{
+              left: layout.xOuter - REGION_STRIP_TICK_HIT_HALF_PX,
+              top: layout.y - REGION_STRIP_TICK_HALF_PX,
+              width: 2 * REGION_STRIP_TICK_HIT_HALF_PX,
+              height: 2 * REGION_STRIP_TICK_HALF_PX,
+              zIndex: 3,
+              cursor: "pointer",
+            }}
+          />
+        </>
+      ) : null}
+      {layout.labels.map((lb, i) => (
+        <div
+          key={`${rid}-lbl-${i}`}
+          data-body-id={rid}
+          className={cn(
+            !interactive && "pointer-events-none",
+            selected && "rounded-md ring-2 ring-sky-400/90 ring-offset-2 ring-offset-transparent"
+          )}
+          style={{
+            position: "absolute",
+            left: lb.left,
+            top: lb.top,
+            width: Math.max(44, lb.right - lb.left),
+            height: Math.max(32, layout.labelHeight),
+            zIndex: 4,
+            pointerEvents: interactive ? "auto" : "none",
+            cursor: interactive ? "pointer" : "default",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <span
+            className="select-none whitespace-nowrap"
+            style={{
+              font: CANVAS_BODY_LABEL_FONT_LARGE,
+              color: selected ? "#7dd3fc" : "#ffffff",
+              WebkitTextStroke: selected ? "3px #0c4a6e" : "3px #000000",
+              paintOrder: "stroke fill",
+              lineHeight: 1,
+            }}
+          >
+            {layout.region.label}
+          </span>
+        </div>
+      ))}
+    </>
+  )
+}
+
 export function DistanceCanvas({
   model,
   json,
@@ -630,6 +816,9 @@ export function DistanceCanvas({
   const [orbitOverlay, setOrbitOverlay] = useState<OrbitOverlayLayout | null>(
     null
   )
+  const [regionOverlays, setRegionOverlays] = useState<
+    DistanceRegionStripLayout[]
+  >([])
 
   const bodyDisplayFilterRef = useRef(bodyDisplayFilter)
   const pxPerKmSizeRef = useRef(pxPerKmSize)
@@ -1157,6 +1346,31 @@ export function DistanceCanvas({
         }
       }
 
+      const regionOverlaysNext: DistanceRegionStripLayout[] = []
+      if (pxD > 0) {
+        for (const region of DISTANCE_REGIONS) {
+          const regionMeasure = measureCanvasLabelBox(
+            ctx,
+            region.label,
+            CANVAS_BODY_LABEL_FONT_LARGE
+          )
+          const layout = computeDistanceRegionStripLayout({
+            region,
+            insetLeftPx: INSET_LEFT_CSS,
+            pxPerKmDistance: pxD,
+            midY,
+            labelMeasure: regionMeasure,
+            maxRenderPx: MAX_SAFE_DISTANCE_RENDER_PX,
+          })
+          if (!layout) continue
+          regionOverlaysNext.push(layout)
+          rightExtent = Math.max(rightExtent, layout.xOuter)
+          for (const lb of layout.labels) {
+            rightExtent = Math.max(rightExtent, lb.right)
+          }
+        }
+      }
+
       const widthPx = Math.min(
         MAX_SAFE_DISTANCE_RENDER_PX + INSET_RIGHT_CSS,
         Math.max(viewportW, rightExtent + INSET_RIGHT_CSS)
@@ -1166,11 +1380,18 @@ export function DistanceCanvas({
       for (const it of resolvedItems) {
         scrollPosById.set(it.canvasId, { cx: it.cx, cy: it.cy })
       }
+      for (const ro of regionOverlaysNext) {
+        scrollPosById.set(ro.region.canvasId, {
+          cx: (ro.xInner + ro.xOuter) / 2,
+          cy: ro.y,
+        })
+      }
       posByIdForScrollRef.current = scrollPosById
       viewportWForScrollRef.current = viewportW
       setContentWidthPx(widthPx)
       setLayoutItems(resolvedItems)
       setOrbitOverlay(orbitOverlayNext)
+      setRegionOverlays(regionOverlaysNext)
       } finally {
         emitCenterKmFromSun()
       }
@@ -1330,6 +1551,14 @@ export function DistanceCanvas({
         role="presentation"
       >
         {orbitOverlay ? <OrbitUnderlay overlay={orbitOverlay} /> : null}
+        {regionOverlays.map((layout) => (
+          <DistanceRegionStrip
+            key={layout.region.canvasId}
+            layout={layout}
+            selected={selectedBodyId === layout.region.canvasId}
+            interactive={interactive}
+          />
+        ))}
         {layoutItems.map((item) => (
           <DistanceBodyLayers
             key={item.canvasId}

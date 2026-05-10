@@ -17,6 +17,8 @@ const ORBIT_TOGGLE_BUTTON_WIDTH_REF = "Hide range"
 export type OrbitToolSidebarPortalProps = {
   selectedBodyKind: SizeBodyKind | null
   hasOrbitData: boolean
+  /** When set, a distance region (belt/cloud) is selected — orbit range does not apply. */
+  distanceRegionLabel?: string | null
   orbitOn: boolean
   onOrbitOnChange: (next: boolean) => void
 }
@@ -24,6 +26,7 @@ export type OrbitToolSidebarPortalProps = {
 export function OrbitToolSidebarPortal({
   selectedBodyKind,
   hasOrbitData,
+  distanceRegionLabel = null,
   orbitOn,
   onOrbitOnChange,
 }: OrbitToolSidebarPortalProps) {
@@ -33,6 +36,7 @@ export function OrbitToolSidebarPortal({
     <OrbitToolCollapsibleSection
       selectedBodyKind={selectedBodyKind}
       hasOrbitData={hasOrbitData}
+      distanceRegionLabel={distanceRegionLabel}
       orbitOn={orbitOn}
       onOrbitOnChange={onOrbitOnChange}
     />,
@@ -43,11 +47,14 @@ export function OrbitToolSidebarPortal({
 function OrbitToolCollapsibleSection({
   selectedBodyKind,
   hasOrbitData,
+  distanceRegionLabel = null,
   orbitOn,
   onOrbitOnChange,
 }: OrbitToolSidebarPortalProps) {
   let helper: string
-  if (selectedBodyKind == null) {
+  if (distanceRegionLabel) {
+    helper = `The ${distanceRegionLabel} is a region, not a single orbit.`
+  } else if (selectedBodyKind == null) {
     helper = "Select a body to see its orbit range."
   } else if (selectedBodyKind === "star") {
     helper = "The Sun has no parent — pick a planet, moon, or other body."
@@ -59,6 +66,9 @@ function OrbitToolCollapsibleSection({
   }
 
   const toggleLabel = orbitOn ? "Show range" : "Hide range"
+
+  const orbitToggleDisabled =
+    Boolean(distanceRegionLabel) || selectedBodyKind == null
 
   return (
     <div className="mb-2">
@@ -81,7 +91,7 @@ function OrbitToolCollapsibleSection({
               variant="default"
               size="sm"
               className="shrink-0"
-              disabled={selectedBodyKind == null}
+              disabled={orbitToggleDisabled}
               aria-label={
                 orbitOn
                   ? "Hide perihelion and aphelion range on the canvas"
