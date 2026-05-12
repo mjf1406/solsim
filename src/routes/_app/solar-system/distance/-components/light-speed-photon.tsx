@@ -38,9 +38,11 @@ const wavePath = buildWavePath(
 
 export function LightSpeedPhoton({
   wrapperRef,
+  worldXRef,
   active,
 }: {
   wrapperRef: RefObject<HTMLDivElement | null>
+  worldXRef: RefObject<number | null>
   active: boolean
 }) {
   const rootRef = useRef<HTMLDivElement>(null)
@@ -57,15 +59,14 @@ export function LightSpeedPhoton({
       const w = wrapperRef.current
       const el = rootRef.current
       if (!w || !el) return
-      const vw = w.clientWidth
-      const cx = w.scrollLeft + vw / 2
+      const cx = worldXRef.current ?? w.scrollLeft + w.clientWidth / 2
       el.style.left = `${cx}px`
       el.style.top = `${w.clientHeight / 2}px`
       raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [active, wrapperRef])
+  }, [active, wrapperRef, worldXRef])
 
   if (!active) return null
 

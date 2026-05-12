@@ -96,15 +96,10 @@ function LightSpeedCollapsibleSection({
         <CollapsibleContent>
           <div className="border-t border-sidebar-border/80 px-1 pt-3 pb-1">
             <p className="text-xs leading-snug text-sidebar-foreground/80">
-              Scrolls the distance strip at{" "}
-              <span className="font-medium text-sidebar-foreground">
-                scaled light speed
-              </span>{" "}
-              from your current view. Horizontal scrolling is disabled while it
-              runs. Use the multiplier next to the distance unit readout to go
-              faster than light on this map (still physically impossible in the
-              real universe!). Reaching the end of the strip turns this off and
-              restores your previous unit.
+              Watch how fast light travels across the Solar System! While it moves,
+              you won't be able to scroll side-to-side. You can use the buttons
+              to go even faster than light, but that's just for fun!
+              When the light reaches the end, it will stop automatically.
             </p>
           </div>
         </CollapsibleContent>

@@ -805,6 +805,7 @@ export function DistanceCanvas({
   onLightSpeedReachedEnd?: () => void
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null)
+  const photonWorldXRef = useRef<number | null>(null)
   const syncLayoutRef = useRef<(() => void) | null>(null)
   const posByIdForScrollRef = useRef<Map<string, { cx: number; cy: number }>>(
     new Map()
@@ -1479,6 +1480,8 @@ export function DistanceCanvas({
     const wrapper = wrapperRef.current
     if (!wrapper) return
 
+    photonWorldXRef.current = wrapper.scrollLeft + wrapper.clientWidth / 2
+
     let raf = 0
     let last = performance.now()
     let ended = false
@@ -1495,27 +1498,35 @@ export function DistanceCanvas({
       const mult = lightSpeedMultiplierRef.current
       const pxPerSec = LIGHT_SPEED_KM_PER_S * pxD * mult
 
-      const maxScroll = w.scrollWidth - w.clientWidth
-      if (!(maxScroll > 0)) {
-        ended = true
-        onLightSpeedReachedEndRef.current?.()
-        return
-      }
+      const vw = w.clientWidth
+      const maxScroll = Math.max(0, w.scrollWidth - vw)
+      const endX = Math.max(0, w.scrollWidth - INSET_RIGHT_CSS)
+      let x = photonWorldXRef.current ?? w.scrollLeft + vw / 2
+      x += pxPerSec * dt
 
-      const next = w.scrollLeft + pxPerSec * dt
-      if (next >= maxScroll - 0.25) {
+      if (x >= endX) {
+        photonWorldXRef.current = endX
         w.scrollLeft = maxScroll
         ended = true
         onLightSpeedReachedEndRef.current?.()
         return
       }
-      w.scrollLeft = next
+
+      photonWorldXRef.current = x
+
+      const followAnchorScreenX = vw / 2
+      const desiredScrollLeft = Math.min(
+        maxScroll,
+        Math.max(0, x - followAnchorScreenX)
+      )
+      if (desiredScrollLeft > w.scrollLeft) w.scrollLeft = desiredScrollLeft
       raf = requestAnimationFrame(tick)
     }
 
     raf = requestAnimationFrame(tick)
     return () => {
       ended = true
+      photonWorldXRef.current = null
       cancelAnimationFrame(raf)
     }
   }, [lightSpeedActive])
@@ -1571,7 +1582,11 @@ export function DistanceCanvas({
           />
         ))}
         {orbitOverlay ? <OrbitApsisMarkers overlay={orbitOverlay} /> : null}
-        <LightSpeedPhoton wrapperRef={wrapperRef} active={lightSpeedActive} />
+        <LightSpeedPhoton
+          wrapperRef={wrapperRef}
+          worldXRef={photonWorldXRef}
+          active={lightSpeedActive}
+        />
       </div>
     </div>
   )
