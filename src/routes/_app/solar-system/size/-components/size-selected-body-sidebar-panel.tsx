@@ -1,9 +1,9 @@
 import { BodyDiameterStatsSection } from "@/components/solar-system/body-diameter-stats-section"
 
 import {
+  bodyDiameterPositionIntro,
   findSizeBodyDetail,
   kindLabel,
-  sizeBodyKindPredicationPhrase,
   type SizePageModel,
 } from "../-data"
 
@@ -38,7 +38,7 @@ export function SizeSelectedBodySidebarContent({
     )
   }
 
-  const typeIntroPredication = sizeBodyKindPredicationPhrase(detail.kind)
+  const positionIntro = bodyDiameterPositionIntro(model, detail)
 
   return (
     <BodyDiameterStatsSection
@@ -49,7 +49,7 @@ export function SizeSelectedBodySidebarContent({
         diameterKm: detail.diameterKm,
         diameterPx: detail.diameterPx,
         parentPlanetName: detail.parentPlanetName,
-        typeIntroPredication,
+        positionIntro,
       }}
       pxPerKm={pxPerKm}
       pxPerMm={pxPerMm}

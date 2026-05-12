@@ -5,7 +5,10 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ReadingKeyword } from "@/components/reading/reading-keyword"
 import { SwitchableReadingNumber } from "@/components/reading/switchable-reading-number"
-import { spokenNumberEnUsMaxOneDecimal } from "@/lib/reading/spoken-number-en-us"
+import {
+  spokenNumberEnUsFromEnUsDisplay,
+  spokenNumberEnUsMaxOneDecimal,
+} from "@/lib/reading/spoken-number-en-us"
 import { planetSymbolHrefForDisplayName } from "@/lib/solar-system/planet-symbol"
 import {
   formatScaledDiameter,
@@ -21,7 +24,8 @@ export type BodyDiameterDetail = {
   diameterKm: number
   diameterPx: number
   parentPlanetName: string | null
-  typeIntroPredication: string | null
+  /** Opening sentence (e.g. ordinal planet, moon of parent). */
+  positionIntro: string
 }
 
 export type BodyDiameterStatsSectionProps = {
@@ -50,11 +54,34 @@ export function BodyDiameterStatsSection({
   pixelDiameterFootnote,
 }: BodyDiameterStatsSectionProps) {
   const [diameterUnit, setDiameterUnit] = useState<"km" | "mi">("km")
+  const [pixelLabelMode, setPixelLabelMode] = useState<"abbr" | "word">("abbr")
   const [scaledUnitSystem, setScaledUnitSystem] =
     useState<ScaledDiameterUnitSystem>("metric")
 
-  const subjectLabel = detail.name === "Sun" ? "the Sun" : detail.name
   const titleSymbolHref = planetSymbolHrefForDisplayName(detail.name)
+  const startName = bodySentenceStartName(detail.name)
+  const midName = bodyRunningName(detail.name)
+
+  const physicalDiameterReading = () => (
+    <SwitchableReadingNumber
+      onToggleUnit={() =>
+        setDiameterUnit((u) => (u === "km" ? "mi" : "km"))
+      }
+      numberAriaLabel={
+        diameterUnit === "km"
+          ? "Showing kilometers. Switch to miles."
+          : "Showing miles. Switch to kilometers."
+      }
+      explainerContent={
+        <BigNumberReadingExplainerSection
+          diameterKm={detail.diameterKm}
+          diameterUnit={diameterUnit}
+        />
+      }
+    >
+      {formatDiameterNumber(detail.diameterKm, diameterUnit)} {diameterUnit}
+    </SwitchableReadingNumber>
+  )
 
   return (
     <div className="flex flex-col gap-3">
@@ -75,18 +102,11 @@ export function BodyDiameterStatsSection({
           {detail.kindLabel}
         </Badge>
       </h2>
-      {detail.kind === "moon" && detail.parentPlanetName ? (
-        <p className="text-base leading-snug text-sidebar-foreground/90">
-          {detail.name} is a moon of {detail.parentPlanetName}.
-        </p>
-      ) : detail.typeIntroPredication ? (
-        <p className="text-base leading-snug text-sidebar-foreground/90">
-          {subjectLabel} is {detail.typeIntroPredication}.
-        </p>
-      ) : null}
       <p className="text-base leading-snug text-sidebar-foreground/90">
-        See how wide {detail.name == "Sun" ? "the Sun" : detail.name} really is
-        below. This is also called the{" "}
+        {detail.positionIntro}
+      </p>
+      <p className="text-base leading-snug text-sidebar-foreground/90">
+        {startName} is {physicalDiameterReading()} wide. This is also called the{" "}
         <ReadingKeyword
           variant="inline"
           popoverContent={<DiameterExplainerSection />}
@@ -99,31 +119,35 @@ export function BodyDiameterStatsSection({
         >
           diameter
         </ReadingKeyword>
-        .
+        . So we can say {midName} has a diameter of {physicalDiameterReading()}. On this
+        screen, {midName} could not possibly be that big! So, we use pixels to
+        measure its diameter. On this screen, {midName} is{" "}
+        <SwitchableReadingNumber
+          onToggleUnit={() =>
+            setPixelLabelMode((m) => (m === "abbr" ? "word" : "abbr"))
+          }
+          numberAriaLabel={
+            pixelLabelMode === "abbr"
+              ? "Showing px. Switch to spelling out pixels."
+              : "Showing the word pixels. Switch to px."
+          }
+          explainerContent={
+            <PixelWidthReadingExplainerSection
+              px={detail.diameterPx}
+              labelMode={pixelLabelMode}
+            />
+          }
+        >
+          {formatDiameterPxNumberOnly(detail.diameterPx)}{" "}
+          {pixelLabelMode === "abbr" ? "px" : "pixels"}
+        </SwitchableReadingNumber>{" "}
+        in diameter.
       </p>
       <dl className="space-y-2 text-base text-sidebar-foreground/90">
         <div>
           <dt className="text-sidebar-foreground/60">Diameter</dt>
           <dd className="mt-0.5 font-medium text-sidebar-foreground">
-            <SwitchableReadingNumber
-              onToggleUnit={() =>
-                setDiameterUnit((u) => (u === "km" ? "mi" : "km"))
-              }
-              numberAriaLabel={
-                diameterUnit === "km"
-                  ? "Showing kilometers. Switch to miles."
-                  : "Showing miles. Switch to kilometers."
-              }
-              explainerContent={
-                <BigNumberReadingExplainerSection
-                  diameterKm={detail.diameterKm}
-                  diameterUnit={diameterUnit}
-                />
-              }
-            >
-              {formatDiameterNumber(detail.diameterKm, diameterUnit)}{" "}
-              {diameterUnit}
-            </SwitchableReadingNumber>
+            {physicalDiameterReading()}
           </dd>
         </div>
         <div>
@@ -206,6 +230,26 @@ function formatDiameterPx(px: number): string {
   if (!Number.isFinite(px) || px < 0) return "—"
   const digits = px >= 1 ? 1 : px >= 0.01 ? 3 : 4
   return `${px.toLocaleString("en-US", { maximumFractionDigits: digits })} px`
+}
+
+function formatDiameterPxNumberOnly(px: number): string {
+  if (!Number.isFinite(px) || px < 0) return "—"
+  const digits = px >= 1 ? 1 : px >= 0.01 ? 3 : 4
+  return px.toLocaleString("en-US", { maximumFractionDigits: digits })
+}
+
+function bodySentenceStartName(name: string): string {
+  const t = name.trim()
+  if (t.toLowerCase() === "sun") return "The Sun"
+  if (t.toLowerCase() === "moon") return "The Moon"
+  return name
+}
+
+function bodyRunningName(name: string): string {
+  const t = name.trim()
+  if (t.toLowerCase() === "sun") return "the Sun"
+  if (t.toLowerCase() === "moon") return "the Moon"
+  return name
 }
 
 function spokenDiameterSentence(km: number, unit: "km" | "mi"): string {
@@ -291,6 +335,43 @@ function BigNumberReadingExplainerSection({
         className="font-heading text-sm font-semibold text-sidebar-foreground"
       >
         Say this diameter
+      </h3>
+      <p className="mt-2 rounded-md bg-sidebar-accent/50 px-2 py-2 font-mono text-sm text-sidebar-foreground tabular-nums">
+        {displayed}
+      </p>
+      <p className="mt-3 text-base leading-relaxed text-sidebar-foreground">
+        {spoken}
+      </p>
+    </section>
+  )
+}
+
+function PixelWidthReadingExplainerSection({
+  px,
+  labelMode,
+}: {
+  px: number
+  labelMode: "abbr" | "word"
+}) {
+  const num = formatDiameterPxNumberOnly(px)
+  const displayed =
+    labelMode === "abbr" ? `${num} px` : `${num} pixels`
+  const spokenRaw = spokenNumberEnUsFromEnUsDisplay(num)
+  const spoken =
+    spokenRaw.length > 0
+      ? `${spokenRaw.charAt(0).toUpperCase()}${spokenRaw.slice(1)} pixels wide on your screen.`
+      : "Practice reading the dotted number out loud."
+
+  return (
+    <section
+      aria-labelledby="pixel-width-reading-heading"
+      className="rounded-xl px-0.5 py-0.5"
+    >
+      <h3
+        id="pixel-width-reading-heading"
+        className="font-heading text-sm font-semibold text-sidebar-foreground"
+      >
+        Say this width on screen
       </h3>
       <p className="mt-2 rounded-md bg-sidebar-accent/50 px-2 py-2 font-mono text-sm text-sidebar-foreground tabular-nums">
         {displayed}

@@ -372,6 +372,8 @@ export function moonReferenceDiameterKm(model: SizePageModel): number {
 }
 
 export type SizeBodyDetail = {
+  /** Catalog row id (Horizons id), same as `SizeRow.id`. */
+  catalogId: string
   name: string
   kind: SizeBodyKind
   diameterKm: number
@@ -379,6 +381,73 @@ export type SizeBodyDetail = {
   diameterPx: number
   /** Host planet or dwarf name when `kind === "moon"` and known; otherwise null. */
   parentPlanetName: string | null
+}
+
+const ORDINAL_WORDS_EN = [
+  "first",
+  "second",
+  "third",
+  "fourth",
+  "fifth",
+  "sixth",
+  "seventh",
+  "eighth",
+  "ninth",
+  "tenth",
+  "eleventh",
+  "twelfth",
+] as const
+
+function ordinalWordEn(n: number): string {
+  if (n >= 1 && n <= ORDINAL_WORDS_EN.length) return ORDINAL_WORDS_EN[n - 1]!
+  return `${n}th`
+}
+
+/** Sentence-initial label (e.g. "The Moon", "The Sun"). */
+function moonOrSunSentenceName(name: string): string {
+  const t = name.trim()
+  if (t.toLowerCase() === "sun") return "The Sun"
+  if (t.toLowerCase() === "moon") return "The Moon"
+  return name
+}
+
+/**
+ * Opening position sentence for the diameter education sidebar (ordinal planets,
+ * moons of parents, etc.).
+ */
+export function bodyDiameterPositionIntro(
+  model: SizePageModel,
+  detail: SizeBodyDetail
+): string {
+  const { kind, name, parentPlanetName, catalogId } = detail
+
+  if (kind === "star") {
+    return name.trim().toLowerCase() === "sun"
+      ? "The Sun is the star at the center of the Solar System."
+      : `${name} is a star at the center of its planetary system.`
+  }
+
+  if (kind === "planet") {
+    const idx = model.planets.findIndex((s) => s.body.id === catalogId)
+    if (idx >= 0) {
+      return `${name} is the ${ordinalWordEn(idx + 1)} planet from the Sun.`
+    }
+  }
+
+  if (kind === "moon") {
+    const lead = moonOrSunSentenceName(name)
+    const parent = parentPlanetName ?? "its parent planet"
+    return `${lead} is a moon of ${parent}.`
+  }
+
+  if (kind === "dwarf") {
+    return `${name} is a dwarf planet that orbits the Sun.`
+  }
+
+  const phrase = sizeBodyKindPredicationPhrase(kind)
+  if (phrase) return `${name} is ${phrase}.`
+
+  return `${name} is a body in space.`
 }
 
 /**
@@ -401,6 +470,7 @@ export function findSizeBodyDetail(
     const d = row.diameterKm
     if (d == null || !Number.isFinite(d)) return null
     return {
+      catalogId: row.id,
       name: row.name,
       kind,
       diameterKm: d,

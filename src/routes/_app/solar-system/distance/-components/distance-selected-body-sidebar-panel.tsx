@@ -27,9 +27,9 @@ import {
   type SizePageModel,
 } from "../-data"
 import {
+  bodyDiameterPositionIntro,
   findSizeBodyDetail,
   findSizeRowNameById,
-  sizeBodyKindPredicationPhrase,
 } from "../../size/-data"
 
 const ORBIT_KEYWORD_POPOVER_PROPS = {
@@ -195,7 +195,7 @@ export function DistanceSelectedBodySidebarContent({
     )
   }
 
-  const typeIntroPredication = sizeBodyKindPredicationPhrase(detailSize.kind)
+  const positionIntro = bodyDiameterPositionIntro(model, detailSize)
 
   const kmFromSun = detailDistance.distanceFromSunKm
 
@@ -226,6 +226,16 @@ export function DistanceSelectedBodySidebarContent({
   const isMoon = detailDistance.kind === "moon"
   const parentLabel = detailDistance.parentPlanetName ?? "its parent"
 
+  const semiKm = detailDistance.semiMajorAxisKm
+  const semiKmOk = semiKm != null && Number.isFinite(semiKm)
+  const periKm = detailDistance.perihelionKm
+  const periKmOk = periKm != null && Number.isFinite(periKm)
+  const apKm = detailDistance.aphelionKm
+  const apKmOk = apKm != null && Number.isFinite(apKm)
+
+  const toggleDistanceUnit = () =>
+    setDistanceUnit((u) => (u === "km" ? "mi" : "km"))
+
   return (
     <div className="flex flex-col gap-3">
       <BodyDiameterStatsSection
@@ -236,7 +246,7 @@ export function DistanceSelectedBodySidebarContent({
           diameterKm: detailSize.diameterKm,
           diameterPx: detailSize.diameterPx,
           parentPlanetName: detailSize.parentPlanetName,
-          typeIntroPredication,
+          positionIntro,
         }}
         pxPerKm={pxPerKmSize}
         pxPerMm={pxPerMm}
@@ -252,95 +262,184 @@ export function DistanceSelectedBodySidebarContent({
       {showOrbitSection ? (
         <>
           {isMoon ? (
-            <p className="text-base leading-snug text-sidebar-foreground/90">
-              {detailSize.name}&apos;s orbit around {parentLabel} has a few special
-              measurements. Its average distance from {parentLabel} is called the{" "}
-              <ReadingKeyword
-                variant="inline"
-                popoverContent={<SemiMajorAxisExplainer />}
-                popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
-              >
-                semi-major axis
-              </ReadingKeyword>
-              . The two extreme points of the orbit are called{" "}
-              <ReadingKeyword
-                variant="inline"
-                popoverContent={<ApsisExplainer />}
-                popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
-              >
-                apsides
-              </ReadingKeyword>
-              : the closest is the{" "}
-              <ReadingKeyword
-                variant="inline"
-                popoverContent={<PeriapsisExplainer />}
-                popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
-              >
-                periapsis
-              </ReadingKeyword>
-              , and the farthest is the{" "}
-              <ReadingKeyword
-                variant="inline"
-                popoverContent={<ApoapsisExplainer />}
-                popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
-              >
-                apoapsis
-              </ReadingKeyword>
-              .
-            </p>
+            <>
+              <p className="text-base leading-snug text-sidebar-foreground/90">
+                {detailSize.name}&apos;s average distance from {parentLabel} is{" "}
+                {semiKmOk ? (
+                  <>
+                    <InlineOrbitDistanceNumber
+                      km={semiKm}
+                      distanceUnit={distanceUnit}
+                      onToggleUnit={toggleDistanceUnit}
+                      sayThisTitle="Say this semi-major axis distance"
+                    />
+                    . The average distance from {parentLabel} is also called the{" "}
+                  </>
+                ) : (
+                  <>described by the </>
+                )}
+                <ReadingKeyword
+                  variant="inline"
+                  popoverContent={<SemiMajorAxisExplainer />}
+                  popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
+                >
+                  semi-major axis
+                </ReadingKeyword>
+                {semiKmOk ? "." : `: the mean distance from ${parentLabel} along its orbit.`}
+              </p>
+              <p className="text-base leading-snug text-sidebar-foreground/90">
+                {detailSize.name}&apos;s orbit has two special spots. The first is when{" "}
+                {detailSize.name} is farthest from {parentLabel} in its orbit.
+                {apKmOk ? (
+                  <>
+                    {" "}
+                    That distance is{" "}
+                    <InlineOrbitDistanceNumber
+                      km={apKm}
+                      distanceUnit={distanceUnit}
+                      onToggleUnit={toggleDistanceUnit}
+                      sayThisTitle="Say this apoapsis distance"
+                    />{" "}
+                    for {detailSize.name}, and it is called the{" "}
+                  </>
+                ) : (
+                  <>
+                    {" "}
+                    That point is called the{" "}
+                  </>
+                )}
+                <ReadingKeyword
+                  variant="inline"
+                  popoverContent={<ApoapsisExplainer />}
+                  popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
+                >
+                  apoapsis
+                </ReadingKeyword>
+                .
+              </p>
+              <p className="text-base leading-snug text-sidebar-foreground/90">
+                The second is when {detailSize.name} is closest to {parentLabel} in its
+                orbit.
+                {periKmOk ? (
+                  <>
+                    {" "}
+                    That distance is{" "}
+                    <InlineOrbitDistanceNumber
+                      km={periKm}
+                      distanceUnit={distanceUnit}
+                      onToggleUnit={toggleDistanceUnit}
+                      sayThisTitle="Say this periapsis distance"
+                    />{" "}
+                    for {detailSize.name}, and it&apos;s called the{" "}
+                  </>
+                ) : (
+                  <>
+                    {" "}
+                    That point is called the{" "}
+                  </>
+                )}
+                <ReadingKeyword
+                  variant="inline"
+                  popoverContent={<PeriapsisExplainer />}
+                  popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
+                >
+                  periapsis
+                </ReadingKeyword>
+                .
+              </p>
+              <p className="text-base leading-snug text-sidebar-foreground/90">
+                {`You can remember it this way: the "A" in apoapsis is for "Away" (the farthest point), and the "P" in periapsis is for "Passes close" (the closest point).`}
+              </p>
+            </>
           ) : (
-            <p className="text-base leading-snug text-sidebar-foreground/90">
-              {detailSize.name}&apos;s orbit has a few special measurements. Its average
-              distance from the Sun is called the{" "}
-              <ReadingKeyword
-                variant="inline"
-                popoverContent={<SemiMajorAxisExplainer />}
-                popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
-              >
-                semi-major axis
-              </ReadingKeyword>
-              . The two extreme points of the orbit are called{" "}
-              <ReadingKeyword
-                variant="inline"
-                popoverContent={<ApsisExplainer />}
-                popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
-              >
-                apsides
-              </ReadingKeyword>
-              : the closest is the{" "}
-              <ReadingKeyword
-                variant="inline"
-                popoverContent={<PeriapsisExplainer />}
-                popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
-              >
-                periapsis
-              </ReadingKeyword>{" "}
-              (or{" "}
-              <ReadingKeyword
-                variant="inline"
-                popoverContent={<PerihelionExplainer />}
-                popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
-              >
-                perihelion
-              </ReadingKeyword>{" "}
-              for orbits around the Sun), and the farthest is the{" "}
-              <ReadingKeyword
-                variant="inline"
-                popoverContent={<ApoapsisExplainer />}
-                popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
-              >
-                apoapsis
-              </ReadingKeyword>{" "}
-              (or{" "}
-              <ReadingKeyword
-                variant="inline"
-                popoverContent={<AphelionExplainer />}
-                popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
-              >
-                aphelion
-              </ReadingKeyword>
-              ).
-            </p>
+            <>
+              <p className="text-base leading-snug text-sidebar-foreground/90">
+                {detailSize.name}&apos;s average distance from the Sun is{" "}
+                {semiKmOk ? (
+                  <>
+                    <InlineOrbitDistanceNumber
+                      km={semiKm}
+                      distanceUnit={distanceUnit}
+                      onToggleUnit={toggleDistanceUnit}
+                      sayThisTitle="Say this semi-major axis distance"
+                    />
+                    . The average distance from the Sun is also called the{" "}
+                  </>
+                ) : (
+                  <>captured by the </>
+                )}
+                <ReadingKeyword
+                  variant="inline"
+                  popoverContent={<SemiMajorAxisExplainer />}
+                  popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
+                >
+                  semi-major axis
+                </ReadingKeyword>
+                {semiKmOk ? "." : `: the mean distance from the Sun along its orbit.`}
+              </p>
+              <p className="text-base leading-snug text-sidebar-foreground/90">
+                {detailSize.name}&apos;s orbit has two special spots. The first is when{" "}
+                {detailSize.name} is farthest from the Sun in its orbit.
+                {apKmOk ? (
+                  <>
+                    {" "}
+                    That distance is{" "}
+                    <InlineOrbitDistanceNumber
+                      km={apKm}
+                      distanceUnit={distanceUnit}
+                      onToggleUnit={toggleDistanceUnit}
+                      sayThisTitle="Say this aphelion distance"
+                    />{" "}
+                    for {detailSize.name}, and it is called the{" "}
+                  </>
+                ) : (
+                  <>
+                    {" "}
+                    That point is called the{" "}
+                  </>
+                )}
+                <ReadingKeyword
+                  variant="inline"
+                  popoverContent={<AphelionExplainer />}
+                  popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
+                >
+                  aphelion
+                </ReadingKeyword>
+                .
+              </p>
+              <p className="text-base leading-snug text-sidebar-foreground/90">
+                The second is when {detailSize.name} is closest to the Sun in its orbit.
+                {periKmOk ? (
+                  <>
+                    {" "}
+                    That distance is{" "}
+                    <InlineOrbitDistanceNumber
+                      km={periKm}
+                      distanceUnit={distanceUnit}
+                      onToggleUnit={toggleDistanceUnit}
+                      sayThisTitle="Say this perihelion distance"
+                    />{" "}
+                    for {detailSize.name}, and it&apos;s called the{" "}
+                  </>
+                ) : (
+                  <>
+                    {" "}
+                    That point is called the{" "}
+                  </>
+                )}
+                <ReadingKeyword
+                  variant="inline"
+                  popoverContent={<PerihelionExplainer />}
+                  popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
+                >
+                  perihelion
+                </ReadingKeyword>
+                .
+              </p>
+              <p className="text-base leading-snug text-sidebar-foreground/90">
+                {`You can remember it this way: the "A" in aphelion is for "Away" (the farthest point), and the "P" in perihelion is for "Passes close" (the closest point).`}
+              </p>
+            </>
           )}
 
           <dl className="space-y-2 text-base text-sidebar-foreground/90">
@@ -348,24 +447,11 @@ export function DistanceSelectedBodySidebarContent({
               title={
                 isMoon ? (
                   <span className="text-sidebar-foreground/60">
-                    <ReadingKeyword
-                      variant="inline"
-                      popoverContent={<SemiMajorAxisExplainer />}
-                      popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
-                    >
-                      Semi-major axis
-                    </ReadingKeyword>
-                    {` (around ${parentLabel})`}
+                    Semi-major axis{` (around ${parentLabel})`}
                   </span>
                 ) : (
                   <span className="text-sidebar-foreground/60">
-                    <ReadingKeyword
-                      variant="inline"
-                      popoverContent={<SemiMajorAxisExplainer />}
-                      popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
-                    >
-                      Semi-major axis
-                    </ReadingKeyword>
+                    Semi-major axis
                   </span>
                 )
               }
@@ -390,32 +476,11 @@ export function DistanceSelectedBodySidebarContent({
               title={
                 isMoon ? (
                   <span className="text-sidebar-foreground/60">
-                    <ReadingKeyword
-                      variant="inline"
-                      popoverContent={<PeriapsisExplainer />}
-                      popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
-                    >
-                      Periapsis
-                    </ReadingKeyword>
-                    {` (around ${parentLabel})`}
+                    Periapsis{` (around ${parentLabel})`}
                   </span>
                 ) : (
                   <span className="text-sidebar-foreground/60">
-                    <ReadingKeyword
-                      variant="inline"
-                      popoverContent={<PeriapsisExplainer />}
-                      popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
-                    >
-                      Periapsis
-                    </ReadingKeyword>
-                    {" / "}
-                    <ReadingKeyword
-                      variant="inline"
-                      popoverContent={<PerihelionExplainer />}
-                      popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
-                    >
-                      Perihelion
-                    </ReadingKeyword>
+                    Periapsis / Perihelion
                   </span>
                 )
               }
@@ -444,32 +509,11 @@ export function DistanceSelectedBodySidebarContent({
               title={
                 isMoon ? (
                   <span className="text-sidebar-foreground/60">
-                    <ReadingKeyword
-                      variant="inline"
-                      popoverContent={<ApoapsisExplainer />}
-                      popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
-                    >
-                      Apoapsis
-                    </ReadingKeyword>
-                    {` (around ${parentLabel})`}
+                    Apoapsis{` (around ${parentLabel})`}
                   </span>
                 ) : (
                   <span className="text-sidebar-foreground/60">
-                    <ReadingKeyword
-                      variant="inline"
-                      popoverContent={<ApoapsisExplainer />}
-                      popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
-                    >
-                      Apoapsis
-                    </ReadingKeyword>
-                    {" / "}
-                    <ReadingKeyword
-                      variant="inline"
-                      popoverContent={<AphelionExplainer />}
-                      popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
-                    >
-                      Aphelion
-                    </ReadingKeyword>
+                    Apoapsis / Aphelion
                   </span>
                 )
               }
@@ -594,22 +638,6 @@ function SemiMajorAxisExplainer() {
   )
 }
 
-function ApsisExplainer() {
-  return (
-    <section className="rounded-xl px-0.5 py-0.5">
-      <h3 className="font-heading text-sm font-semibold text-sidebar-foreground">
-        Apsides
-      </h3>
-      <p className="mt-2 text-sm leading-snug text-sidebar-foreground/85">
-        The <strong>apsides</strong> are the two extreme points of an orbit: the
-        closest approach and the farthest separation. The singular is{" "}
-        <strong>apsis</strong>; the plural is <strong>apsides</strong>.
-      </p>
-      {orbitExplainerLink("https://en.wikipedia.org/wiki/Apsis", "Wikipedia — apsis")}
-    </section>
-  )
-}
-
 function PeriapsisExplainer() {
   return (
     <section className="rounded-xl px-0.5 py-0.5">
@@ -673,6 +701,38 @@ function AphelionExplainer() {
         "Wikipedia — perihelion and aphelion"
       )}
     </section>
+  )
+}
+
+function InlineOrbitDistanceNumber({
+  km,
+  distanceUnit,
+  onToggleUnit,
+  sayThisTitle,
+}: {
+  km: number
+  distanceUnit: "km" | "mi"
+  onToggleUnit: () => void
+  sayThisTitle: string
+}) {
+  return (
+    <SwitchableReadingNumber
+      onToggleUnit={onToggleUnit}
+      numberAriaLabel={
+        distanceUnit === "km"
+          ? "Showing kilometers. Switch to miles."
+          : "Showing miles. Switch to kilometers."
+      }
+      explainerContent={
+        <DistanceReadingExplainerSection
+          title={sayThisTitle}
+          km={km}
+          unit={distanceUnit}
+        />
+      }
+    >
+      {formatDistanceNumber(km, distanceUnit)} {distanceUnit}
+    </SwitchableReadingNumber>
   )
 }
 
