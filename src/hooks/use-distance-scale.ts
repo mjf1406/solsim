@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 
-/** Matches left sidebar `md:[--sidebar-width:22.5rem]` at 16px/rem. */
-export const ASSUMED_LEFT_SIDEBAR_PX_CSS = 360
+/** Matches left sidebar `md:[--sidebar-width:30.75rem]` on `/size` and `/distance` at 16px/rem. */
+export const ASSUMED_LEFT_SIDEBAR_PX_CSS = 492
 /** Right sidebar default `--sidebar-width:16rem` at 16px/rem. */
 export const ASSUMED_RIGHT_SIDEBAR_PX_CSS = 256
 

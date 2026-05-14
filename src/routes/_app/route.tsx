@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router"
+import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router"
 import { createPortal } from "react-dom"
 import { useCallback, useState } from "react"
 import { PanelLeftIcon, PanelRightIcon } from "lucide-react"
@@ -78,6 +78,15 @@ function SidebarDockRightTriggerPortal({
 }
 
 function AppShellLayout() {
+  const isWideSidebarRoute = useRouterState({
+    select: (s) => {
+      const p = s.location.pathname
+      return (
+        p.startsWith("/solar-system/size") ||
+        p.startsWith("/solar-system/distance")
+      )
+    },
+  })
   const isMobile = useIsMobile()
   const {
     leftMount,
@@ -101,7 +110,9 @@ function AppShellLayout() {
       storageKey={SIDEBAR_STORAGE_KEY_LEFT}
       className={cn(
         "flex min-h-0 w-full flex-1",
-        "[--sidebar-width:21rem] md:[--sidebar-width:22.5rem]"
+        isWideSidebarRoute
+          ? "[--sidebar-width:28.75rem] md:[--sidebar-width:30.75rem]"
+          : "[--sidebar-width:21rem] md:[--sidebar-width:22.5rem]"
       )}
     >
       <SidebarDockLeftTriggerPortal mount={leftDockMount} show={isMobile} />
