@@ -83,7 +83,8 @@ function AppShellLayout() {
       const p = s.location.pathname
       return (
         p.startsWith("/solar-system/size") ||
-        p.startsWith("/solar-system/distance")
+        p.startsWith("/solar-system/distance") ||
+        p.startsWith("/solar-system/orbits")
       )
     },
   })
