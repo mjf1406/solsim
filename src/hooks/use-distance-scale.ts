@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react"
 
-/** Matches md:[--sidebar-width:15rem] when both sidebars are assumed open. */
-export const ASSUMED_SIDEBAR_PX_CSS = 240
+/** Matches left sidebar `md:[--sidebar-width:22.5rem]` at 16px/rem. */
+export const ASSUMED_LEFT_SIDEBAR_PX_CSS = 360
+/** Right sidebar default `--sidebar-width:16rem` at 16px/rem. */
+export const ASSUMED_RIGHT_SIDEBAR_PX_CSS = 256
 
 /** Uniform edge inset (CSS px) added inside each sidebar strip on the distance canvas. */
 export const DISTANCE_CANVAS_BASE_INSET_PX = 14
@@ -33,7 +35,10 @@ export function assumedDistanceFitViewportWidthPx(): number {
   const innerWidth = window.innerWidth ?? 1200
   return Math.max(
     200,
-    innerWidth - 2 * ASSUMED_SIDEBAR_PX_CSS - DISTANCE_CANVAS_INNER_PAD_PX
+    innerWidth -
+      ASSUMED_LEFT_SIDEBAR_PX_CSS -
+      ASSUMED_RIGHT_SIDEBAR_PX_CSS -
+      DISTANCE_CANVAS_INNER_PAD_PX
   )
 }
 

@@ -22,7 +22,8 @@ import {
   type DistanceLabelLeaderAttachment,
 } from "@/lib/canvas"
 import {
-  ASSUMED_SIDEBAR_PX_CSS,
+  ASSUMED_LEFT_SIDEBAR_PX_CSS,
+  ASSUMED_RIGHT_SIDEBAR_PX_CSS,
   DISTANCE_CANVAS_BASE_INSET_PX,
 } from "@/hooks/use-distance-scale"
 import { BODY_CLASS_STYLE } from "@/lib/constants"
@@ -67,8 +68,10 @@ const PROXY_DISK_DIAMETER_PX = 1
 const PROXY_DISK_HIT_PAD_PX = 20
 
 /** Left/right content inset: sidebar width + inner pad (stable — ignores live sidebar toggle). */
-const INSET_LEFT_CSS = ASSUMED_SIDEBAR_PX_CSS + DISTANCE_CANVAS_BASE_INSET_PX
-const INSET_RIGHT_CSS = ASSUMED_SIDEBAR_PX_CSS + DISTANCE_CANVAS_BASE_INSET_PX
+const INSET_LEFT_CSS =
+  ASSUMED_LEFT_SIDEBAR_PX_CSS + DISTANCE_CANVAS_BASE_INSET_PX
+const INSET_RIGHT_CSS =
+  ASSUMED_RIGHT_SIDEBAR_PX_CSS + DISTANCE_CANVAS_BASE_INSET_PX
 
 /**
  * Vertical gap between a planet/dwarf disk's top edge and the body label's

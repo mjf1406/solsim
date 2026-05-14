@@ -1,7 +1,12 @@
 import { useMemo, useState, type ReactNode } from "react"
-import { ExternalLink } from "lucide-react"
+import { ChevronUp, ExternalLink } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import { ReadingKeyword } from "@/components/reading/reading-keyword"
 import { SwitchableReadingNumber } from "@/components/reading/switchable-reading-number"
 import { BodyDiameterStatsSection } from "@/components/solar-system/body-diameter-stats-section"
@@ -16,6 +21,7 @@ import {
   formatDistanceRegionAuTitle,
   type DistanceRegion,
 } from "@/lib/solar-system/distance-regions"
+import { cn } from "@/lib/utils"
 
 import {
   collectDistanceBodies,
@@ -37,6 +43,47 @@ const ORBIT_KEYWORD_POPOVER_PROPS = {
   align: "start" as const,
   className:
     "border border-sidebar-border bg-sidebar/95 text-sidebar-foreground backdrop-blur-sm max-w-xs",
+}
+
+function SidebarStatsDataCollapsible({
+  title,
+  children,
+}: {
+  title: string
+  children: ReactNode
+}) {
+  return (
+    <Collapsible
+      defaultOpen={false}
+      className="group/sidebar-stats-dl rounded-xl border border-sidebar-border bg-sidebar/40 px-2 py-2"
+    >
+      <div className="flex w-full items-center gap-2">
+        <CollapsibleTrigger
+          className={cn(
+            "w-fit shrink-0 rounded-xl px-1 py-1.5 text-left text-sm font-medium text-sidebar-foreground ring-sidebar-ring outline-none",
+            "-mx-1 hover:bg-sidebar-accent/60 focus-visible:ring-2"
+          )}
+        >
+          {title}
+        </CollapsibleTrigger>
+        <CollapsibleTrigger
+          className={cn(
+            "ml-auto flex size-8 shrink-0 items-center justify-center rounded-xl text-sidebar-foreground ring-sidebar-ring outline-none",
+            "hover:bg-sidebar-accent/60 focus-visible:ring-2"
+          )}
+        >
+          <ChevronUp
+            aria-hidden
+            className="size-4 text-sidebar-foreground/70 transition-transform duration-200 group-data-[state=open]/sidebar-stats-dl:rotate-180"
+          />
+          <span className="sr-only">Toggle {title} section</span>
+        </CollapsibleTrigger>
+      </div>
+      <CollapsibleContent className="border-t border-sidebar-border/80 px-1 pt-3 pb-1">
+        {children}
+      </CollapsibleContent>
+    </Collapsible>
+  )
 }
 
 function DistanceRegionSidebarPanel({
@@ -72,61 +119,63 @@ function DistanceRegionSidebarPanel({
           {region.description}
         </p>
       </div>
-      <dl className="space-y-2 text-base text-sidebar-foreground/90">
-        <DistanceRow
-          title={
-            <span className="text-sidebar-foreground/60">
-              Inner edge ({innerAuTitle})
-            </span>
-          }
-          km={innerKm}
-          pxPerKmDistance={pxPerKmDistance}
-          pxPerMm={pxPerMm}
-          isCalibrated={isCalibrated}
-          onOpenCalibration={onOpenCalibration}
-          distanceUnit={distanceUnit}
-          onToggleUnit={() => setDistanceUnit((u) => (u === "km" ? "mi" : "km"))}
-          scaledUnitSystem={scaledUnitSystem}
-          onToggleScaledUnit={() =>
-            setScaledUnitSystem((s) => (s === "metric" ? "imperial" : "metric"))
-          }
-          sayThisTitle={`Say this ${region.label} inner edge distance`}
-        />
-        <DistanceRow
-          title={
-            <span className="text-sidebar-foreground/60">
-              Outer edge ({outerAuTitle})
-            </span>
-          }
-          km={outerKm}
-          pxPerKmDistance={pxPerKmDistance}
-          pxPerMm={pxPerMm}
-          isCalibrated={isCalibrated}
-          onOpenCalibration={onOpenCalibration}
-          distanceUnit={distanceUnit}
-          onToggleUnit={() => setDistanceUnit((u) => (u === "km" ? "mi" : "km"))}
-          scaledUnitSystem={scaledUnitSystem}
-          onToggleScaledUnit={() =>
-            setScaledUnitSystem((s) => (s === "metric" ? "imperial" : "metric"))
-          }
-          sayThisTitle={`Say this ${region.label} outer edge distance`}
-        />
-        <DistanceRow
-          title={<span className="text-sidebar-foreground/60">Approximate width</span>}
-          km={widthKm}
-          pxPerKmDistance={pxPerKmDistance}
-          pxPerMm={pxPerMm}
-          isCalibrated={isCalibrated}
-          onOpenCalibration={onOpenCalibration}
-          distanceUnit={distanceUnit}
-          onToggleUnit={() => setDistanceUnit((u) => (u === "km" ? "mi" : "km"))}
-          scaledUnitSystem={scaledUnitSystem}
-          onToggleScaledUnit={() =>
-            setScaledUnitSystem((s) => (s === "metric" ? "imperial" : "metric"))
-          }
-          sayThisTitle={`Say this ${region.label} width`}
-        />
-      </dl>
+      <SidebarStatsDataCollapsible title="Region measurements">
+        <dl className="space-y-2 text-base text-sidebar-foreground/90">
+          <DistanceRow
+            title={
+              <span className="text-sidebar-foreground/60">
+                Inner edge ({innerAuTitle})
+              </span>
+            }
+            km={innerKm}
+            pxPerKmDistance={pxPerKmDistance}
+            pxPerMm={pxPerMm}
+            isCalibrated={isCalibrated}
+            onOpenCalibration={onOpenCalibration}
+            distanceUnit={distanceUnit}
+            onToggleUnit={() => setDistanceUnit((u) => (u === "km" ? "mi" : "km"))}
+            scaledUnitSystem={scaledUnitSystem}
+            onToggleScaledUnit={() =>
+              setScaledUnitSystem((s) => (s === "metric" ? "imperial" : "metric"))
+            }
+            sayThisTitle={`Say this ${region.label} inner edge distance`}
+          />
+          <DistanceRow
+            title={
+              <span className="text-sidebar-foreground/60">
+                Outer edge ({outerAuTitle})
+              </span>
+            }
+            km={outerKm}
+            pxPerKmDistance={pxPerKmDistance}
+            pxPerMm={pxPerMm}
+            isCalibrated={isCalibrated}
+            onOpenCalibration={onOpenCalibration}
+            distanceUnit={distanceUnit}
+            onToggleUnit={() => setDistanceUnit((u) => (u === "km" ? "mi" : "km"))}
+            scaledUnitSystem={scaledUnitSystem}
+            onToggleScaledUnit={() =>
+              setScaledUnitSystem((s) => (s === "metric" ? "imperial" : "metric"))
+            }
+            sayThisTitle={`Say this ${region.label} outer edge distance`}
+          />
+          <DistanceRow
+            title={<span className="text-sidebar-foreground/60">Approximate width</span>}
+            km={widthKm}
+            pxPerKmDistance={pxPerKmDistance}
+            pxPerMm={pxPerMm}
+            isCalibrated={isCalibrated}
+            onOpenCalibration={onOpenCalibration}
+            distanceUnit={distanceUnit}
+            onToggleUnit={() => setDistanceUnit((u) => (u === "km" ? "mi" : "km"))}
+            scaledUnitSystem={scaledUnitSystem}
+            onToggleScaledUnit={() =>
+              setScaledUnitSystem((s) => (s === "metric" ? "imperial" : "metric"))
+            }
+            sayThisTitle={`Say this ${region.label} width`}
+          />
+        </dl>
+      </SidebarStatsDataCollapsible>
     </div>
   )
 }
@@ -257,6 +306,8 @@ export function DistanceSelectedBodySidebarContent({
             ? "You can't see this one, can you? It's too small!"
             : undefined
         }
+        wrapStatsListInCollapsible
+        statsListCollapsibleTitle="Size on this screen"
       />
 
       {showOrbitSection ? (
@@ -442,110 +493,50 @@ export function DistanceSelectedBodySidebarContent({
             </>
           )}
 
-          <dl className="space-y-2 text-base text-sidebar-foreground/90">
-            <DistanceRow
-              title={
-                isMoon ? (
-                  <span className="text-sidebar-foreground/60">
-                    Semi-major axis{` (around ${parentLabel})`}
-                  </span>
-                ) : (
-                  <span className="text-sidebar-foreground/60">
-                    Semi-major axis
-                  </span>
-                )
-              }
-              km={detailDistance.semiMajorAxisKm}
-              pxPerKmDistance={pxPerKmDistance}
-              pxPerMm={pxPerMm}
-              isCalibrated={isCalibrated}
-              onOpenCalibration={onOpenCalibration}
-              distanceUnit={distanceUnit}
-              onToggleUnit={() =>
-                setDistanceUnit((u) => (u === "km" ? "mi" : "km"))
-              }
-              scaledUnitSystem={scaledUnitSystem}
-              onToggleScaledUnit={() =>
-                setScaledUnitSystem((s) =>
-                  s === "metric" ? "imperial" : "metric"
-                )
-              }
-              sayThisTitle="Say this semi-major axis distance"
-            />
-            <DistanceRow
-              title={
-                isMoon ? (
-                  <span className="text-sidebar-foreground/60">
-                    Periapsis{` (around ${parentLabel})`}
-                  </span>
-                ) : (
-                  <span className="text-sidebar-foreground/60">
-                    Periapsis / Perihelion
-                  </span>
-                )
-              }
-              km={detailDistance.perihelionKm}
-              pxPerKmDistance={pxPerKmDistance}
-              pxPerMm={pxPerMm}
-              isCalibrated={isCalibrated}
-              onOpenCalibration={onOpenCalibration}
-              distanceUnit={distanceUnit}
-              onToggleUnit={() =>
-                setDistanceUnit((u) => (u === "km" ? "mi" : "km"))
-              }
-              scaledUnitSystem={scaledUnitSystem}
-              onToggleScaledUnit={() =>
-                setScaledUnitSystem((s) =>
-                  s === "metric" ? "imperial" : "metric"
-                )
-              }
-              sayThisTitle={
-                isMoon
-                  ? "Say this periapsis distance"
-                  : "Say this perihelion distance"
-              }
-            />
-            <DistanceRow
-              title={
-                isMoon ? (
-                  <span className="text-sidebar-foreground/60">
-                    Apoapsis{` (around ${parentLabel})`}
-                  </span>
-                ) : (
-                  <span className="text-sidebar-foreground/60">
-                    Apoapsis / Aphelion
-                  </span>
-                )
-              }
-              km={detailDistance.aphelionKm}
-              pxPerKmDistance={pxPerKmDistance}
-              pxPerMm={pxPerMm}
-              isCalibrated={isCalibrated}
-              onOpenCalibration={onOpenCalibration}
-              distanceUnit={distanceUnit}
-              onToggleUnit={() =>
-                setDistanceUnit((u) => (u === "km" ? "mi" : "km"))
-              }
-              scaledUnitSystem={scaledUnitSystem}
-              onToggleScaledUnit={() =>
-                setScaledUnitSystem((s) =>
-                  s === "metric" ? "imperial" : "metric"
-                )
-              }
-              sayThisTitle={
-                isMoon
-                  ? "Say this apoapsis distance"
-                  : "Say this aphelion distance"
-              }
-            />
-            {!isMoon && detailDistance.prevSunOrbiterId ? (
+          <SidebarStatsDataCollapsible title="Orbit distances">
+            <dl className="space-y-2 text-base text-sidebar-foreground/90">
               <DistanceRow
                 title={
-                  prevName
-                    ? `Distance to ${prevName}`
-                    : "Distance to previous body"
+                  isMoon ? (
+                    <span className="text-sidebar-foreground/60">
+                      Semi-major axis{` (around ${parentLabel})`}
+                    </span>
+                  ) : (
+                    <span className="text-sidebar-foreground/60">
+                      Semi-major axis
+                    </span>
+                  )
                 }
-                km={dPrevKm}
+                km={detailDistance.semiMajorAxisKm}
+                pxPerKmDistance={pxPerKmDistance}
+                pxPerMm={pxPerMm}
+                isCalibrated={isCalibrated}
+                onOpenCalibration={onOpenCalibration}
+                distanceUnit={distanceUnit}
+                onToggleUnit={() =>
+                  setDistanceUnit((u) => (u === "km" ? "mi" : "km"))
+                }
+                scaledUnitSystem={scaledUnitSystem}
+                onToggleScaledUnit={() =>
+                  setScaledUnitSystem((s) =>
+                    s === "metric" ? "imperial" : "metric"
+                  )
+                }
+                sayThisTitle="Say this semi-major axis distance"
+              />
+              <DistanceRow
+                title={
+                  isMoon ? (
+                    <span className="text-sidebar-foreground/60">
+                      Periapsis{` (around ${parentLabel})`}
+                    </span>
+                  ) : (
+                    <span className="text-sidebar-foreground/60">
+                      Periapsis / Perihelion
+                    </span>
+                  )
+                }
+                km={detailDistance.perihelionKm}
                 pxPerKmDistance={pxPerKmDistance}
                 pxPerMm={pxPerMm}
                 isCalibrated={isCalibrated}
@@ -561,20 +552,24 @@ export function DistanceSelectedBodySidebarContent({
                   )
                 }
                 sayThisTitle={
-                  prevName
-                    ? `Say this distance to ${prevName}`
-                    : "Say this distance to the previous body"
+                  isMoon
+                    ? "Say this periapsis distance"
+                    : "Say this perihelion distance"
                 }
               />
-            ) : null}
-            {!isMoon && detailDistance.nextSunOrbiterId ? (
               <DistanceRow
                 title={
-                  nextName
-                    ? `Distance to ${nextName}`
-                    : "Distance to next body"
+                  isMoon ? (
+                    <span className="text-sidebar-foreground/60">
+                      Apoapsis{` (around ${parentLabel})`}
+                    </span>
+                  ) : (
+                    <span className="text-sidebar-foreground/60">
+                      Apoapsis / Aphelion
+                    </span>
+                  )
                 }
-                km={dNextKm}
+                km={detailDistance.aphelionKm}
                 pxPerKmDistance={pxPerKmDistance}
                 pxPerMm={pxPerMm}
                 isCalibrated={isCalibrated}
@@ -590,13 +585,71 @@ export function DistanceSelectedBodySidebarContent({
                   )
                 }
                 sayThisTitle={
-                  nextName
-                    ? `Say this distance to ${nextName}`
-                    : "Say this distance to the next body"
+                  isMoon
+                    ? "Say this apoapsis distance"
+                    : "Say this aphelion distance"
                 }
               />
-            ) : null}
-          </dl>
+              {!isMoon && detailDistance.prevSunOrbiterId ? (
+                <DistanceRow
+                  title={
+                    prevName
+                      ? `Distance to ${prevName}`
+                      : "Distance to previous body"
+                  }
+                  km={dPrevKm}
+                  pxPerKmDistance={pxPerKmDistance}
+                  pxPerMm={pxPerMm}
+                  isCalibrated={isCalibrated}
+                  onOpenCalibration={onOpenCalibration}
+                  distanceUnit={distanceUnit}
+                  onToggleUnit={() =>
+                    setDistanceUnit((u) => (u === "km" ? "mi" : "km"))
+                  }
+                  scaledUnitSystem={scaledUnitSystem}
+                  onToggleScaledUnit={() =>
+                    setScaledUnitSystem((s) =>
+                      s === "metric" ? "imperial" : "metric"
+                    )
+                  }
+                  sayThisTitle={
+                    prevName
+                      ? `Say this distance to ${prevName}`
+                      : "Say this distance to the previous body"
+                  }
+                />
+              ) : null}
+              {!isMoon && detailDistance.nextSunOrbiterId ? (
+                <DistanceRow
+                  title={
+                    nextName
+                      ? `Distance to ${nextName}`
+                      : "Distance to next body"
+                  }
+                  km={dNextKm}
+                  pxPerKmDistance={pxPerKmDistance}
+                  pxPerMm={pxPerMm}
+                  isCalibrated={isCalibrated}
+                  onOpenCalibration={onOpenCalibration}
+                  distanceUnit={distanceUnit}
+                  onToggleUnit={() =>
+                    setDistanceUnit((u) => (u === "km" ? "mi" : "km"))
+                  }
+                  scaledUnitSystem={scaledUnitSystem}
+                  onToggleScaledUnit={() =>
+                    setScaledUnitSystem((s) =>
+                      s === "metric" ? "imperial" : "metric"
+                    )
+                  }
+                  sayThisTitle={
+                    nextName
+                      ? `Say this distance to ${nextName}`
+                      : "Say this distance to the next body"
+                  }
+                />
+              ) : null}
+            </dl>
+          </SidebarStatsDataCollapsible>
         </>
       ) : null}
     </div>

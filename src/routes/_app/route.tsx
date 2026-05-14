@@ -101,7 +101,7 @@ function AppShellLayout() {
       storageKey={SIDEBAR_STORAGE_KEY_LEFT}
       className={cn(
         "flex min-h-0 w-full flex-1",
-        "[--sidebar-width:14rem] md:[--sidebar-width:15rem]"
+        "[--sidebar-width:21rem] md:[--sidebar-width:22.5rem]"
       )}
     >
       <SidebarDockLeftTriggerPortal mount={leftDockMount} show={isMobile} />

@@ -7,7 +7,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import {
-  ASSUMED_SIDEBAR_PX_CSS,
+  ASSUMED_LEFT_SIDEBAR_PX_CSS,
   DISTANCE_CANVAS_BASE_INSET_PX,
 } from "@/hooks/use-distance-scale"
 import {
@@ -44,7 +44,8 @@ function isSymbolBarBody(b: DistanceBody): boolean {
   return false
 }
 
-const INSET_LEFT_CSS = ASSUMED_SIDEBAR_PX_CSS + DISTANCE_CANVAS_BASE_INSET_PX
+const INSET_LEFT_CSS =
+  ASSUMED_LEFT_SIDEBAR_PX_CSS + DISTANCE_CANVAS_BASE_INSET_PX
 
 type SymbolBarRow =
   | { kind: "body"; body: DistanceBody; href: string }

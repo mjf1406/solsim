@@ -55,6 +55,8 @@ export function SizeSelectedBodySidebarContent({
       pxPerMm={pxPerMm}
       isCalibrated={isCalibrated}
       onOpenCalibration={onOpenCalibration}
+      wrapStatsListInCollapsible
+      statsListCollapsibleTitle="Diameter numbers"
     />
   )
 }

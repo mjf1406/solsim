@@ -1,8 +1,13 @@
-import { useState } from "react"
-import { ExternalLink } from "lucide-react"
+import { useState, type Dispatch, type ReactNode, type SetStateAction } from "react"
+import { ChevronUp, ExternalLink } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import { ReadingKeyword } from "@/components/reading/reading-keyword"
 import { SwitchableReadingNumber } from "@/components/reading/switchable-reading-number"
 import {
@@ -16,6 +21,7 @@ import {
   spokenScaledDiameterSentence,
   type ScaledDiameterUnitSystem,
 } from "@/lib/solar-system/scale/scaled-diameter-format"
+import { cn } from "@/lib/utils"
 
 export type BodyDiameterDetail = {
   name: string
@@ -43,6 +49,10 @@ export type BodyDiameterStatsSectionProps = {
    * when the body is sub-pixel at the current zoom).
    */
   pixelDiameterFootnote?: string
+  /** When true, the Diameter / Pixel / Scaled definition list is in a default-closed collapsible. */
+  wrapStatsListInCollapsible?: boolean
+  /** Visible label for the stats collapsible trigger (used when {@link wrapStatsListInCollapsible} is true). */
+  statsListCollapsibleTitle?: string
 }
 
 export function BodyDiameterStatsSection({
@@ -52,6 +62,8 @@ export function BodyDiameterStatsSection({
   isCalibrated,
   onOpenCalibration,
   pixelDiameterFootnote,
+  wrapStatsListInCollapsible = false,
+  statsListCollapsibleTitle = "Measurements",
 }: BodyDiameterStatsSectionProps) {
   const [diameterUnit, setDiameterUnit] = useState<"km" | "mi">("km")
   const [pixelLabelMode, setPixelLabelMode] = useState<"abbr" | "word">("abbr")
@@ -143,77 +155,158 @@ export function BodyDiameterStatsSection({
         </SwitchableReadingNumber>{" "}
         in diameter.
       </p>
-      <dl className="space-y-2 text-base text-sidebar-foreground/90">
-        <div>
-          <dt className="text-sidebar-foreground/60">Diameter</dt>
-          <dd className="mt-0.5 font-medium text-sidebar-foreground">
-            {physicalDiameterReading()}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-sidebar-foreground/60">Pixel diameter</dt>
-          <dd className="mt-0.5 font-medium text-sidebar-foreground tabular-nums">
-            {formatDiameterPx(detail.diameterPx)}
-            {pixelDiameterFootnote ? (
-              <p className="mt-1.5 text-xs font-normal leading-snug text-sidebar-foreground/65">
-                {pixelDiameterFootnote}
-              </p>
-            ) : null}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-sidebar-foreground/60">Scaled diameter</dt>
-          <dd className="mt-0.5 font-medium text-sidebar-foreground">
-            {(() => {
-              const mm = scaledDiameterMm(detail.diameterKm, pxPerKm, pxPerMm)
-              if (!Number.isFinite(mm)) {
-                return <span className="tabular-nums">—</span>
-              }
-              if (!isCalibrated) {
-                return (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    className="h-8 px-3 text-sm font-medium"
-                    onClick={() => onOpenCalibration()}
-                    aria-label="Open display calibration to see scaled diameter on your screen"
-                  >
-                    Calibrate to see
-                  </Button>
-                )
-              }
-              const formatted = formatScaledDiameter(mm, scaledUnitSystem)
-              const approxPrefix = "≈ "
-              return (
-                <SwitchableReadingNumber
-                  onToggleUnit={() =>
-                    setScaledUnitSystem((s) =>
-                      s === "metric" ? "imperial" : "metric"
-                    )
-                  }
-                  numberAriaLabel={
-                    scaledUnitSystem === "metric"
-                      ? "Showing metric units. Switch to imperial."
-                      : "Showing imperial units. Switch to metric."
-                  }
-                  explainerContent={
-                    <ScaledDiameterExplainerSection
-                      bodyName={detail.name}
-                      mm={mm}
-                      system={scaledUnitSystem}
-                    />
-                  }
-                >
-                  {approxPrefix}
-                  {formatted.display} {formatted.unit}
-                </SwitchableReadingNumber>
-              )
-            })()}
-          </dd>
-        </div>
-      </dl>
+      {wrapStatsListInCollapsible ? (
+        <Collapsible
+          defaultOpen={false}
+          className="group/bodydiam-stats-collapsible rounded-xl border border-sidebar-border bg-sidebar/40 px-2 py-2"
+        >
+          <div className="flex w-full items-center gap-2">
+            <CollapsibleTrigger
+              className={cn(
+                "w-fit shrink-0 rounded-xl px-1 py-1.5 text-left text-sm font-medium text-sidebar-foreground ring-sidebar-ring outline-none",
+                "-mx-1 hover:bg-sidebar-accent/60 focus-visible:ring-2"
+              )}
+            >
+              {statsListCollapsibleTitle}
+            </CollapsibleTrigger>
+            <CollapsibleTrigger
+              className={cn(
+                "ml-auto flex size-8 shrink-0 items-center justify-center rounded-xl text-sidebar-foreground ring-sidebar-ring outline-none",
+                "hover:bg-sidebar-accent/60 focus-visible:ring-2"
+              )}
+            >
+              <ChevronUp
+                aria-hidden
+                className="size-4 text-sidebar-foreground/70 transition-transform duration-200 group-data-[state=open]/bodydiam-stats-collapsible:rotate-180"
+              />
+              <span className="sr-only">
+                Toggle {statsListCollapsibleTitle} section
+              </span>
+            </CollapsibleTrigger>
+          </div>
+          <CollapsibleContent className="border-t border-sidebar-border/80 px-1 pt-3 pb-1">
+            <StatsDefinitionList
+              physicalDiameterReading={physicalDiameterReading}
+              detail={detail}
+              pixelDiameterFootnote={pixelDiameterFootnote}
+              pxPerKm={pxPerKm}
+              pxPerMm={pxPerMm}
+              isCalibrated={isCalibrated}
+              onOpenCalibration={onOpenCalibration}
+              scaledUnitSystem={scaledUnitSystem}
+              setScaledUnitSystem={setScaledUnitSystem}
+            />
+          </CollapsibleContent>
+        </Collapsible>
+      ) : (
+        <StatsDefinitionList
+          physicalDiameterReading={physicalDiameterReading}
+          detail={detail}
+          pixelDiameterFootnote={pixelDiameterFootnote}
+          pxPerKm={pxPerKm}
+          pxPerMm={pxPerMm}
+          isCalibrated={isCalibrated}
+          onOpenCalibration={onOpenCalibration}
+          scaledUnitSystem={scaledUnitSystem}
+          setScaledUnitSystem={setScaledUnitSystem}
+        />
+      )}
     </div>
+  )
+}
+
+function StatsDefinitionList({
+  physicalDiameterReading,
+  detail,
+  pixelDiameterFootnote,
+  pxPerKm,
+  pxPerMm,
+  isCalibrated,
+  onOpenCalibration,
+  scaledUnitSystem,
+  setScaledUnitSystem,
+}: {
+  physicalDiameterReading: () => ReactNode
+  detail: BodyDiameterDetail
+  pixelDiameterFootnote?: string
+  pxPerKm: number
+  pxPerMm: number
+  isCalibrated: boolean
+  onOpenCalibration: () => void
+  scaledUnitSystem: ScaledDiameterUnitSystem
+  setScaledUnitSystem: Dispatch<SetStateAction<ScaledDiameterUnitSystem>>
+}) {
+  return (
+    <dl className="space-y-2 text-base text-sidebar-foreground/90">
+      <div>
+        <dt className="text-sidebar-foreground/60">Diameter</dt>
+        <dd className="mt-0.5 font-medium text-sidebar-foreground">
+          {physicalDiameterReading()}
+        </dd>
+      </div>
+      <div>
+        <dt className="text-sidebar-foreground/60">Pixel diameter</dt>
+        <dd className="mt-0.5 font-medium text-sidebar-foreground tabular-nums">
+          {formatDiameterPx(detail.diameterPx)}
+          {pixelDiameterFootnote ? (
+            <p className="mt-1.5 text-xs font-normal leading-snug text-sidebar-foreground/65">
+              {pixelDiameterFootnote}
+            </p>
+          ) : null}
+        </dd>
+      </div>
+      <div>
+        <dt className="text-sidebar-foreground/60">Scaled diameter</dt>
+        <dd className="mt-0.5 font-medium text-sidebar-foreground">
+          {(() => {
+            const mm = scaledDiameterMm(detail.diameterKm, pxPerKm, pxPerMm)
+            if (!Number.isFinite(mm)) {
+              return <span className="tabular-nums">—</span>
+            }
+            if (!isCalibrated) {
+              return (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="h-8 px-3 text-sm font-medium"
+                  onClick={() => onOpenCalibration()}
+                  aria-label="Open display calibration to see scaled diameter on your screen"
+                >
+                  Calibrate to see
+                </Button>
+              )
+            }
+            const formatted = formatScaledDiameter(mm, scaledUnitSystem)
+            const approxPrefix = "≈ "
+            return (
+              <SwitchableReadingNumber
+                onToggleUnit={() =>
+                  setScaledUnitSystem((s) =>
+                    s === "metric" ? "imperial" : "metric"
+                  )
+                }
+                numberAriaLabel={
+                  scaledUnitSystem === "metric"
+                    ? "Showing metric units. Switch to imperial."
+                    : "Showing imperial units. Switch to metric."
+                }
+                explainerContent={
+                  <ScaledDiameterExplainerSection
+                    bodyName={detail.name}
+                    mm={mm}
+                    system={scaledUnitSystem}
+                  />
+                }
+              >
+                {approxPrefix}
+                {formatted.display} {formatted.unit}
+              </SwitchableReadingNumber>
+            )
+          })()}
+        </dd>
+      </div>
+    </dl>
   )
 }
 

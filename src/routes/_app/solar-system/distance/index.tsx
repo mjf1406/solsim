@@ -12,7 +12,7 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { useCanvasScale } from "@/hooks/use-canvas-scale"
 import { useDisplayCalibration } from "@/hooks/use-display-calibration"
 import {
-  ASSUMED_SIDEBAR_PX_CSS,
+  ASSUMED_LEFT_SIDEBAR_PX_CSS,
   DISTANCE_CANVAS_BASE_INSET_PX,
   DISTANCE_FIT_ORBIT_PX_OPTIONS,
   pxPerKmForFitDistance,
@@ -252,7 +252,8 @@ function SolarSystemDistancePage() {
       return {
         bodies: distanceBodies,
         pxPerKmDistance: distanceScale.debouncedPxPerKm,
-        insetLeftPx: ASSUMED_SIDEBAR_PX_CSS + DISTANCE_CANVAS_BASE_INSET_PX,
+        insetLeftPx:
+          ASSUMED_LEFT_SIDEBAR_PX_CSS + DISTANCE_CANVAS_BASE_INSET_PX,
       }
     }, [distanceBodies, distanceScale.debouncedPxPerKm])
 
@@ -426,7 +427,7 @@ function SolarSystemDistancePage() {
         selectedBodyId,
         sizeScale.debouncedPxPerKm,
         distanceScale.debouncedPxPerKm,
-        ASSUMED_SIDEBAR_PX_CSS + DISTANCE_CANVAS_BASE_INSET_PX
+        ASSUMED_LEFT_SIDEBAR_PX_CSS + DISTANCE_CANVAS_BASE_INSET_PX
       )
     ) {
       return
