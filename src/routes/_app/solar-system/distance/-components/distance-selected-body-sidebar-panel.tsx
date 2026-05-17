@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react"
+import { useId, useMemo, useState, type ReactNode } from "react"
 import { ChevronUp, ExternalLink } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -285,6 +285,11 @@ export function DistanceSelectedBodySidebarContent({
   const toggleDistanceUnit = () =>
     setDistanceUnit((u) => (u === "km" ? "mi" : "km"))
 
+  const distanceSectionHeadingId = useId()
+  const distanceSectionTitle = isMoon
+    ? `Distance from ${parentLabel}`
+    : "Distance from the Sun"
+
   return (
     <div className="flex flex-col gap-3">
       <BodyDiameterStatsSection
@@ -311,7 +316,16 @@ export function DistanceSelectedBodySidebarContent({
       />
 
       {showOrbitSection ? (
-        <>
+        <section
+          aria-labelledby={distanceSectionHeadingId}
+          className="flex flex-col gap-3"
+        >
+          <h2
+            id={distanceSectionHeadingId}
+            className="font-heading text-lg font-semibold text-sidebar-foreground"
+          >
+            {distanceSectionTitle}
+          </h2>
           {isMoon ? (
             <>
               <p className="text-base leading-snug text-sidebar-foreground/90">
@@ -650,7 +664,7 @@ export function DistanceSelectedBodySidebarContent({
               ) : null}
             </dl>
           </SidebarStatsDataCollapsible>
-        </>
+        </section>
       ) : null}
     </div>
   )

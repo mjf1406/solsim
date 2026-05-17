@@ -97,7 +97,7 @@ export function BodyDiameterStatsSection({
 
   return (
     <div className="flex flex-col gap-3">
-      <h2 className="flex items-center justify-between gap-2 font-heading text-2xl font-semibold tracking-tight text-sidebar-foreground">
+      <h1 className="flex items-center justify-between gap-2 font-heading text-2xl font-semibold tracking-tight text-sidebar-foreground">
         <span className="flex min-w-0 items-center gap-2">
           {titleSymbolHref ? (
             <img
@@ -113,6 +113,9 @@ export function BodyDiameterStatsSection({
         <Badge variant="secondary" className="w-fit shrink-0">
           {detail.kindLabel}
         </Badge>
+      </h1>
+      <h2 className="mt-2 font-heading text-lg font-semibold text-sidebar-foreground">
+        Size
       </h2>
       <p className="text-base leading-snug text-sidebar-foreground/90">
         {detail.positionIntro}
