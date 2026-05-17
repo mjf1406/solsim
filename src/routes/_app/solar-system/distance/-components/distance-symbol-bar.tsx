@@ -101,7 +101,7 @@ function DistanceSymbolBarEntry({
           <img
             src={href}
             alt=""
-            className="size-7 dark:[filter:invert(1)_brightness(1.1)]"
+            className="size-7 dark:filter-[invert(1)_brightness(1.1)]"
             draggable={false}
           />
         </Button>
@@ -161,7 +161,7 @@ function DistanceSymbolBarRegionEntry({
             className={cn(
               "size-7",
               !region.iconKeepColors &&
-                "dark:[filter:invert(1)_brightness(1.1)]"
+                "dark:filter-[invert(1)_brightness(1.1)]"
             )}
             draggable={false}
           />
@@ -261,9 +261,7 @@ export function DistanceSymbolBar({
       className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex justify-center px-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       aria-label="Jump to a major body by symbol"
     >
-      <div
-        className="pointer-events-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-0.5 rounded-full border border-border/60 bg-background/85 px-1.5 py-1 shadow-lg backdrop-blur-md"
-      >
+      <div className="pointer-events-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-0.5 rounded-full border border-border/60 bg-background/85 px-1.5 py-1 shadow-lg backdrop-blur-md">
         {rows.map((row) => {
           if (row.kind === "region") {
             const r = row.region

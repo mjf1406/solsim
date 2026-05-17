@@ -88,7 +88,12 @@ function SizeBodyTypesCollapsibleSection({
   )
 
   const rows = useMemo(() => {
-    const stats = statsByKindForModelUnderFilter(model, bodyDisplayFilter, 1, pxPerKm)
+    const stats = statsByKindForModelUnderFilter(
+      model,
+      bodyDisplayFilter,
+      1,
+      pxPerKm
+    )
     const allBodies = collectSizeCanvasBodies(model)
     const byKind = new Map<SizeBodyKind, typeof allBodies>()
     for (const k of SIZE_BODY_KIND_ORDER) {
@@ -98,9 +103,13 @@ function SizeBodyTypesCollapsibleSection({
       byKind.get(b.kind)!.push(b)
     }
     for (const k of SIZE_BODY_KIND_ORDER) {
-      byKind.get(k)!.sort((a, b) =>
-        a.row.name.localeCompare(b.row.name, undefined, { sensitivity: "base" })
-      )
+      byKind
+        .get(k)!
+        .sort((a, b) =>
+          a.row.name.localeCompare(b.row.name, undefined, {
+            sensitivity: "base",
+          })
+        )
     }
 
     return SIDEBAR_BODY_KIND_ORDER.map((kind) => {
@@ -238,8 +247,8 @@ function SizeBodyTypesCollapsibleSection({
             </p>
             <p>
               Click a body type row (name, counts, or chevron) to expand and see
-              every body and whether it would appear on the canvas at the current
-              scale. Click a body name to select it on the canvas.
+              every body and whether it would appear on the canvas at the
+              current scale. Click a body name to select it on the canvas.
             </p>
           </div>
         }

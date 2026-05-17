@@ -1,4 +1,9 @@
-import { useState, type Dispatch, type ReactNode, type SetStateAction } from "react"
+import {
+  useState,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from "react"
 import { ChevronUp, ExternalLink } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -76,9 +81,7 @@ export function BodyDiameterStatsSection({
 
   const physicalDiameterReading = () => (
     <SwitchableReadingNumber
-      onToggleUnit={() =>
-        setDiameterUnit((u) => (u === "km" ? "mi" : "km"))
-      }
+      onToggleUnit={() => setDiameterUnit((u) => (u === "km" ? "mi" : "km"))}
       numberAriaLabel={
         diameterUnit === "km"
           ? "Showing kilometers. Switch to miles."
@@ -104,7 +107,7 @@ export function BodyDiameterStatsSection({
               src={titleSymbolHref}
               alt=""
               aria-hidden
-              className="size-9 shrink-0 dark:[filter:invert(1)_brightness(1.1)]"
+              className="size-9 shrink-0 dark:filter-[invert(1)_brightness(1.1)]"
               draggable={false}
             />
           ) : null}
@@ -134,9 +137,9 @@ export function BodyDiameterStatsSection({
         >
           diameter
         </ReadingKeyword>
-        . So we can say {midName} has a diameter of {physicalDiameterReading()}. On this
-        screen, {midName} could not possibly be that big! So, we use pixels to
-        measure its diameter. On this screen, {midName} is{" "}
+        . So we can say {midName} has a diameter of {physicalDiameterReading()}.
+        On this screen, {midName} could not possibly be that big! So, we use
+        pixels to measure its diameter. On this screen, {midName} is{" "}
         <SwitchableReadingNumber
           onToggleUnit={() =>
             setPixelLabelMode((m) => (m === "abbr" ? "word" : "abbr"))
@@ -252,7 +255,7 @@ function StatsDefinitionList({
         <dd className="mt-0.5 font-medium text-sidebar-foreground tabular-nums">
           {formatDiameterPx(detail.diameterPx)}
           {pixelDiameterFootnote ? (
-            <p className="mt-1.5 text-xs font-normal leading-snug text-sidebar-foreground/65">
+            <p className="mt-1.5 text-xs leading-snug font-normal text-sidebar-foreground/65">
               {pixelDiameterFootnote}
             </p>
           ) : null}
@@ -450,8 +453,7 @@ function PixelWidthReadingExplainerSection({
   labelMode: "abbr" | "word"
 }) {
   const num = formatDiameterPxNumberOnly(px)
-  const displayed =
-    labelMode === "abbr" ? `${num} px` : `${num} pixels`
+  const displayed = labelMode === "abbr" ? `${num} px` : `${num} pixels`
   const spokenRaw = spokenNumberEnUsFromEnUsDisplay(num)
   const spoken =
     spokenRaw.length > 0
@@ -524,4 +526,3 @@ function DiameterExplainerSection() {
     </section>
   )
 }
-
