@@ -26,6 +26,10 @@ import {
   ASSUMED_RIGHT_SIDEBAR_PX_CSS,
   DISTANCE_CANVAS_BASE_INSET_PX,
 } from "@/hooks/use-distance-scale"
+import {
+  usePinchZoom,
+  type PinchZoomCenter,
+} from "@/hooks/use-pinch-zoom"
 import { BODY_CLASS_STYLE } from "@/lib/constants"
 import {
   DISTANCE_REGIONS,
@@ -786,6 +790,10 @@ export function DistanceCanvas({
   lightSpeedActive = false,
   lightSpeedMultiplier = 1,
   onLightSpeedReachedEnd,
+  onPinchZoomStart,
+  onPinchZoomTo,
+  onPinchZoomEnd,
+  onWheelZoomStep,
 }: {
   model: SizePageModel
   json: SolarSystemJson
@@ -806,8 +814,19 @@ export function DistanceCanvas({
   lightSpeedMultiplier?: number
   /** Called once when scroll reaches the right edge while light speed is active. */
   onLightSpeedReachedEnd?: () => void
+  onPinchZoomStart?: () => void
+  onPinchZoomTo?: (factor: number) => void
+  onPinchZoomEnd?: () => void
+  onWheelZoomStep?: (direction: 1 | -1) => void
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null)
+  const zoomAnchorRef = useRef<{
+    anchorKm: number
+    centerOffsetX: number
+  } | null>(null)
+  const clearZoomAnchorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  )
   const photonWorldXRef = useRef<number | null>(null)
   const syncLayoutRef = useRef<(() => void) | null>(null)
   const posByIdForScrollRef = useRef<Map<string, { cx: number; cy: number }>>(
@@ -833,6 +852,61 @@ export function DistanceCanvas({
   const lightSpeedActiveRef = useRef(lightSpeedActive)
   const lightSpeedMultiplierRef = useRef(lightSpeedMultiplier)
   const onLightSpeedReachedEndRef = useRef(onLightSpeedReachedEnd)
+  const onPinchZoomStartRef = useRef(onPinchZoomStart)
+  const onPinchZoomToRef = useRef(onPinchZoomTo)
+  const onPinchZoomEndRef = useRef(onPinchZoomEnd)
+  const onWheelZoomStepRef = useRef(onWheelZoomStep)
+
+  const setZoomAnchorFromCenter = useCallback((center: PinchZoomCenter) => {
+    const w = wrapperRef.current
+    const pxD = pxPerKmDistanceRef.current
+    if (w && pxD > 0) {
+      zoomAnchorRef.current = {
+        anchorKm: Math.max(
+          0,
+          (w.scrollLeft + center.offsetX - INSET_LEFT_CSS) / pxD
+        ),
+        centerOffsetX: center.offsetX,
+      }
+    }
+  }, [])
+
+  useLayoutEffect(() => {
+    onPinchZoomStartRef.current = onPinchZoomStart
+    onPinchZoomToRef.current = onPinchZoomTo
+    onPinchZoomEndRef.current = onPinchZoomEnd
+    onWheelZoomStepRef.current = onWheelZoomStep
+  }, [onPinchZoomStart, onPinchZoomTo, onPinchZoomEnd, onWheelZoomStep])
+
+  usePinchZoom(wrapperRef, {
+    enabled: Boolean(onPinchZoomTo) && !lightSpeedActive,
+    wheelZoomShiftKey: true,
+    wheelZoomCtrlKey: true,
+    onGestureStart: (center: PinchZoomCenter) => {
+      setZoomAnchorFromCenter(center)
+      onPinchZoomStartRef.current?.()
+    },
+    onZoomTo: (factor, center) => {
+      if (zoomAnchorRef.current) {
+        zoomAnchorRef.current.centerOffsetX = center.offsetX
+      }
+      onPinchZoomToRef.current?.(factor)
+    },
+    onGestureEnd: () => {
+      if (clearZoomAnchorTimerRef.current != null) {
+        clearTimeout(clearZoomAnchorTimerRef.current)
+      }
+      clearZoomAnchorTimerRef.current = setTimeout(() => {
+        zoomAnchorRef.current = null
+        clearZoomAnchorTimerRef.current = null
+      }, 200)
+      onPinchZoomEndRef.current?.()
+    },
+    onWheelZoomStep: (direction, center) => {
+      setZoomAnchorFromCenter(center)
+      onWheelZoomStepRef.current?.(direction)
+    },
+  })
 
   useLayoutEffect(() => {
     onCenterKmFromSunChangeRef.current = onCenterKmFromSunChange
@@ -852,6 +926,7 @@ export function DistanceCanvas({
 
   const onContentPointerDown = useCallback(
     (e: PointerEvent<HTMLDivElement>) => {
+      if (!e.isPrimary) return
       if (!onBodySelect) return
       const t = e.target
       if (!(t instanceof Element)) return
@@ -871,7 +946,6 @@ export function DistanceCanvas({
         e.preventDefault()
         return
       }
-      if (e.ctrlKey) return
       const dy = e.deltaY
       const dx = e.deltaX
       const dominant = Math.abs(dy) >= Math.abs(dx) ? dy : dx
@@ -1439,6 +1513,22 @@ export function DistanceCanvas({
   useLayoutEffect(() => {
     pxPerKmDistanceRef.current = pxPerKmDistance
     syncLayoutRef.current?.()
+
+    const anchor = zoomAnchorRef.current
+    const w = wrapperRef.current
+    if (anchor && w && pxPerKmDistance > 0) {
+      const maxScroll = Math.max(0, w.scrollWidth - w.clientWidth)
+      const nextScroll = Math.min(
+        maxScroll,
+        Math.max(
+          0,
+          anchor.anchorKm * pxPerKmDistance +
+            INSET_LEFT_CSS -
+            anchor.centerOffsetX
+        )
+      )
+      w.scrollLeft = nextScroll
+    }
   }, [pxPerKmDistance])
 
   useLayoutEffect(() => {
@@ -1547,7 +1637,7 @@ export function DistanceCanvas({
       aria-label={
         lightSpeedActive
           ? "Light speed visualizer: auto-scrolling at scaled light speed."
-          : "Scaled distances: scroll horizontally to reach distant bodies; tap or click a disk or its name label to select."
+          : "Scaled distances: scroll horizontally to reach distant bodies; pinch with two fingers, Shift+wheel, or trackpad pinch to zoom scale; tap or click a disk or its name label to select."
       }
     >
       <div

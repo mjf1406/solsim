@@ -15,6 +15,13 @@ import {
   isSizeBodyIdVisibleUnderFilter,
   type SizeBodyDisplayFilter,
 } from "@/lib/solar-system/body-type-display"
+import {
+  nearestSnapStopIndex,
+  snapStopSliderValueForPinchFactor,
+  sliderValueToPxPerKm,
+  sliderValueToPxPerKmMoonLadder,
+  stepSnapStopSliderValue,
+} from "@/lib/solar-system/scale/scale-presets"
 
 import {
   buildSizePageModel,
@@ -140,6 +147,45 @@ function SolarSystemSizePage() {
     pxPerMm: calibration.pxPerMm,
     isCalibrated: calibration.isCalibrated,
   })
+
+  const pinchStartSliderRef = useRef(scale.sliderValue)
+
+  const pxPerKmAtSliderValue = useCallback(
+    (sliderValue: number) =>
+      calibration.isCalibrated
+        ? sliderValueToPxPerKm(sliderValue, scale.range)
+        : sliderValueToPxPerKmMoonLadder(sliderValue),
+    [calibration.isCalibrated, scale.range]
+  )
+
+  const onPinchZoomStart = useCallback(() => {
+    const idx = nearestSnapStopIndex(scale.sliderValue, scale.snapStops)
+    pinchStartSliderRef.current =
+      scale.snapStops[idx]?.sliderValue ?? scale.sliderValue
+  }, [scale.sliderValue, scale.snapStops])
+
+  const onPinchZoomTo = useCallback(
+    (factor: number) => {
+      scale.setSliderValue(
+        snapStopSliderValueForPinchFactor(
+          pinchStartSliderRef.current,
+          factor,
+          scale.snapStops,
+          pxPerKmAtSliderValue
+        )
+      )
+    },
+    [pxPerKmAtSliderValue, scale.setSliderValue, scale.snapStops]
+  )
+
+  const onWheelZoomStep = useCallback(
+    (direction: 1 | -1) => {
+      scale.setSliderValue(
+        stepSnapStopSliderValue(scale.sliderValue, scale.snapStops, direction)
+      )
+    },
+    [scale.setSliderValue, scale.sliderValue, scale.snapStops]
+  )
 
   const searchRef = useRef(search)
   useEffect(() => {
@@ -359,6 +405,9 @@ function SolarSystemSizePage() {
         measureUnitCanvasId={measureUnitCanvasId}
         bodyMeasureOverlay={bodyMeasureOverlay}
         onMeasurePick={onMeasurePick}
+        onPinchZoomStart={onPinchZoomStart}
+        onPinchZoomTo={onPinchZoomTo}
+        onWheelZoomStep={onWheelZoomStep}
       />
       <ScaleControlSidebarPortal
         cycleButtonLabel={scale.cycleButtonLabel}

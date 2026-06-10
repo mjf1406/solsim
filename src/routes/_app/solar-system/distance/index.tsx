@@ -19,8 +19,11 @@ import {
   useAssumedDistanceFitViewportWidthPx,
 } from "@/hooks/use-distance-scale"
 import {
+  nearestSnapStopIndex,
   pxPerKmToSliderValue,
   sliderValueToPxPerKm,
+  snapStopSliderValueForPinchFactor,
+  stepSnapStopSliderValue,
   type ScaleSliderStop,
 } from "@/lib/solar-system/scale/scale-presets"
 
@@ -175,7 +178,7 @@ function SolarSystemDistancePage() {
 
   const calibration = useDisplayCalibration()
   const [calibrationDialogOpen, setCalibrationDialogOpen] = useState(false)
-  const [scaleLinked, setScaleLinked] = useState(false)
+  const [scaleLinked, setScaleLinked] = useState(true)
 
   const fitWidthPx = useAssumedDistanceFitViewportWidthPx()
 
@@ -310,6 +313,58 @@ function SolarSystemDistancePage() {
     )
     if (next != null) setDistanceSliderValue(next)
   }, [distanceScale, scaleLinked, setDistanceSliderValue])
+
+  const pinchStartSliderRef = useRef(distanceScale.sliderValue)
+
+  const pxPerKmAtDistanceSlider = useCallback(
+    (sliderValue: number) =>
+      sliderValueToPxPerKm(sliderValue, distanceScale.range),
+    [distanceScale.range]
+  )
+
+  const onPinchZoomStart = useCallback(() => {
+    const idx = nearestSnapStopIndex(
+      distanceScale.sliderValue,
+      distanceScale.snapStops
+    )
+    pinchStartSliderRef.current =
+      distanceScale.snapStops[idx]?.sliderValue ?? distanceScale.sliderValue
+  }, [distanceScale.sliderValue, distanceScale.snapStops])
+
+  const onPinchZoomTo = useCallback(
+    (factor: number) => {
+      setDistanceSliderValue(
+        snapStopSliderValueForPinchFactor(
+          pinchStartSliderRef.current,
+          factor,
+          distanceScale.snapStops,
+          pxPerKmAtDistanceSlider
+        )
+      )
+    },
+    [
+      distanceScale.snapStops,
+      pxPerKmAtDistanceSlider,
+      setDistanceSliderValue,
+    ]
+  )
+
+  const onWheelZoomStep = useCallback(
+    (direction: 1 | -1) => {
+      setDistanceSliderValue(
+        stepSnapStopSliderValue(
+          distanceScale.sliderValue,
+          distanceScale.snapStops,
+          direction
+        )
+      )
+    },
+    [
+      distanceScale.sliderValue,
+      distanceScale.snapStops,
+      setDistanceSliderValue,
+    ]
+  )
 
   const searchRef = useRef(search)
   useEffect(() => {
@@ -466,6 +521,9 @@ function SolarSystemDistancePage() {
           lightSpeedActive={lightSpeedOn}
           lightSpeedMultiplier={lightSpeedMult}
           onLightSpeedReachedEnd={turnLightSpeedOff}
+          onPinchZoomStart={onPinchZoomStart}
+          onPinchZoomTo={onPinchZoomTo}
+          onWheelZoomStep={onWheelZoomStep}
         />
 
         {lightSpeedOn ? <LightSpeedBanner multiplier={lightSpeedMult} /> : null}

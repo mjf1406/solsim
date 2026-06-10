@@ -21,6 +21,7 @@ import {
   OVERSIZED_DISK_VISIBLE_ARC_PX,
   shouldAnchorDiskOnLeft,
 } from "@/lib/canvas"
+import { usePinchZoom } from "@/hooks/use-pinch-zoom"
 import { usePointerDragDelta } from "@/hooks/use-pointer-drag-delta"
 import { getCanvasLocalCssPoint } from "@/lib/pointer/canvas-client-xy"
 import {
@@ -770,6 +771,10 @@ export function SizeComparisonCanvas({
   measureUnitCanvasId = null,
   bodyMeasureOverlay = null,
   onMeasurePick,
+  onPinchZoomStart,
+  onPinchZoomTo,
+  onPinchZoomEnd,
+  onWheelZoomStep,
 }: {
   model: SizePageModel
   labelMode?: SizeCanvasLabelMode
@@ -793,6 +798,10 @@ export function SizeComparisonCanvas({
   measureUnitCanvasId?: string | null
   bodyMeasureOverlay?: BodyMeasureOverlay | null
   onMeasurePick?: (hit: MeasureTargetHitBody | null) => void
+  onPinchZoomStart?: () => void
+  onPinchZoomTo?: (factor: number) => void
+  onPinchZoomEnd?: () => void
+  onWheelZoomStep?: (direction: 1 | -1) => void
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -830,8 +839,43 @@ export function SizeComparisonCanvas({
     bodyMeasureOverlay ?? null
   )
   const onMeasurePickRef = useRef(onMeasurePick)
+  const onPinchZoomStartRef = useRef(onPinchZoomStart)
+  const onPinchZoomToRef = useRef(onPinchZoomTo)
+  const onPinchZoomEndRef = useRef(onPinchZoomEnd)
+  const onWheelZoomStepRef = useRef(onWheelZoomStep)
 
-  const { startSession: startPointerDrag } = usePointerDragDelta()
+  const { startSession: startPointerDrag, endSession: endPointerDrag } =
+    usePointerDragDelta()
+
+  useLayoutEffect(() => {
+    onPinchZoomStartRef.current = onPinchZoomStart
+    onPinchZoomToRef.current = onPinchZoomTo
+    onPinchZoomEndRef.current = onPinchZoomEnd
+    onWheelZoomStepRef.current = onWheelZoomStep
+  }, [onPinchZoomStart, onPinchZoomTo, onPinchZoomEnd, onWheelZoomStep])
+
+  usePinchZoom(canvasRef, {
+    enabled: Boolean(onPinchZoomTo),
+    wheelZoomPlain: true,
+    wheelZoomShiftKey: true,
+    wheelZoomCtrlKey: true,
+    onGestureStart: () => {
+      endPointerDrag()
+      isDraggingRef.current = false
+      const c = canvasRef.current
+      if (c) c.style.cursor = "default"
+      onPinchZoomStartRef.current?.()
+    },
+    onZoomTo: (factor) => {
+      onPinchZoomToRef.current?.(factor)
+    },
+    onGestureEnd: () => {
+      onPinchZoomEndRef.current?.()
+    },
+    onWheelZoomStep: (direction) => {
+      onWheelZoomStepRef.current?.(direction)
+    },
+  })
 
   useLayoutEffect(() => {
     listSelectionAttentionKeyRef.current = listSelectionAttentionKey
@@ -856,6 +900,7 @@ export function SizeComparisonCanvas({
 
   const onCanvasPointerDown = useCallback(
     (e: PointerEvent<HTMLCanvasElement>) => {
+      if (!e.isPrimary) return
       const canvas = canvasRef.current
       const snap = layoutHitRef.current
       if (!canvas || !snap) return
@@ -1408,7 +1453,7 @@ export function SizeComparisonCanvas({
             ? "pointer-events-auto touch-none select-none"
             : "pointer-events-none"
         )}
-        aria-label="Scaled bodies: tap or click a disk or its name label to select. Drag with finger or pointer to reposition (move a few pixels first to start a drag). Moons sit near their planet; Moon is one pixel; larger drawn behind. Measure mode (sidebar): crosshair, tap a target body."
+        aria-label="Scaled bodies: tap or click a disk or its name label to select. Drag with finger or pointer to reposition (move a few pixels first to start a drag). Pinch with two fingers, scroll the mouse wheel, or use trackpad pinch to zoom scale. Moons sit near their planet; Moon is one pixel; larger drawn behind. Measure mode (sidebar): crosshair, tap a target body."
         onPointerDown={canvasInteractive ? onCanvasPointerDown : undefined}
         onPointerMove={canvasInteractive ? onCanvasPointerMove : undefined}
         onPointerLeave={canvasInteractive ? onCanvasPointerLeave : undefined}

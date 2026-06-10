@@ -455,6 +455,72 @@ export function computeSliderSnapStops(
   return stops.slice().sort((a, b) => a.sliderValue - b.sliderValue)
 }
 
+/** Index of the snap stop whose `sliderValue` is closest to `sliderValue`. */
+export function nearestSnapStopIndex(
+  sliderValue: number,
+  stops: readonly ScaleSliderStop[]
+): number {
+  if (stops.length === 0) return 0
+  let bestIndex = 0
+  let bestDist = Infinity
+  for (let i = 0; i < stops.length; i++) {
+    const stop = stops[i]!
+    const d = Math.abs(stop.sliderValue - sliderValue)
+    if (d < bestDist) {
+      bestDist = d
+      bestIndex = i
+    }
+  }
+  return bestIndex
+}
+
+/** Step one snap stop up (`direction` 1) or down (-1) from the nearest stop. */
+export function stepSnapStopSliderValue(
+  currentSliderValue: number,
+  stops: readonly ScaleSliderStop[],
+  direction: 1 | -1
+): number {
+  if (stops.length === 0) return currentSliderValue
+  const i = nearestSnapStopIndex(currentSliderValue, stops)
+  const next = Math.min(stops.length - 1, Math.max(0, i + direction))
+  return stops[next]!.sliderValue
+}
+
+/**
+ * Map a multiplicative pinch factor from a snapped start stop to the nearest
+ * snap stop in log-pxPerKm space (gesture zoom stays on preset ticks).
+ */
+export function snapStopSliderValueForPinchFactor(
+  startSliderValue: number,
+  factor: number,
+  stops: readonly ScaleSliderStop[],
+  pxPerKmAtSliderValue: (sliderValue: number) => number
+): number {
+  if (stops.length === 0 || !Number.isFinite(factor) || factor <= 0) {
+    return startSliderValue
+  }
+  const startIndex = nearestSnapStopIndex(startSliderValue, stops)
+  const startStop = stops[startIndex]!
+  const basePx = pxPerKmAtSliderValue(startStop.sliderValue)
+  if (!(basePx > 0)) return startStop.sliderValue
+
+  const targetPx = basePx * factor
+  const targetLog = Math.log10(targetPx)
+
+  let bestIndex = startIndex
+  let bestDist = Infinity
+  for (let i = 0; i < stops.length; i++) {
+    const px = pxPerKmAtSliderValue(stops[i]!.sliderValue)
+    if (!(px > 0)) continue
+    const dist = Math.abs(Math.log10(px) - targetLog)
+    if (dist < bestDist) {
+      bestDist = dist
+      bestIndex = i
+    }
+  }
+  return stops[bestIndex]!.sliderValue
+}
+
 /** Nearest snap stop caption for cycle button labeling when using merged preset lists. */
 export function nearestSnapStopCaption(
   sliderValue: number,
