@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react"
+import { useId, useMemo, useState, type ReactNode } from "react"
 import { ChevronUp, ExternalLink } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -29,6 +29,7 @@ import {
   formatDistanceNumber,
   formatDistancePx,
   spokenDistanceSentence,
+  type DistanceBodyDetail,
   type SolarSystemJson,
   type SizePageModel,
 } from "../-data"
@@ -45,7 +46,7 @@ const ORBIT_KEYWORD_POPOVER_PROPS = {
     "border border-sidebar-border bg-sidebar/95 text-sidebar-foreground backdrop-blur-sm max-w-xs",
 }
 
-function SidebarStatsDataCollapsible({
+export function SidebarStatsDataCollapsible({
   title,
   children,
 }: {
@@ -86,7 +87,7 @@ function SidebarStatsDataCollapsible({
   )
 }
 
-function DistanceRegionSidebarPanel({
+export function DistanceRegionSidebarPanel({
   region,
   pxPerKmDistance,
   pxPerMm,
@@ -180,6 +181,384 @@ function DistanceRegionSidebarPanel({
   )
 }
 
+type DistanceFromSunSidebarSectionProps = {
+  detailSize: NonNullable<ReturnType<typeof findSizeBodyDetail>>
+  detailDistance: DistanceBodyDetail
+  model: SizePageModel
+  distanceKmById: Map<string, number>
+  pxPerKmDistance: number
+  pxPerMm: number
+  isCalibrated: boolean
+  onOpenCalibration: () => void
+}
+
+/** "Distance from the Sun" (or parent) prose + orbit distances collapsible — shared with orbits page. */
+export function DistanceFromSunSidebarSection({
+  detailSize,
+  detailDistance,
+  model,
+  distanceKmById,
+  pxPerKmDistance,
+  pxPerMm,
+  isCalibrated,
+  onOpenCalibration,
+}: DistanceFromSunSidebarSectionProps) {
+  const [distanceUnit, setDistanceUnit] = useState<"km" | "mi">("km")
+  const [scaledUnitSystem, setScaledUnitSystem] =
+    useState<ScaledDiameterUnitSystem>("metric")
+
+  const kmFromSun = detailDistance.distanceFromSunKm
+
+  const prevKm = detailDistance.prevSunOrbiterId
+    ? distanceKmById.get(detailDistance.prevSunOrbiterId) ?? null
+    : null
+  const nextKm = detailDistance.nextSunOrbiterId
+    ? distanceKmById.get(detailDistance.nextSunOrbiterId) ?? null
+    : null
+
+  const dPrevKm =
+    prevKm != null && Number.isFinite(prevKm) && Number.isFinite(kmFromSun)
+      ? Math.abs(kmFromSun - prevKm)
+      : null
+  const dNextKm =
+    nextKm != null && Number.isFinite(nextKm) && Number.isFinite(kmFromSun)
+      ? Math.abs(nextKm - kmFromSun)
+      : null
+
+  const prevName = detailDistance.prevSunOrbiterId
+    ? findSizeRowNameById(model, detailDistance.prevSunOrbiterId)
+    : null
+  const nextName = detailDistance.nextSunOrbiterId
+    ? findSizeRowNameById(model, detailDistance.nextSunOrbiterId)
+    : null
+
+  const isMoon = detailDistance.kind === "moon"
+  const parentLabel = detailDistance.parentPlanetName ?? "its parent"
+
+  const semiKm = detailDistance.semiMajorAxisKm
+  const semiKmOk = semiKm != null && Number.isFinite(semiKm)
+  const periKm = detailDistance.perihelionKm
+  const periKmOk = periKm != null && Number.isFinite(periKm)
+  const apKm = detailDistance.aphelionKm
+  const apKmOk = apKm != null && Number.isFinite(apKm)
+
+  const toggleDistanceUnit = () =>
+    setDistanceUnit((u) => (u === "km" ? "mi" : "km"))
+
+  const distanceSectionHeadingId = useId()
+  const distanceSectionTitle = isMoon
+    ? `Distance from ${parentLabel}`
+    : "Distance from the Sun"
+
+  return (
+    <section
+      aria-labelledby={distanceSectionHeadingId}
+      className="flex flex-col gap-3"
+    >
+      <h2
+        id={distanceSectionHeadingId}
+        className="font-heading text-lg font-semibold text-sidebar-foreground"
+      >
+        {distanceSectionTitle}
+      </h2>
+      {isMoon ? (
+        <>
+          <p className="text-base leading-snug text-sidebar-foreground/90">
+            {detailSize.name}&apos;s average distance from {parentLabel} is{" "}
+            {semiKmOk ? (
+              <>
+                <InlineOrbitDistanceNumber
+                  km={semiKm}
+                  distanceUnit={distanceUnit}
+                  onToggleUnit={toggleDistanceUnit}
+                  sayThisTitle="Say this semi-major axis distance"
+                />
+                . The average distance from {parentLabel} is also called the{" "}
+              </>
+            ) : (
+              <>described by the </>
+            )}
+            <ReadingKeyword
+              variant="inline"
+              popoverContent={<SemiMajorAxisExplainer />}
+              popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
+            >
+              semi-major axis
+            </ReadingKeyword>
+            {semiKmOk ? "." : `: the mean distance from ${parentLabel} along its orbit.`}
+          </p>
+          <p className="text-base leading-snug text-sidebar-foreground/90">
+            {detailSize.name}&apos;s orbit has two special spots. The first is when{" "}
+            {detailSize.name} is farthest from {parentLabel} in its orbit.
+            {apKmOk ? (
+              <>
+                {" "}
+                That distance is{" "}
+                <InlineOrbitDistanceNumber
+                  km={apKm}
+                  distanceUnit={distanceUnit}
+                  onToggleUnit={toggleDistanceUnit}
+                  sayThisTitle="Say this apoapsis distance"
+                />{" "}
+                for {detailSize.name}, and it is called the{" "}
+              </>
+            ) : (
+              <> That point is called the </>
+            )}
+            <ReadingKeyword
+              variant="inline"
+              popoverContent={<ApoapsisExplainer />}
+              popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
+            >
+              apoapsis
+            </ReadingKeyword>
+            .
+          </p>
+          <p className="text-base leading-snug text-sidebar-foreground/90">
+            The second is when {detailSize.name} is closest to {parentLabel} in its
+            orbit.
+            {periKmOk ? (
+              <>
+                {" "}
+                That distance is{" "}
+                <InlineOrbitDistanceNumber
+                  km={periKm}
+                  distanceUnit={distanceUnit}
+                  onToggleUnit={toggleDistanceUnit}
+                  sayThisTitle="Say this periapsis distance"
+                />{" "}
+                for {detailSize.name}, and it&apos;s called the{" "}
+              </>
+            ) : (
+              <> That point is called the </>
+            )}
+            <ReadingKeyword
+              variant="inline"
+              popoverContent={<PeriapsisExplainer />}
+              popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
+            >
+              periapsis
+            </ReadingKeyword>
+            .
+          </p>
+          <p className="text-base leading-snug text-sidebar-foreground/90">
+            {`You can remember it this way: the "A" in apoapsis is for "Away" (the farthest point), and the "P" in periapsis is for "Passes close" (the closest point).`}
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="text-base leading-snug text-sidebar-foreground/90">
+            {detailSize.name}&apos;s average distance from the Sun is{" "}
+            {semiKmOk ? (
+              <>
+                <InlineOrbitDistanceNumber
+                  km={semiKm}
+                  distanceUnit={distanceUnit}
+                  onToggleUnit={toggleDistanceUnit}
+                  sayThisTitle="Say this semi-major axis distance"
+                />
+                . The average distance from the Sun is also called the{" "}
+              </>
+            ) : (
+              <>captured by the </>
+            )}
+            <ReadingKeyword
+              variant="inline"
+              popoverContent={<SemiMajorAxisExplainer />}
+              popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
+            >
+              semi-major axis
+            </ReadingKeyword>
+            {semiKmOk ? "." : `: the mean distance from the Sun along its orbit.`}
+          </p>
+          <p className="text-base leading-snug text-sidebar-foreground/90">
+            {detailSize.name}&apos;s orbit has two special spots. The first is when{" "}
+            {detailSize.name} is farthest from the Sun in its orbit.
+            {apKmOk ? (
+              <>
+                {" "}
+                That distance is{" "}
+                <InlineOrbitDistanceNumber
+                  km={apKm}
+                  distanceUnit={distanceUnit}
+                  onToggleUnit={toggleDistanceUnit}
+                  sayThisTitle="Say this aphelion distance"
+                />{" "}
+                for {detailSize.name}, and it is called the{" "}
+              </>
+            ) : (
+              <> That point is called the </>
+            )}
+            <ReadingKeyword
+              variant="inline"
+              popoverContent={<AphelionExplainer />}
+              popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
+            >
+              aphelion
+            </ReadingKeyword>
+            .
+          </p>
+          <p className="text-base leading-snug text-sidebar-foreground/90">
+            The second is when {detailSize.name} is closest to the Sun in its orbit.
+            {periKmOk ? (
+              <>
+                {" "}
+                That distance is{" "}
+                <InlineOrbitDistanceNumber
+                  km={periKm}
+                  distanceUnit={distanceUnit}
+                  onToggleUnit={toggleDistanceUnit}
+                  sayThisTitle="Say this perihelion distance"
+                />{" "}
+                for {detailSize.name}, and it&apos;s called the{" "}
+              </>
+            ) : (
+              <> That point is called the </>
+            )}
+            <ReadingKeyword
+              variant="inline"
+              popoverContent={<PerihelionExplainer />}
+              popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
+            >
+              perihelion
+            </ReadingKeyword>
+            .
+          </p>
+          <p className="text-base leading-snug text-sidebar-foreground/90">
+            {`You can remember it this way: the "A" in aphelion is for "Away" (the farthest point), and the "P" in perihelion is for "Passes close" (the closest point).`}
+          </p>
+        </>
+      )}
+
+      <SidebarStatsDataCollapsible title="Orbit distances">
+        <dl className="space-y-2 text-base text-sidebar-foreground/90">
+          <DistanceRow
+            title={
+              isMoon ? (
+                <span className="text-sidebar-foreground/60">
+                  Semi-major axis{` (around ${parentLabel})`}
+                </span>
+              ) : (
+                <span className="text-sidebar-foreground/60">Semi-major axis</span>
+              )
+            }
+            km={detailDistance.semiMajorAxisKm}
+            pxPerKmDistance={pxPerKmDistance}
+            pxPerMm={pxPerMm}
+            isCalibrated={isCalibrated}
+            onOpenCalibration={onOpenCalibration}
+            distanceUnit={distanceUnit}
+            onToggleUnit={() => setDistanceUnit((u) => (u === "km" ? "mi" : "km"))}
+            scaledUnitSystem={scaledUnitSystem}
+            onToggleScaledUnit={() =>
+              setScaledUnitSystem((s) => (s === "metric" ? "imperial" : "metric"))
+            }
+            sayThisTitle="Say this semi-major axis distance"
+          />
+          <DistanceRow
+            title={
+              isMoon ? (
+                <span className="text-sidebar-foreground/60">
+                  Periapsis{` (around ${parentLabel})`}
+                </span>
+              ) : (
+                <span className="text-sidebar-foreground/60">
+                  Periapsis / Perihelion
+                </span>
+              )
+            }
+            km={detailDistance.perihelionKm}
+            pxPerKmDistance={pxPerKmDistance}
+            pxPerMm={pxPerMm}
+            isCalibrated={isCalibrated}
+            onOpenCalibration={onOpenCalibration}
+            distanceUnit={distanceUnit}
+            onToggleUnit={() => setDistanceUnit((u) => (u === "km" ? "mi" : "km"))}
+            scaledUnitSystem={scaledUnitSystem}
+            onToggleScaledUnit={() =>
+              setScaledUnitSystem((s) => (s === "metric" ? "imperial" : "metric"))
+            }
+            sayThisTitle={
+              isMoon ? "Say this periapsis distance" : "Say this perihelion distance"
+            }
+          />
+          <DistanceRow
+            title={
+              isMoon ? (
+                <span className="text-sidebar-foreground/60">
+                  Apoapsis{` (around ${parentLabel})`}
+                </span>
+              ) : (
+                <span className="text-sidebar-foreground/60">
+                  Apoapsis / Aphelion
+                </span>
+              )
+            }
+            km={detailDistance.aphelionKm}
+            pxPerKmDistance={pxPerKmDistance}
+            pxPerMm={pxPerMm}
+            isCalibrated={isCalibrated}
+            onOpenCalibration={onOpenCalibration}
+            distanceUnit={distanceUnit}
+            onToggleUnit={() => setDistanceUnit((u) => (u === "km" ? "mi" : "km"))}
+            scaledUnitSystem={scaledUnitSystem}
+            onToggleScaledUnit={() =>
+              setScaledUnitSystem((s) => (s === "metric" ? "imperial" : "metric"))
+            }
+            sayThisTitle={
+              isMoon ? "Say this apoapsis distance" : "Say this aphelion distance"
+            }
+          />
+          {!isMoon && detailDistance.prevSunOrbiterId ? (
+            <DistanceRow
+              title={
+                prevName ? `Distance to ${prevName}` : "Distance to previous body"
+              }
+              km={dPrevKm}
+              pxPerKmDistance={pxPerKmDistance}
+              pxPerMm={pxPerMm}
+              isCalibrated={isCalibrated}
+              onOpenCalibration={onOpenCalibration}
+              distanceUnit={distanceUnit}
+              onToggleUnit={() => setDistanceUnit((u) => (u === "km" ? "mi" : "km"))}
+              scaledUnitSystem={scaledUnitSystem}
+              onToggleScaledUnit={() =>
+                setScaledUnitSystem((s) => (s === "metric" ? "imperial" : "metric"))
+              }
+              sayThisTitle={
+                prevName
+                  ? `Say this distance to ${prevName}`
+                  : "Say this distance to the previous body"
+              }
+            />
+          ) : null}
+          {!isMoon && detailDistance.nextSunOrbiterId ? (
+            <DistanceRow
+              title={nextName ? `Distance to ${nextName}` : "Distance to next body"}
+              km={dNextKm}
+              pxPerKmDistance={pxPerKmDistance}
+              pxPerMm={pxPerMm}
+              isCalibrated={isCalibrated}
+              onOpenCalibration={onOpenCalibration}
+              distanceUnit={distanceUnit}
+              onToggleUnit={() => setDistanceUnit((u) => (u === "km" ? "mi" : "km"))}
+              scaledUnitSystem={scaledUnitSystem}
+              onToggleScaledUnit={() =>
+                setScaledUnitSystem((s) => (s === "metric" ? "imperial" : "metric"))
+              }
+              sayThisTitle={
+                nextName
+                  ? `Say this distance to ${nextName}`
+                  : "Say this distance to the next body"
+              }
+            />
+          ) : null}
+        </dl>
+      </SidebarStatsDataCollapsible>
+    </section>
+  )
+}
+
 type DistanceSelectedBodySidebarProps = {
   model: SizePageModel
   json: SolarSystemJson
@@ -216,10 +595,6 @@ export function DistanceSelectedBodySidebarContent({
     return m
   }, [bodies])
 
-  const [distanceUnit, setDistanceUnit] = useState<"km" | "mi">("km")
-  const [scaledUnitSystem, setScaledUnitSystem] =
-    useState<ScaledDiameterUnitSystem>("metric")
-
   const distanceRegion = findDistanceRegionByCanvasId(selectedBodyId)
   if (distanceRegion) {
     return (
@@ -246,45 +621,6 @@ export function DistanceSelectedBodySidebarContent({
 
   const positionIntro = bodyDiameterPositionIntro(model, detailSize)
 
-  const kmFromSun = detailDistance.distanceFromSunKm
-
-  const prevKm = detailDistance.prevSunOrbiterId
-    ? distanceKmById.get(detailDistance.prevSunOrbiterId) ?? null
-    : null
-  const nextKm = detailDistance.nextSunOrbiterId
-    ? distanceKmById.get(detailDistance.nextSunOrbiterId) ?? null
-    : null
-
-  const dPrevKm =
-    prevKm != null && Number.isFinite(prevKm) && Number.isFinite(kmFromSun)
-      ? Math.abs(kmFromSun - prevKm)
-      : null
-  const dNextKm =
-    nextKm != null && Number.isFinite(nextKm) && Number.isFinite(kmFromSun)
-      ? Math.abs(nextKm - kmFromSun)
-      : null
-
-  const prevName = detailDistance.prevSunOrbiterId
-    ? findSizeRowNameById(model, detailDistance.prevSunOrbiterId)
-    : null
-  const nextName = detailDistance.nextSunOrbiterId
-    ? findSizeRowNameById(model, detailDistance.nextSunOrbiterId)
-    : null
-
-  const showOrbitSection = detailDistance.kind !== "star"
-  const isMoon = detailDistance.kind === "moon"
-  const parentLabel = detailDistance.parentPlanetName ?? "its parent"
-
-  const semiKm = detailDistance.semiMajorAxisKm
-  const semiKmOk = semiKm != null && Number.isFinite(semiKm)
-  const periKm = detailDistance.perihelionKm
-  const periKmOk = periKm != null && Number.isFinite(periKm)
-  const apKm = detailDistance.aphelionKm
-  const apKmOk = apKm != null && Number.isFinite(apKm)
-
-  const toggleDistanceUnit = () =>
-    setDistanceUnit((u) => (u === "km" ? "mi" : "km"))
-
   return (
     <div className="flex flex-col gap-3">
       <BodyDiameterStatsSection
@@ -310,351 +646,22 @@ export function DistanceSelectedBodySidebarContent({
         statsListCollapsibleTitle="Size on this screen"
       />
 
-      {showOrbitSection ? (
-        <>
-          {isMoon ? (
-            <>
-              <p className="text-base leading-snug text-sidebar-foreground/90">
-                {detailSize.name}&apos;s average distance from {parentLabel} is{" "}
-                {semiKmOk ? (
-                  <>
-                    <InlineOrbitDistanceNumber
-                      km={semiKm}
-                      distanceUnit={distanceUnit}
-                      onToggleUnit={toggleDistanceUnit}
-                      sayThisTitle="Say this semi-major axis distance"
-                    />
-                    . The average distance from {parentLabel} is also called the{" "}
-                  </>
-                ) : (
-                  <>described by the </>
-                )}
-                <ReadingKeyword
-                  variant="inline"
-                  popoverContent={<SemiMajorAxisExplainer />}
-                  popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
-                >
-                  semi-major axis
-                </ReadingKeyword>
-                {semiKmOk ? "." : `: the mean distance from ${parentLabel} along its orbit.`}
-              </p>
-              <p className="text-base leading-snug text-sidebar-foreground/90">
-                {detailSize.name}&apos;s orbit has two special spots. The first is when{" "}
-                {detailSize.name} is farthest from {parentLabel} in its orbit.
-                {apKmOk ? (
-                  <>
-                    {" "}
-                    That distance is{" "}
-                    <InlineOrbitDistanceNumber
-                      km={apKm}
-                      distanceUnit={distanceUnit}
-                      onToggleUnit={toggleDistanceUnit}
-                      sayThisTitle="Say this apoapsis distance"
-                    />{" "}
-                    for {detailSize.name}, and it is called the{" "}
-                  </>
-                ) : (
-                  <>
-                    {" "}
-                    That point is called the{" "}
-                  </>
-                )}
-                <ReadingKeyword
-                  variant="inline"
-                  popoverContent={<ApoapsisExplainer />}
-                  popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
-                >
-                  apoapsis
-                </ReadingKeyword>
-                .
-              </p>
-              <p className="text-base leading-snug text-sidebar-foreground/90">
-                The second is when {detailSize.name} is closest to {parentLabel} in its
-                orbit.
-                {periKmOk ? (
-                  <>
-                    {" "}
-                    That distance is{" "}
-                    <InlineOrbitDistanceNumber
-                      km={periKm}
-                      distanceUnit={distanceUnit}
-                      onToggleUnit={toggleDistanceUnit}
-                      sayThisTitle="Say this periapsis distance"
-                    />{" "}
-                    for {detailSize.name}, and it&apos;s called the{" "}
-                  </>
-                ) : (
-                  <>
-                    {" "}
-                    That point is called the{" "}
-                  </>
-                )}
-                <ReadingKeyword
-                  variant="inline"
-                  popoverContent={<PeriapsisExplainer />}
-                  popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
-                >
-                  periapsis
-                </ReadingKeyword>
-                .
-              </p>
-              <p className="text-base leading-snug text-sidebar-foreground/90">
-                {`You can remember it this way: the "A" in apoapsis is for "Away" (the farthest point), and the "P" in periapsis is for "Passes close" (the closest point).`}
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="text-base leading-snug text-sidebar-foreground/90">
-                {detailSize.name}&apos;s average distance from the Sun is{" "}
-                {semiKmOk ? (
-                  <>
-                    <InlineOrbitDistanceNumber
-                      km={semiKm}
-                      distanceUnit={distanceUnit}
-                      onToggleUnit={toggleDistanceUnit}
-                      sayThisTitle="Say this semi-major axis distance"
-                    />
-                    . The average distance from the Sun is also called the{" "}
-                  </>
-                ) : (
-                  <>captured by the </>
-                )}
-                <ReadingKeyword
-                  variant="inline"
-                  popoverContent={<SemiMajorAxisExplainer />}
-                  popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
-                >
-                  semi-major axis
-                </ReadingKeyword>
-                {semiKmOk ? "." : `: the mean distance from the Sun along its orbit.`}
-              </p>
-              <p className="text-base leading-snug text-sidebar-foreground/90">
-                {detailSize.name}&apos;s orbit has two special spots. The first is when{" "}
-                {detailSize.name} is farthest from the Sun in its orbit.
-                {apKmOk ? (
-                  <>
-                    {" "}
-                    That distance is{" "}
-                    <InlineOrbitDistanceNumber
-                      km={apKm}
-                      distanceUnit={distanceUnit}
-                      onToggleUnit={toggleDistanceUnit}
-                      sayThisTitle="Say this aphelion distance"
-                    />{" "}
-                    for {detailSize.name}, and it is called the{" "}
-                  </>
-                ) : (
-                  <>
-                    {" "}
-                    That point is called the{" "}
-                  </>
-                )}
-                <ReadingKeyword
-                  variant="inline"
-                  popoverContent={<AphelionExplainer />}
-                  popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
-                >
-                  aphelion
-                </ReadingKeyword>
-                .
-              </p>
-              <p className="text-base leading-snug text-sidebar-foreground/90">
-                The second is when {detailSize.name} is closest to the Sun in its orbit.
-                {periKmOk ? (
-                  <>
-                    {" "}
-                    That distance is{" "}
-                    <InlineOrbitDistanceNumber
-                      km={periKm}
-                      distanceUnit={distanceUnit}
-                      onToggleUnit={toggleDistanceUnit}
-                      sayThisTitle="Say this perihelion distance"
-                    />{" "}
-                    for {detailSize.name}, and it&apos;s called the{" "}
-                  </>
-                ) : (
-                  <>
-                    {" "}
-                    That point is called the{" "}
-                  </>
-                )}
-                <ReadingKeyword
-                  variant="inline"
-                  popoverContent={<PerihelionExplainer />}
-                  popoverContentProps={ORBIT_KEYWORD_POPOVER_PROPS}
-                >
-                  perihelion
-                </ReadingKeyword>
-                .
-              </p>
-              <p className="text-base leading-snug text-sidebar-foreground/90">
-                {`You can remember it this way: the "A" in aphelion is for "Away" (the farthest point), and the "P" in perihelion is for "Passes close" (the closest point).`}
-              </p>
-            </>
-          )}
-
-          <SidebarStatsDataCollapsible title="Orbit distances">
-            <dl className="space-y-2 text-base text-sidebar-foreground/90">
-              <DistanceRow
-                title={
-                  isMoon ? (
-                    <span className="text-sidebar-foreground/60">
-                      Semi-major axis{` (around ${parentLabel})`}
-                    </span>
-                  ) : (
-                    <span className="text-sidebar-foreground/60">
-                      Semi-major axis
-                    </span>
-                  )
-                }
-                km={detailDistance.semiMajorAxisKm}
-                pxPerKmDistance={pxPerKmDistance}
-                pxPerMm={pxPerMm}
-                isCalibrated={isCalibrated}
-                onOpenCalibration={onOpenCalibration}
-                distanceUnit={distanceUnit}
-                onToggleUnit={() =>
-                  setDistanceUnit((u) => (u === "km" ? "mi" : "km"))
-                }
-                scaledUnitSystem={scaledUnitSystem}
-                onToggleScaledUnit={() =>
-                  setScaledUnitSystem((s) =>
-                    s === "metric" ? "imperial" : "metric"
-                  )
-                }
-                sayThisTitle="Say this semi-major axis distance"
-              />
-              <DistanceRow
-                title={
-                  isMoon ? (
-                    <span className="text-sidebar-foreground/60">
-                      Periapsis{` (around ${parentLabel})`}
-                    </span>
-                  ) : (
-                    <span className="text-sidebar-foreground/60">
-                      Periapsis / Perihelion
-                    </span>
-                  )
-                }
-                km={detailDistance.perihelionKm}
-                pxPerKmDistance={pxPerKmDistance}
-                pxPerMm={pxPerMm}
-                isCalibrated={isCalibrated}
-                onOpenCalibration={onOpenCalibration}
-                distanceUnit={distanceUnit}
-                onToggleUnit={() =>
-                  setDistanceUnit((u) => (u === "km" ? "mi" : "km"))
-                }
-                scaledUnitSystem={scaledUnitSystem}
-                onToggleScaledUnit={() =>
-                  setScaledUnitSystem((s) =>
-                    s === "metric" ? "imperial" : "metric"
-                  )
-                }
-                sayThisTitle={
-                  isMoon
-                    ? "Say this periapsis distance"
-                    : "Say this perihelion distance"
-                }
-              />
-              <DistanceRow
-                title={
-                  isMoon ? (
-                    <span className="text-sidebar-foreground/60">
-                      Apoapsis{` (around ${parentLabel})`}
-                    </span>
-                  ) : (
-                    <span className="text-sidebar-foreground/60">
-                      Apoapsis / Aphelion
-                    </span>
-                  )
-                }
-                km={detailDistance.aphelionKm}
-                pxPerKmDistance={pxPerKmDistance}
-                pxPerMm={pxPerMm}
-                isCalibrated={isCalibrated}
-                onOpenCalibration={onOpenCalibration}
-                distanceUnit={distanceUnit}
-                onToggleUnit={() =>
-                  setDistanceUnit((u) => (u === "km" ? "mi" : "km"))
-                }
-                scaledUnitSystem={scaledUnitSystem}
-                onToggleScaledUnit={() =>
-                  setScaledUnitSystem((s) =>
-                    s === "metric" ? "imperial" : "metric"
-                  )
-                }
-                sayThisTitle={
-                  isMoon
-                    ? "Say this apoapsis distance"
-                    : "Say this aphelion distance"
-                }
-              />
-              {!isMoon && detailDistance.prevSunOrbiterId ? (
-                <DistanceRow
-                  title={
-                    prevName
-                      ? `Distance to ${prevName}`
-                      : "Distance to previous body"
-                  }
-                  km={dPrevKm}
-                  pxPerKmDistance={pxPerKmDistance}
-                  pxPerMm={pxPerMm}
-                  isCalibrated={isCalibrated}
-                  onOpenCalibration={onOpenCalibration}
-                  distanceUnit={distanceUnit}
-                  onToggleUnit={() =>
-                    setDistanceUnit((u) => (u === "km" ? "mi" : "km"))
-                  }
-                  scaledUnitSystem={scaledUnitSystem}
-                  onToggleScaledUnit={() =>
-                    setScaledUnitSystem((s) =>
-                      s === "metric" ? "imperial" : "metric"
-                    )
-                  }
-                  sayThisTitle={
-                    prevName
-                      ? `Say this distance to ${prevName}`
-                      : "Say this distance to the previous body"
-                  }
-                />
-              ) : null}
-              {!isMoon && detailDistance.nextSunOrbiterId ? (
-                <DistanceRow
-                  title={
-                    nextName
-                      ? `Distance to ${nextName}`
-                      : "Distance to next body"
-                  }
-                  km={dNextKm}
-                  pxPerKmDistance={pxPerKmDistance}
-                  pxPerMm={pxPerMm}
-                  isCalibrated={isCalibrated}
-                  onOpenCalibration={onOpenCalibration}
-                  distanceUnit={distanceUnit}
-                  onToggleUnit={() =>
-                    setDistanceUnit((u) => (u === "km" ? "mi" : "km"))
-                  }
-                  scaledUnitSystem={scaledUnitSystem}
-                  onToggleScaledUnit={() =>
-                    setScaledUnitSystem((s) =>
-                      s === "metric" ? "imperial" : "metric"
-                    )
-                  }
-                  sayThisTitle={
-                    nextName
-                      ? `Say this distance to ${nextName}`
-                      : "Say this distance to the next body"
-                  }
-                />
-              ) : null}
-            </dl>
-          </SidebarStatsDataCollapsible>
-        </>
+      {detailDistance.kind !== "star" ? (
+        <DistanceFromSunSidebarSection
+          detailSize={detailSize}
+          detailDistance={detailDistance}
+          model={model}
+          distanceKmById={distanceKmById}
+          pxPerKmDistance={pxPerKmDistance}
+          pxPerMm={pxPerMm}
+          isCalibrated={isCalibrated}
+          onOpenCalibration={onOpenCalibration}
+        />
       ) : null}
     </div>
   )
 }
+
 
 function orbitExplainerLink(href: string, label: string) {
   return (

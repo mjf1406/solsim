@@ -52,6 +52,8 @@ import {
   type SolarSystemJson,
   type SizePageModel,
 } from "../-data"
+import { placeholderSrc } from "@/lib/solar-system/placeholders"
+
 import { LightSpeedPhoton } from "./light-speed-photon"
 
 /**
@@ -62,8 +64,6 @@ import { LightSpeedPhoton } from "./light-speed-photon"
  * - All name labels are always shown.
  * - Wide content uses div/img instead of canvas to avoid browser canvas dimension limits.
  */
-
-const PLACEHOLDER_BASE = "/assets/placeholders"
 
 /** When true diameter is under 1 CSS px, layout uses this diameter for label anchor math. */
 const PROXY_DISK_DIAMETER_PX = 1
@@ -120,31 +120,6 @@ type OrbitApsisMarkerLayout = {
   label: string
   labelLeft: number
   labelTop: number
-}
-
-function placeholderSrc(name: string, kind: DistanceBody["kind"]): string {
-  const n = name.trim().toLowerCase()
-  if (kind === "star" || n === "sun") return `${PLACEHOLDER_BASE}/sun.svg`
-  if (kind === "scifi") return `${PLACEHOLDER_BASE}/asteroid.svg`
-  if (kind === "asteroid") return `${PLACEHOLDER_BASE}/asteroid.svg`
-  if (kind === "comet") return `${PLACEHOLDER_BASE}/comet.svg`
-  if (kind === "dwarf") return `${PLACEHOLDER_BASE}/dwarf-planet.svg`
-  if (kind === "planet") {
-    const map: Record<string, string> = {
-      mercury: "mercury",
-      venus: "venus",
-      earth: "earth",
-      mars: "mars",
-      jupiter: "jupiter",
-      saturn: "saturn",
-      uranus: "uranus",
-      neptune: "neptune",
-    }
-    const file = map[n]
-    if (file) return `${PLACEHOLDER_BASE}/${file}.svg`
-    return `${PLACEHOLDER_BASE}/dwarf-planet.svg`
-  }
-  return `${PLACEHOLDER_BASE}/natural-satellite.svg`
 }
 
 /** Lazy 2D context for {@link bodyCircleLabelRect} text metrics only (no on-screen canvas). */
