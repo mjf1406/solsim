@@ -6,6 +6,7 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router"
 
+import { CanvasBottomHudStack } from "@/components/solar-system/body-symbol-bar-shell"
 import { useAppHeaderSlots } from "@/components/navigation/app-header-slots"
 import { ScaleControlSidebarPortal } from "@/components/scale/scale-control-sidebar-panel"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -539,33 +540,35 @@ function SolarSystemDistancePage() {
           />
         ) : null}
 
-        <DistanceTraveledReadout
-          km={centerKmFromSun}
-          pxPerKmDistance={distanceScale.debouncedPxPerKm}
-          unit={distanceUnit}
-          onUnitChange={setDistanceUnit}
-          disableUnitSelect={lightSpeedOn}
-          trailingControl={
-            lightSpeedOn ? (
-              <LightSpeedMultiplierControl
-                multiplier={lightSpeedMult}
-                onMultiplierChange={setLightSpeedMult}
-                distanceUnit={distanceUnit}
-                pxPerKmDistance={distanceScale.debouncedPxPerKm}
-              />
-            ) : null
-          }
-        />
+        <CanvasBottomHudStack aria-label="Distance canvas controls">
+          <DistanceTraveledReadout
+            km={centerKmFromSun}
+            pxPerKmDistance={distanceScale.debouncedPxPerKm}
+            unit={distanceUnit}
+            onUnitChange={setDistanceUnit}
+            disableUnitSelect={lightSpeedOn}
+            trailingControl={
+              lightSpeedOn ? (
+                <LightSpeedMultiplierControl
+                  multiplier={lightSpeedMult}
+                  onMultiplierChange={setLightSpeedMult}
+                  distanceUnit={distanceUnit}
+                  pxPerKmDistance={distanceScale.debouncedPxPerKm}
+                />
+              ) : null
+            }
+          />
 
-        <DistanceSymbolBar
-          model={model}
-          json={json}
-          bodyDisplayFilter={bodyDisplayFilter}
-          pxPerKmSize={sizeScale.debouncedPxPerKm}
-          pxPerKmDistance={distanceScale.debouncedPxPerKm}
-          selectedBodyId={selectedBodyId}
-          onSelectBody={selectBodyFromBodyTypesList}
-        />
+          <DistanceSymbolBar
+            model={model}
+            json={json}
+            bodyDisplayFilter={bodyDisplayFilter}
+            pxPerKmSize={sizeScale.debouncedPxPerKm}
+            pxPerKmDistance={distanceScale.debouncedPxPerKm}
+            selectedBodyId={selectedBodyId}
+            onSelectBody={selectBodyFromBodyTypesList}
+          />
+        </CanvasBottomHudStack>
 
         <ScaleControlSidebarPortal
           title="Diameter"

@@ -6,6 +6,7 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router"
 
+import { CanvasBottomHudStack } from "@/components/solar-system/body-symbol-bar-shell"
 import { useAppHeaderSlots } from "@/components/navigation/app-header-slots"
 import { ScaleControlSidebarPortal } from "@/components/scale/scale-control-sidebar-panel"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -394,15 +395,17 @@ function SolarSystemOrbitsPage() {
           centerOnBodyToken={centerOnBodyToken}
         />
 
-        <OrbitsSymbolBar
-          model={model}
-          json={json}
-          bodyDisplayFilter={bodyDisplayFilter}
-          pxPerKmSize={sizeScale.debouncedPxPerKm}
-          pxPerKmDistance={distanceScale.debouncedPxPerKm}
-          selectedBodyId={selectedBodyId}
-          onSelectBody={onSymbolBarSelect}
-        />
+        <CanvasBottomHudStack aria-label="Jump to a major body by symbol">
+          <OrbitsSymbolBar
+            model={model}
+            json={json}
+            bodyDisplayFilter={bodyDisplayFilter}
+            pxPerKmSize={sizeScale.debouncedPxPerKm}
+            pxPerKmDistance={distanceScale.debouncedPxPerKm}
+            selectedBodyId={selectedBodyId}
+            onSelectBody={onSymbolBarSelect}
+          />
+        </CanvasBottomHudStack>
 
         <ScaleControlSidebarPortal
           title="Scale Size"

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react"
 
+import { BodySymbolBarTrack } from "@/components/solar-system/body-symbol-bar-shell"
 import { Button } from "@/components/ui/button"
 import {
   Tooltip,
@@ -170,11 +171,7 @@ export function OrbitsSymbolBar({
   if (rows.length === 0) return null
 
   return (
-    <div
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex justify-center px-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
-      aria-label="Jump to a major body by symbol"
-    >
-      <div className="pointer-events-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-0.5 rounded-full border border-border/60 bg-background/85 px-1.5 py-1 shadow-lg backdrop-blur-md">
+    <BodySymbolBarTrack>
         {rows.map(({ body: b, href }) => {
           const beyondLimit =
             pxPerKmDistance > 0 && isBeyondPolarRenderLimit(b, pxPerKmDistance)
@@ -189,7 +186,6 @@ export function OrbitsSymbolBar({
             />
           )
         })}
-      </div>
-    </div>
+    </BodySymbolBarTrack>
   )
 }

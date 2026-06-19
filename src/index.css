@@ -92,6 +92,19 @@
   --sidebar-ring: oklch(0.708 0 0);
   /* Main sidebar chrome: share of --sidebar vs transparent (tune app-wide). */
   --sidebar-surface-mix: 96%;
+  /* Bottom HUD (symbol bar, distance readout) — aligned to sidebar/canvas portal edge. */
+  --canvas-symbol-bar-bottom: calc(
+    var(--sidebar-gap-below-app-header) +
+      max(0.75rem, env(safe-area-inset-bottom, 0px))
+  );
+}
+
+@media (max-width: 767px) {
+  :root {
+    --canvas-symbol-bar-bottom: calc(
+      3.75rem + env(safe-area-inset-bottom, 0px) + 0.75rem
+    );
+  }
 }
 
 .dark {

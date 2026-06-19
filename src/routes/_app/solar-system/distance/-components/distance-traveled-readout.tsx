@@ -74,21 +74,14 @@ export function DistanceTraveledReadout({
 
   return (
     <div
-      className="pointer-events-none fixed inset-x-0 z-20 flex justify-center px-2 pb-1"
-      style={{
-        bottom:
-          "calc(env(safe-area-inset-bottom, 0px) + 0.75rem + 3rem)",
-      }}
+      className={cn(
+        "pointer-events-auto border border-border/60 bg-background/90 shadow-lg backdrop-blur-md",
+        isAll
+          ? "flex w-full max-w-lg flex-col gap-2 rounded-xl px-3 py-2 sm:max-w-xl"
+          : "flex max-w-[min(100%,48rem)] flex-nowrap items-center gap-x-2 overflow-x-auto rounded-full px-3 py-1.5 sm:gap-x-3"
+      )}
       aria-live="polite"
     >
-      <div
-        className={cn(
-          "pointer-events-auto border border-border/60 bg-background/90 shadow-lg backdrop-blur-md",
-          isAll
-            ? "flex w-full max-w-lg flex-col gap-2 rounded-xl px-3 py-2 sm:max-w-xl"
-            : "flex max-w-[min(100%,48rem)] flex-nowrap items-center gap-x-2 overflow-x-auto rounded-full px-3 py-1.5 sm:gap-x-3"
-        )}
-      >
         {isAll ? (
           <>
             <p className="text-[11px] leading-tight text-foreground">
@@ -175,7 +168,6 @@ export function DistanceTraveledReadout({
             )}
           </>
         )}
-      </div>
     </div>
   )
 }
