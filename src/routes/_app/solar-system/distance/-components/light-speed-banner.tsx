@@ -38,9 +38,7 @@ export function LightSpeedBanner({
           Light is special because it is both a particle and a wave. The
           particle is called the{" "}
           <span className="font-medium text-foreground">photon</span>, which you
-          can see as the glowing disc. And the wave is an{" "}
-          <span className="font-medium text-foreground">electromagnetic wave</span>, which
-          you can see represented by the squiggly line behind the photon.
+          can see as the glowing disc below.
         </p>
         <p className="mt-2 text-pretty text-xs italic leading-snug text-muted-foreground sm:text-sm">
           Light particles (photons) are not really this big. The one you see below is made bigger so you can see it.

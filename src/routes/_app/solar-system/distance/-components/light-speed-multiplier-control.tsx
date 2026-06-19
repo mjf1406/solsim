@@ -47,7 +47,7 @@ export function LightSpeedMultiplierControl({
       >
         <SelectTrigger
           size="sm"
-          className="h-7 w-[4.25rem] shrink-0 rounded-full px-2 text-xs"
+          className="h-7 w-[4.75rem] shrink-0 rounded-full px-2 text-xs"
           aria-label="Light speed multiplier"
         >
           <SelectValue />

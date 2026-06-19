@@ -54,6 +54,7 @@ import {
 } from "../-data"
 import { placeholderSrc } from "@/lib/solar-system/placeholders"
 
+import { LightSpeedParticles } from "./light-speed-particles"
 import { LightSpeedPhoton } from "./light-speed-photon"
 
 /**
@@ -827,6 +828,7 @@ export function DistanceCanvas({
   const lightSpeedActiveRef = useRef(lightSpeedActive)
   const lightSpeedMultiplierRef = useRef(lightSpeedMultiplier)
   const onLightSpeedReachedEndRef = useRef(onLightSpeedReachedEnd)
+  const contentWidthPxRef = useRef(contentWidthPx)
   const onPinchZoomStartRef = useRef(onPinchZoomStart)
   const onPinchZoomToRef = useRef(onPinchZoomTo)
   const onPinchZoomEndRef = useRef(onPinchZoomEnd)
@@ -894,6 +896,10 @@ export function DistanceCanvas({
   useLayoutEffect(() => {
     lightSpeedMultiplierRef.current = lightSpeedMultiplier
   }, [lightSpeedMultiplier])
+
+  useLayoutEffect(() => {
+    contentWidthPxRef.current = contentWidthPx
+  }, [contentWidthPx])
 
   useLayoutEffect(() => {
     onLightSpeedReachedEndRef.current = onLightSpeedReachedEnd
@@ -1567,8 +1573,12 @@ export function DistanceCanvas({
       const pxPerSec = LIGHT_SPEED_KM_PER_S * pxD * mult
 
       const vw = w.clientWidth
-      const maxScroll = Math.max(0, w.scrollWidth - vw)
-      const endX = Math.max(0, w.scrollWidth - INSET_RIGHT_CSS)
+      const stripWidth =
+        contentWidthPxRef.current > 0
+          ? contentWidthPxRef.current
+          : w.scrollWidth
+      const maxScroll = Math.max(0, stripWidth - vw)
+      const endX = Math.max(0, stripWidth - INSET_RIGHT_CSS)
       let x = photonWorldXRef.current ?? w.scrollLeft + vw / 2
       x += pxPerSec * dt
 
@@ -1656,6 +1666,11 @@ export function DistanceCanvas({
           active={lightSpeedActive}
         />
       </div>
+      <LightSpeedParticles
+        wrapperRef={wrapperRef}
+        active={lightSpeedActive}
+        multiplier={lightSpeedMultiplier}
+      />
     </div>
   )
 }
