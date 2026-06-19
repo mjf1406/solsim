@@ -37,7 +37,7 @@ export function WarningBanner({
     <div
       role="note"
       className={cn(
-        "relative rounded-xl border border-amber-500/45 bg-amber-500/20 py-2.5 pr-10 pl-3 text-sm leading-snug text-sidebar-foreground",
+        "relative rounded-xl border border-amber-500/45 bg-amber-500/20 py-2.5 pr-12 pl-3 text-sm leading-snug text-sidebar-foreground",
         className
       )}
     >
@@ -48,11 +48,11 @@ export function WarningBanner({
       <Button
         type="button"
         variant="ghost"
-        size="icon-xs"
-        className="absolute top-1.5 right-1.5 text-amber-900/55 hover:text-amber-950 dark:text-amber-100/65 dark:hover:text-amber-100"
+        size="icon-sm"
+        className="absolute top-1 right-1 text-amber-900/55 hover:text-amber-950 dark:text-amber-100/65 dark:hover:text-amber-100"
         onClick={handleDismiss}
       >
-        <X className="size-3.5" />
+        <X className="size-5" />
         <span className="sr-only">{dismissSrLabel}</span>
       </Button>
     </div>

@@ -9,7 +9,7 @@ import { useDismissibleLocalStorage } from "./use-dismissible-local-storage"
 const tipVariants = {
   sky: {
     shell:
-      "relative rounded-xl border border-sky-500/35 bg-sky-500/10 py-2.5 pr-10 pl-3 text-sm leading-snug",
+      "relative rounded-xl border border-sky-500/35 bg-sky-500/10 py-2.5 pr-12 pl-3 text-sm leading-snug",
     text: "text-sky-950/90 dark:text-sky-50/92",
     label: "font-medium text-sky-950 dark:text-sky-100",
     dismiss:
@@ -17,11 +17,11 @@ const tipVariants = {
   },
   violet: {
     shell:
-      "relative rounded-xl border border-violet-500/35 bg-violet-500/10 py-2.5 pr-10 pl-3 text-sm leading-snug",
+      "relative rounded-xl border border-violet-500/35 bg-violet-500/10 py-2.5 pr-12 pl-3 text-sm leading-snug",
     text: "text-violet-950/90 dark:text-violet-50/92",
     label: "font-medium text-violet-950 dark:text-violet-100",
     dismiss:
-      "absolute top-1.5 right-1.5 text-violet-700/65 hover:text-violet-950 dark:text-violet-200/75 dark:hover:text-violet-100",
+      "absolute top-1 right-1 text-violet-700/65 hover:text-violet-950 dark:text-violet-200/75 dark:hover:text-violet-100",
   },
 } as const
 
@@ -60,11 +60,11 @@ export function DismissibleTip({
       <Button
         type="button"
         variant="ghost"
-        size="icon-xs"
+        size="icon-sm"
         className={cn(styles.dismiss)}
         onClick={handleDismiss}
       >
-        <X className="size-3.5" />
+        <X className="size-5" />
         <span className="sr-only">{dismissSrLabel}</span>
       </Button>
     </div>

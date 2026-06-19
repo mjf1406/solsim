@@ -33,14 +33,17 @@ function allEducationNoticesDismissed() {
   )
 }
 
-/** Education notices above sidebar body detail; sticky and individually dismissable. */
+/** Education notices as a fixed overlay under the app header; individually dismissable. */
 export function SizePageEducationNoticesSidebarContent() {
   const [, bumpStrip] = useReducer((count: number) => count + 1, 0)
 
   if (allEducationNoticesDismissed()) return null
 
   return (
-    <div className="sticky top-0 z-10 flex shrink-0 flex-col gap-2 bg-sidebar-surface pb-2">
+    <div
+      className="pointer-events-none absolute inset-x-0 top-0 z-[25] overflow-visible px-3 pt-2 pb-3 sm:px-4"
+    >
+      <div className="pointer-events-auto mx-auto flex w-full max-w-2xl flex-col gap-2">
       <WarningBanner
         storageKey={HEADS_UP_DISMISSED_KEY}
         dismissSrLabel="Dismiss heads up notice"
@@ -97,6 +100,7 @@ export function SizePageEducationNoticesSidebarContent() {
           how to read it.
         </p>
       </DismissibleTip>
+      </div>
     </div>
   )
 }

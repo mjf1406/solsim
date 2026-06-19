@@ -86,17 +86,14 @@ function SizePageLeftSidebarPortal({
   const { leftSidebarContentMount } = useAppHeaderSlots()
   if (!leftSidebarContentMount) return null
   return createPortal(
-    <>
-      <SizePageEducationNoticesSidebarContent />
-      <SizeSelectedBodySidebarContent
-        model={model}
-        selectedBodyId={selectedBodyId}
-        pxPerKm={pxPerKm}
-        pxPerMm={pxPerMm}
-        isCalibrated={isCalibrated}
-        onOpenCalibration={onOpenCalibration}
-      />
-    </>,
+    <SizeSelectedBodySidebarContent
+      model={model}
+      selectedBodyId={selectedBodyId}
+      pxPerKm={pxPerKm}
+      pxPerMm={pxPerMm}
+      isCalibrated={isCalibrated}
+      onOpenCalibration={onOpenCalibration}
+    />,
     leftSidebarContentMount
   )
 }
@@ -392,6 +389,7 @@ function SolarSystemSizePage() {
 
   return (
     <div className="relative isolate min-h-[calc(100svh-var(--app-header-h))] w-full">
+      <SizePageEducationNoticesSidebarContent />
       <SizeComparisonCanvas
         model={model}
         labelMode={labelMode}
