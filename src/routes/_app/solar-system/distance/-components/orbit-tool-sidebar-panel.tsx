@@ -65,7 +65,7 @@ function OrbitToolCollapsibleSection({
       "Shows perihelion/periapsis and aphelion/apoapsis disks for the selected body relative to its parent, connected along the distance strip."
   }
 
-  const toggleLabel = orbitOn ? "Show range" : "Hide range"
+  const toggleLabel = orbitOn ? "Hide range" : "Show range"
 
   const orbitToggleDisabled =
     Boolean(distanceRegionLabel) || selectedBodyKind == null

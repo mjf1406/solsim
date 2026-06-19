@@ -568,7 +568,7 @@ function SolarSystemDistancePage() {
         />
 
         <ScaleControlSidebarPortal
-          title="Scale Size"
+          title="Diameter"
           cycleButtonLabel={sizeScale.cycleButtonLabel}
           sliderValue={sizeScale.sliderValue}
           readout={sizeScale.readout}
@@ -585,7 +585,7 @@ function SolarSystemDistancePage() {
         />
 
         <ScaleControlSidebarPortal
-          title="Scale Distance"
+          title="Distance"
           showCalibrationControls={false}
           cycleButtonLabel={distanceScale.cycleButtonLabel}
           sliderValue={distanceScale.sliderValue}
