@@ -1,0 +1,44 @@
+@media screen {
+  .print-root {
+    display: none;
+  }
+}
+
+@media print {
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body > *:not(.print-root) {
+    display: none !important;
+  }
+
+  .print-root {
+    display: block !important;
+    position: static;
+    width: auto;
+  }
+
+  .print-page {
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
+    background: white;
+    color: black;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .print-page + .print-page {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .print-margin-guide {
+    display: none;
+  }
+}
