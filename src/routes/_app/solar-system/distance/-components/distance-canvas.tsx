@@ -52,7 +52,7 @@ import {
   type SolarSystemJson,
   type SizePageModel,
 } from "../-data"
-import { placeholderSrc } from "@/lib/solar-system/placeholders"
+import { bodyDiskSrc } from "@/lib/solar-system/placeholders"
 
 import { LightSpeedParticles } from "./light-speed-particles"
 import { LightSpeedPhoton } from "./light-speed-photon"
@@ -999,7 +999,7 @@ export function DistanceCanvas({
             : Math.max(0.25, trueDiameterPx)
           return {
             ...b,
-            src: placeholderSrc(b.row.name, b.kind),
+            src: bodyDiskSrc(b.row.name, b.kind),
             trueDiameterPx,
             drawDiameterPx,
             isProxyDisk,

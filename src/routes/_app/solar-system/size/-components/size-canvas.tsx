@@ -24,6 +24,7 @@ import {
 import { usePinchZoom } from "@/hooks/use-pinch-zoom"
 import { usePointerDragDelta } from "@/hooks/use-pointer-drag-delta"
 import { getCanvasLocalCssPoint } from "@/lib/pointer/canvas-client-xy"
+import { bodyDiskSrc } from "@/lib/solar-system/placeholders"
 import {
   defaultSizeBodyDisplayFilter,
   filterSizeCanvasBodiesForDisplay,
@@ -42,7 +43,6 @@ import type {
 import {
   collectSizeCanvasBodies,
   moonReferenceDiameterKm,
-  type SizeBodyKind,
   type SizeCanvasBody,
   type SizeCanvasLabelMode,
   type SizePageModel,
@@ -59,35 +59,8 @@ import {
  * cannot be dragged fully off-screen.
  */
 
-const PLACEHOLDER_BASE = "/assets/placeholders"
-
 /** Matches page backdrop `#020617`; canvas clears each frame to this flat fill. */
 const SPACE_FLAT_FILL = "#020617"
-
-function placeholderSrc(name: string, kind: SizeBodyKind): string {
-  const n = name.trim().toLowerCase()
-  if (kind === "star" || n === "sun") return `${PLACEHOLDER_BASE}/sun.svg`
-  if (kind === "scifi") return `${PLACEHOLDER_BASE}/asteroid.svg`
-  if (kind === "asteroid") return `${PLACEHOLDER_BASE}/asteroid.svg`
-  if (kind === "comet") return `${PLACEHOLDER_BASE}/comet.svg`
-  if (kind === "dwarf") return `${PLACEHOLDER_BASE}/dwarf-planet.svg`
-  if (kind === "planet") {
-    const map: Record<string, string> = {
-      mercury: "mercury",
-      venus: "venus",
-      earth: "earth",
-      mars: "mars",
-      jupiter: "jupiter",
-      saturn: "saturn",
-      uranus: "uranus",
-      neptune: "neptune",
-    }
-    const file = map[n]
-    if (file) return `${PLACEHOLDER_BASE}/${file}.svg`
-    return `${PLACEHOLDER_BASE}/dwarf-planet.svg`
-  }
-  return `${PLACEHOLDER_BASE}/natural-satellite.svg`
-}
 
 const imageCache = new Map<string, Promise<HTMLImageElement>>()
 
@@ -1079,7 +1052,7 @@ export function SizeComparisonCanvas({
 
       const entries = drawOrder.map((b) => ({
         ...b,
-        src: placeholderSrc(b.row.name, b.kind),
+        src: bodyDiskSrc(b.row.name, b.kind),
         diameterPx: b.row.diameterKm * pxPerKm,
       }))
 

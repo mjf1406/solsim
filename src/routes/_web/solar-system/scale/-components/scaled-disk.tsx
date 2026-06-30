@@ -1,4 +1,4 @@
-import { placeholderSrc } from "@/lib/solar-system/placeholders"
+import { bodyDiskSrc } from "@/lib/solar-system/placeholders"
 import type { SizeBodyKind } from "@/routes/_app/solar-system/size/-data"
 import { cn } from "@/lib/utils"
 
@@ -35,7 +35,7 @@ export function ScaledDisk({
     )
   }
 
-  const src = placeholderSrc(name, kind)
+  const src = bodyDiskSrc(name, kind)
   return (
     <div
       className={cn("overflow-hidden", className)}
@@ -127,7 +127,7 @@ export function ClippedScaledDiskSvg({
         ) : (
           <g clipPath={`url(#${circleClipId})`}>
             <image
-              href={placeholderSrc(name, kind)}
+              href={bodyDiskSrc(name, kind)}
               x={centerXMm - radius}
               y={centerYMm - radius}
               width={diameterMm}

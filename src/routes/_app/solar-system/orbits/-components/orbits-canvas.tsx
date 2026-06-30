@@ -21,7 +21,7 @@ import {
   type OrbitPath,
 } from "@/lib/solar-system/orbits/orbit-path-sample"
 import { angularVelocityRadPerSimSec } from "@/lib/solar-system/orbits/orbit-period"
-import { placeholderSrc } from "@/lib/solar-system/placeholders"
+import { bodyDiskSrc } from "@/lib/solar-system/placeholders"
 import { cn } from "@/lib/utils"
 
 import {
@@ -444,7 +444,7 @@ export function OrbitsCanvas({
           return {
             canvasId: b.canvasId,
             name: b.row.name,
-            src: placeholderSrc(b.row.name, b.kind),
+            src: bodyDiskSrc(b.row.name, b.kind),
             kind: b.kind,
             drawDiameterPx,
             isProxyDisk,
