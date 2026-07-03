@@ -68,7 +68,9 @@ export const HeroSection = () => {
               variant="outline"
               className="w-5/6 font-bold md:w-1/4"
             >
-              <Link to="/teacher">I'm a teacher</Link>
+              <Link to="/" hash="teachers">
+                I'm a teacher
+              </Link>
             </Button>
           </div>
         </div>

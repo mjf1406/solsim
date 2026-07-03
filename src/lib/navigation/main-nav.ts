@@ -8,12 +8,14 @@ export type MainNavChildLink = {
   label: string
   /** When set, passed to TanStack `<Link search={…}>` (required for routes with `validateSearch`). */
   search?: SizeRouteSearch
+  hash?: string
 }
 
 export type MainNavLink = {
   kind: "link"
   to: string
   label: string
+  hash?: string
 }
 
 export type MainNavGroup = {
@@ -36,7 +38,6 @@ export const mainNav: MainNavEntry[] = [
         search: SIZE_PAGE_DEFAULT_LINK_SEARCH,
       },
       { to: "/solar-system/distance", label: "Distance" },
-      { to: "/solar-system/scale", label: "Scale" },
     ],
   },
   {
@@ -45,5 +46,9 @@ export const mainNav: MainNavEntry[] = [
     items: [{ to: "/lessons/scale", label: "Scale" }],
   },
   { kind: "link", to: "/about", label: "About" },
-  { kind: "link", to: "/teacher", label: "Teachers" },
+  {
+    kind: "group",
+    label: "Teachers",
+    items: [{ to: "/teachers/scale-prints", label: "Scale prints" }],
+  },
 ]

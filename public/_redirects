@@ -1,1 +1,5 @@
 /*    /index.html   200
+/teacher              /teachers              301
+/teacher/             /teachers/             301
+/solar-system/scale   /teachers/scale-prints 301
+/solar-system/scale/  /teachers/scale-prints/ 301

@@ -34,9 +34,11 @@ import { cn } from "@/lib/utils"
 
 export function NavItem({
   to,
+  hash,
   children,
 }: {
   to: string
+  hash?: string
   children: ReactNode
 }) {
   const base =
@@ -49,6 +51,7 @@ export function NavItem({
     <Button asChild variant="ghost" className="px-0">
       <Link
         to={to}
+        {...(hash != null ? { hash } : {})}
         className={cn(base, "text-muted-foreground hover:text-foreground")}
         activeProps={{
           className: cn(base, active),
@@ -98,8 +101,9 @@ function MobileMainNavSheet() {
           {mainNav.map((entry) =>
             entry.kind === "link" ? (
               <Link
-                key={entry.to}
+                key={entry.to + (entry.hash ?? "")}
                 to={entry.to}
+                {...(entry.hash != null ? { hash: entry.hash } : {})}
                 onClick={close}
                 className={cn(
                   navLinkClass,
@@ -126,10 +130,11 @@ function MobileMainNavSheet() {
                   <AccordionContent className="px-0 pb-3">
                     <ul className="flex flex-col gap-0.5 px-3">
                       {entry.items.map((item) => (
-                        <li key={item.to + String(item.search ?? "")}>
+                        <li key={item.to + String(item.search ?? "") + (item.hash ?? "")}>
                           <Link
                             to={item.to}
                             {...(item.search != null ? { search: item.search } : {})}
+                            {...(item.hash != null ? { hash: item.hash } : {})}
                             onClick={close}
                             className={cn(
                               navLinkClass,
@@ -222,7 +227,7 @@ export function AppHeader() {
           >
             {mainNav.map((entry) =>
               entry.kind === "link" ? (
-                <NavItem key={entry.to} to={entry.to}>
+                <NavItem key={entry.to + (entry.hash ?? "")} to={entry.to} hash={entry.hash}>
                   {entry.label}
                 </NavItem>
               ) : (
@@ -235,13 +240,14 @@ export function AppHeader() {
                       <NavigationMenuContent className="font-heading">
                         <ul className="grid w-[min(18rem,calc(100vw-2rem))] gap-0.5">
                           {entry.items.map((item) => (
-                            <li key={item.to}>
+                            <li key={item.to + (item.hash ?? "")}>
                               <NavigationMenuLink asChild>
                                 <Link
                                   to={item.to}
                                   {...(item.search != null
                                     ? { search: item.search }
                                     : {})}
+                                  {...(item.hash != null ? { hash: item.hash } : {})}
                                   className={cn(
                                     navLinkClass,
                                     "text-muted-foreground hover:text-foreground"

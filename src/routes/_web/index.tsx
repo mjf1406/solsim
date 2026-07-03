@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { HeroSection } from "./-home-components/hero"
 import { PagesSection } from "./-home-components/pages"
+import { TeachersSection } from "./-home-components/teachers"
 import { FeaturesSection } from "./-home-components/features"
 import { FAQSection } from "./-home-components/faq"
 import { FooterSection } from "./-home-components/footer"
@@ -14,6 +15,7 @@ function Index() {
     <div className="mx-auto flex w-full flex-col items-center justify-center gap-4">
       <HeroSection />
       <PagesSection />
+      <TeachersSection />
       <FeaturesSection />
       <FAQSection />
       <FooterSection />
