@@ -56,7 +56,10 @@ function readInitialOpen(
   return defaultOpen
 }
 
-function persistSidebarOpen(storageKey: string | undefined, openState: boolean) {
+function persistSidebarOpen(
+  storageKey: string | undefined,
+  openState: boolean
+) {
   if (storageKey && typeof localStorage !== "undefined") {
     localStorage.setItem(storageKey, String(openState))
     return
@@ -422,7 +425,7 @@ function SidebarContent({ className, ...props }: React.ComponentProps<"div">) {
       data-slot="sidebar-content"
       data-sidebar="content"
       className={cn(
-        "scrollbar-sidebar scrollbar-stable flex min-h-0 flex-1 flex-col gap-2 overflow-auto [--radius:var(--radius-xl)] group-data-[collapsible=icon]:overflow-hidden",
+        "flex min-h-0 scrollbar-sidebar flex-1 scrollbar-stable flex-col gap-2 overflow-auto [--radius:var(--radius-xl)] group-data-[collapsible=icon]:overflow-hidden",
         className
       )}
       {...props}
@@ -750,6 +753,6 @@ export {
   SidebarRail,
   SidebarSeparator,
   SidebarTrigger,
-  // eslint-disable-next-line react-refresh/only-export-components
+  // oxlint-disable-next-line react-refresh/only-export-components
   useSidebar,
 }

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import {
   clampDragOffsetForLeftAnchoredDisk,
@@ -89,7 +89,12 @@ describe("clampOversizedStarDragsIfAnchored", () => {
     )
     const out = drag.get("sun")!
     expect(out.x).toBeGreaterThan(-9000)
-    const anchor = leftSliverAnchorCenter(d, h, OVERSIZED_DISK_VISIBLE_ARC_PX, inset.left)
+    const anchor = leftSliverAnchorCenter(
+      d,
+      h,
+      OVERSIZED_DISK_VISIBLE_ARC_PX,
+      inset.left
+    )
     const r = d / 2
     const cx = anchor.cx + out.x
     expect(cx + r).toBeGreaterThanOrEqual(inset.left - 1e-9)
@@ -150,7 +155,12 @@ describe("clampStarDiskDragsInViewport", () => {
     )
     const out = drag.get("sun")!
     expect(out.x).toBeGreaterThan(-9000)
-    const anchor = leftSliverAnchorCenter(d, h, OVERSIZED_DISK_VISIBLE_ARC_PX, inset.left)
+    const anchor = leftSliverAnchorCenter(
+      d,
+      h,
+      OVERSIZED_DISK_VISIBLE_ARC_PX,
+      inset.left
+    )
     const r = d / 2
     expect(anchor.cx + out.x + r).toBeGreaterThanOrEqual(inset.left - 1e-9)
   })

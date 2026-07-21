@@ -1,4 +1,4 @@
-/* eslint-disable react-refresh/only-export-components -- slots include hooks + context helpers */
+/* oxlint-disable react-refresh/only-export-components -- slots include hooks + context helpers */
 import {
   createContext,
   useCallback,
@@ -102,14 +102,18 @@ export function AppHeaderSlotsProvider({ children }: { children: ReactNode }) {
   )
 
   return (
-    <HeaderSlotsContext.Provider value={value}>{children}</HeaderSlotsContext.Provider>
+    <HeaderSlotsContext.Provider value={value}>
+      {children}
+    </HeaderSlotsContext.Provider>
   )
 }
 
 export function useAppHeaderSlots() {
   const ctx = useContext(HeaderSlotsContext)
   if (!ctx) {
-    throw new Error("useAppHeaderSlots must be used within AppHeaderSlotsProvider")
+    throw new Error(
+      "useAppHeaderSlots must be used within AppHeaderSlotsProvider"
+    )
   }
   return ctx
 }

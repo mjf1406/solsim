@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import {
   applyBodyTypePreset,
@@ -26,7 +26,10 @@ import {
   zoomDiffSignificant,
 } from "./-url-search"
 
-function filtersEqual(a: SizeBodyDisplayFilter, b: SizeBodyDisplayFilter): boolean {
+function filtersEqual(
+  a: SizeBodyDisplayFilter,
+  b: SizeBodyDisplayFilter
+): boolean {
   return JSON.stringify(a) === JSON.stringify(b)
 }
 
@@ -34,9 +37,12 @@ describe("parseSizeRouteSearch", () => {
   it("defaults labels and filter when empty", () => {
     const s = parseSizeRouteSearch({})
     expect(s.labels).toBe("on")
-    expect(filtersEqual(sizeSearchToBodyDisplayFilter(s), applyBodyTypePreset("planets"))).toBe(
-      true
-    )
+    expect(
+      filtersEqual(
+        sizeSearchToBodyDisplayFilter(s),
+        applyBodyTypePreset("planets")
+      )
+    ).toBe(true)
   })
 
   it("reads preset and ignores k/moon", () => {
@@ -47,17 +53,23 @@ describe("parseSizeRouteSearch", () => {
     })
     expect(s.preset).toBe("auto")
     expect(s.k).toBeUndefined()
-    expect(filtersEqual(sizeSearchToBodyDisplayFilter(s), applyBodyTypePreset("auto"))).toBe(
-      true
-    )
+    expect(
+      filtersEqual(
+        sizeSearchToBodyDisplayFilter(s),
+        applyBodyTypePreset("auto")
+      )
+    ).toBe(true)
   })
 
   it("drops invalid k", () => {
     const s = parseSizeRouteSearch({ k: "vvv" })
     expect(s.k).toBeUndefined()
-    expect(filtersEqual(sizeSearchToBodyDisplayFilter(s), applyBodyTypePreset("planets"))).toBe(
-      true
-    )
+    expect(
+      filtersEqual(
+        sizeSearchToBodyDisplayFilter(s),
+        applyBodyTypePreset("planets")
+      )
+    ).toBe(true)
   })
 
   it("decodes custom k + moon", () => {
@@ -85,9 +97,12 @@ describe("serializeSizePageSearch + finalizeNavigateSearch", () => {
     expect(partial.labels).toBeUndefined()
     expect(partial.zoom).toBeUndefined()
     const fin = finalizeNavigateSearch(partial)
-    expect(filtersEqual(sizeSearchToBodyDisplayFilter(fin), applyBodyTypePreset("planets"))).toBe(
-      true
-    )
+    expect(
+      filtersEqual(
+        sizeSearchToBodyDisplayFilter(fin),
+        applyBodyTypePreset("planets")
+      )
+    ).toBe(true)
   })
 
   it("round-trips non-default preset", () => {
@@ -99,9 +114,12 @@ describe("serializeSizePageSearch + finalizeNavigateSearch", () => {
     })
     expect(partial.preset).toBe("planetsAndMoons")
     const fin = finalizeNavigateSearch(partial)
-    expect(filtersEqual(sizeSearchToBodyDisplayFilter(fin), applyBodyTypePreset("planetsAndMoons"))).toBe(
-      true
-    )
+    expect(
+      filtersEqual(
+        sizeSearchToBodyDisplayFilter(fin),
+        applyBodyTypePreset("planetsAndMoons")
+      )
+    ).toBe(true)
   })
 
   it("round-trips custom filter via k", () => {

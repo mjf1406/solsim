@@ -8,185 +8,185 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as WebRouteRouteImport } from './routes/_web/route'
-import { Route as AppRouteRouteImport } from './routes/_app/route'
-import { Route as WebIndexRouteImport } from './routes/_web/index'
-import { Route as WebTeachersIndexRouteImport } from './routes/_web/teachers/index'
-import { Route as WebTeacherIndexRouteImport } from './routes/_web/teacher/index'
-import { Route as WebLoadingIndexRouteImport } from './routes/_web/loading/index'
-import { Route as WebAboutIndexRouteImport } from './routes/_web/about/index'
-import { Route as WebTeachersScalePrintsIndexRouteImport } from './routes/_web/teachers/scale-prints/index'
-import { Route as WebSolarSystemScaleIndexRouteImport } from './routes/_web/solar-system/scale/index'
-import { Route as WebLessonsScaleIndexRouteImport } from './routes/_web/lessons/scale/index'
-import { Route as AppSolarSystemSizeIndexRouteImport } from './routes/_app/solar-system/size/index'
-import { Route as AppSolarSystemOrbitsIndexRouteImport } from './routes/_app/solar-system/orbits/index'
-import { Route as AppSolarSystemDistanceIndexRouteImport } from './routes/_app/solar-system/distance/index'
-import { Route as AppSolarSystemDataIndexRouteImport } from './routes/_app/solar-system/data/index'
+import { Route as rootRouteImport } from "./routes/__root"
+import { Route as AppRouteRouteImport } from "./routes/_app/route"
+import { Route as WebRouteRouteImport } from "./routes/_web/route"
+import { Route as WebIndexRouteImport } from "./routes/_web/index"
+import { Route as WebAboutIndexRouteImport } from "./routes/_web/about/index"
+import { Route as WebLoadingIndexRouteImport } from "./routes/_web/loading/index"
+import { Route as WebTeacherIndexRouteImport } from "./routes/_web/teacher/index"
+import { Route as WebTeachersIndexRouteImport } from "./routes/_web/teachers/index"
+import { Route as AppSolarSystemDataIndexRouteImport } from "./routes/_app/solar-system/data/index"
+import { Route as AppSolarSystemDistanceIndexRouteImport } from "./routes/_app/solar-system/distance/index"
+import { Route as AppSolarSystemOrbitsIndexRouteImport } from "./routes/_app/solar-system/orbits/index"
+import { Route as AppSolarSystemSizeIndexRouteImport } from "./routes/_app/solar-system/size/index"
+import { Route as WebLessonsScaleIndexRouteImport } from "./routes/_web/lessons/scale/index"
+import { Route as WebSolarSystemScaleIndexRouteImport } from "./routes/_web/solar-system/scale/index"
+import { Route as WebTeachersScalePrintsIndexRouteImport } from "./routes/_web/teachers/scale-prints/index"
 
-const WebRouteRoute = WebRouteRouteImport.update({
-  id: '/_web',
+const AppRouteRoute = AppRouteRouteImport.update({
+  id: "/_app",
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppRouteRoute = AppRouteRouteImport.update({
-  id: '/_app',
+const WebRouteRoute = WebRouteRouteImport.update({
+  id: "/_web",
   getParentRoute: () => rootRouteImport,
 } as any)
 const WebIndexRoute = WebIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => WebRouteRoute,
-} as any)
-const WebTeachersIndexRoute = WebTeachersIndexRouteImport.update({
-  id: '/teachers/',
-  path: '/teachers/',
-  getParentRoute: () => WebRouteRoute,
-} as any)
-const WebTeacherIndexRoute = WebTeacherIndexRouteImport.update({
-  id: '/teacher/',
-  path: '/teacher/',
-  getParentRoute: () => WebRouteRoute,
-} as any)
-const WebLoadingIndexRoute = WebLoadingIndexRouteImport.update({
-  id: '/loading/',
-  path: '/loading/',
+  id: "/",
+  path: "/",
   getParentRoute: () => WebRouteRoute,
 } as any)
 const WebAboutIndexRoute = WebAboutIndexRouteImport.update({
-  id: '/about/',
-  path: '/about/',
+  id: "/about/",
+  path: "/about/",
   getParentRoute: () => WebRouteRoute,
 } as any)
-const WebTeachersScalePrintsIndexRoute =
-  WebTeachersScalePrintsIndexRouteImport.update({
-    id: '/teachers/scale-prints/',
-    path: '/teachers/scale-prints/',
-    getParentRoute: () => WebRouteRoute,
-  } as any)
-const WebSolarSystemScaleIndexRoute =
-  WebSolarSystemScaleIndexRouteImport.update({
-    id: '/solar-system/scale/',
-    path: '/solar-system/scale/',
-    getParentRoute: () => WebRouteRoute,
-  } as any)
-const WebLessonsScaleIndexRoute = WebLessonsScaleIndexRouteImport.update({
-  id: '/lessons/scale/',
-  path: '/lessons/scale/',
+const WebLoadingIndexRoute = WebLoadingIndexRouteImport.update({
+  id: "/loading/",
+  path: "/loading/",
   getParentRoute: () => WebRouteRoute,
 } as any)
-const AppSolarSystemSizeIndexRoute = AppSolarSystemSizeIndexRouteImport.update({
-  id: '/solar-system/size/',
-  path: '/solar-system/size/',
+const WebTeacherIndexRoute = WebTeacherIndexRouteImport.update({
+  id: "/teacher/",
+  path: "/teacher/",
+  getParentRoute: () => WebRouteRoute,
+} as any)
+const WebTeachersIndexRoute = WebTeachersIndexRouteImport.update({
+  id: "/teachers/",
+  path: "/teachers/",
+  getParentRoute: () => WebRouteRoute,
+} as any)
+const AppSolarSystemDataIndexRoute = AppSolarSystemDataIndexRouteImport.update({
+  id: "/solar-system/data/",
+  path: "/solar-system/data/",
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppSolarSystemOrbitsIndexRoute =
-  AppSolarSystemOrbitsIndexRouteImport.update({
-    id: '/solar-system/orbits/',
-    path: '/solar-system/orbits/',
-    getParentRoute: () => AppRouteRoute,
-  } as any)
 const AppSolarSystemDistanceIndexRoute =
   AppSolarSystemDistanceIndexRouteImport.update({
-    id: '/solar-system/distance/',
-    path: '/solar-system/distance/',
+    id: "/solar-system/distance/",
+    path: "/solar-system/distance/",
     getParentRoute: () => AppRouteRoute,
   } as any)
-const AppSolarSystemDataIndexRoute = AppSolarSystemDataIndexRouteImport.update({
-  id: '/solar-system/data/',
-  path: '/solar-system/data/',
+const AppSolarSystemOrbitsIndexRoute =
+  AppSolarSystemOrbitsIndexRouteImport.update({
+    id: "/solar-system/orbits/",
+    path: "/solar-system/orbits/",
+    getParentRoute: () => AppRouteRoute,
+  } as any)
+const AppSolarSystemSizeIndexRoute = AppSolarSystemSizeIndexRouteImport.update({
+  id: "/solar-system/size/",
+  path: "/solar-system/size/",
   getParentRoute: () => AppRouteRoute,
 } as any)
+const WebLessonsScaleIndexRoute = WebLessonsScaleIndexRouteImport.update({
+  id: "/lessons/scale/",
+  path: "/lessons/scale/",
+  getParentRoute: () => WebRouteRoute,
+} as any)
+const WebSolarSystemScaleIndexRoute =
+  WebSolarSystemScaleIndexRouteImport.update({
+    id: "/solar-system/scale/",
+    path: "/solar-system/scale/",
+    getParentRoute: () => WebRouteRoute,
+  } as any)
+const WebTeachersScalePrintsIndexRoute =
+  WebTeachersScalePrintsIndexRouteImport.update({
+    id: "/teachers/scale-prints/",
+    path: "/teachers/scale-prints/",
+    getParentRoute: () => WebRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof WebIndexRoute
-  '/about/': typeof WebAboutIndexRoute
-  '/loading/': typeof WebLoadingIndexRoute
-  '/teacher/': typeof WebTeacherIndexRoute
-  '/teachers/': typeof WebTeachersIndexRoute
-  '/solar-system/data/': typeof AppSolarSystemDataIndexRoute
-  '/solar-system/distance/': typeof AppSolarSystemDistanceIndexRoute
-  '/solar-system/orbits/': typeof AppSolarSystemOrbitsIndexRoute
-  '/solar-system/size/': typeof AppSolarSystemSizeIndexRoute
-  '/lessons/scale/': typeof WebLessonsScaleIndexRoute
-  '/solar-system/scale/': typeof WebSolarSystemScaleIndexRoute
-  '/teachers/scale-prints/': typeof WebTeachersScalePrintsIndexRoute
+  "/": typeof WebIndexRoute
+  "/about/": typeof WebAboutIndexRoute
+  "/loading/": typeof WebLoadingIndexRoute
+  "/teacher/": typeof WebTeacherIndexRoute
+  "/teachers/": typeof WebTeachersIndexRoute
+  "/solar-system/data/": typeof AppSolarSystemDataIndexRoute
+  "/solar-system/distance/": typeof AppSolarSystemDistanceIndexRoute
+  "/solar-system/orbits/": typeof AppSolarSystemOrbitsIndexRoute
+  "/solar-system/size/": typeof AppSolarSystemSizeIndexRoute
+  "/lessons/scale/": typeof WebLessonsScaleIndexRoute
+  "/solar-system/scale/": typeof WebSolarSystemScaleIndexRoute
+  "/teachers/scale-prints/": typeof WebTeachersScalePrintsIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof WebIndexRoute
-  '/about': typeof WebAboutIndexRoute
-  '/loading': typeof WebLoadingIndexRoute
-  '/teacher': typeof WebTeacherIndexRoute
-  '/teachers': typeof WebTeachersIndexRoute
-  '/solar-system/data': typeof AppSolarSystemDataIndexRoute
-  '/solar-system/distance': typeof AppSolarSystemDistanceIndexRoute
-  '/solar-system/orbits': typeof AppSolarSystemOrbitsIndexRoute
-  '/solar-system/size': typeof AppSolarSystemSizeIndexRoute
-  '/lessons/scale': typeof WebLessonsScaleIndexRoute
-  '/solar-system/scale': typeof WebSolarSystemScaleIndexRoute
-  '/teachers/scale-prints': typeof WebTeachersScalePrintsIndexRoute
+  "/": typeof WebIndexRoute
+  "/about": typeof WebAboutIndexRoute
+  "/loading": typeof WebLoadingIndexRoute
+  "/teacher": typeof WebTeacherIndexRoute
+  "/teachers": typeof WebTeachersIndexRoute
+  "/solar-system/data": typeof AppSolarSystemDataIndexRoute
+  "/solar-system/distance": typeof AppSolarSystemDistanceIndexRoute
+  "/solar-system/orbits": typeof AppSolarSystemOrbitsIndexRoute
+  "/solar-system/size": typeof AppSolarSystemSizeIndexRoute
+  "/lessons/scale": typeof WebLessonsScaleIndexRoute
+  "/solar-system/scale": typeof WebSolarSystemScaleIndexRoute
+  "/teachers/scale-prints": typeof WebTeachersScalePrintsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/_app': typeof AppRouteRouteWithChildren
-  '/_web': typeof WebRouteRouteWithChildren
-  '/_web/': typeof WebIndexRoute
-  '/_web/about/': typeof WebAboutIndexRoute
-  '/_web/loading/': typeof WebLoadingIndexRoute
-  '/_web/teacher/': typeof WebTeacherIndexRoute
-  '/_web/teachers/': typeof WebTeachersIndexRoute
-  '/_app/solar-system/data/': typeof AppSolarSystemDataIndexRoute
-  '/_app/solar-system/distance/': typeof AppSolarSystemDistanceIndexRoute
-  '/_app/solar-system/orbits/': typeof AppSolarSystemOrbitsIndexRoute
-  '/_app/solar-system/size/': typeof AppSolarSystemSizeIndexRoute
-  '/_web/lessons/scale/': typeof WebLessonsScaleIndexRoute
-  '/_web/solar-system/scale/': typeof WebSolarSystemScaleIndexRoute
-  '/_web/teachers/scale-prints/': typeof WebTeachersScalePrintsIndexRoute
+  "/_app": typeof AppRouteRouteWithChildren
+  "/_web": typeof WebRouteRouteWithChildren
+  "/_web/": typeof WebIndexRoute
+  "/_web/about/": typeof WebAboutIndexRoute
+  "/_web/loading/": typeof WebLoadingIndexRoute
+  "/_web/teacher/": typeof WebTeacherIndexRoute
+  "/_web/teachers/": typeof WebTeachersIndexRoute
+  "/_app/solar-system/data/": typeof AppSolarSystemDataIndexRoute
+  "/_app/solar-system/distance/": typeof AppSolarSystemDistanceIndexRoute
+  "/_app/solar-system/orbits/": typeof AppSolarSystemOrbitsIndexRoute
+  "/_app/solar-system/size/": typeof AppSolarSystemSizeIndexRoute
+  "/_web/lessons/scale/": typeof WebLessonsScaleIndexRoute
+  "/_web/solar-system/scale/": typeof WebSolarSystemScaleIndexRoute
+  "/_web/teachers/scale-prints/": typeof WebTeachersScalePrintsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
-    | '/about/'
-    | '/loading/'
-    | '/teacher/'
-    | '/teachers/'
-    | '/solar-system/data/'
-    | '/solar-system/distance/'
-    | '/solar-system/orbits/'
-    | '/solar-system/size/'
-    | '/lessons/scale/'
-    | '/solar-system/scale/'
-    | '/teachers/scale-prints/'
+    | "/"
+    | "/about/"
+    | "/loading/"
+    | "/teacher/"
+    | "/teachers/"
+    | "/solar-system/data/"
+    | "/solar-system/distance/"
+    | "/solar-system/orbits/"
+    | "/solar-system/size/"
+    | "/lessons/scale/"
+    | "/solar-system/scale/"
+    | "/teachers/scale-prints/"
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
-    | '/about'
-    | '/loading'
-    | '/teacher'
-    | '/teachers'
-    | '/solar-system/data'
-    | '/solar-system/distance'
-    | '/solar-system/orbits'
-    | '/solar-system/size'
-    | '/lessons/scale'
-    | '/solar-system/scale'
-    | '/teachers/scale-prints'
+    | "/"
+    | "/about"
+    | "/loading"
+    | "/teacher"
+    | "/teachers"
+    | "/solar-system/data"
+    | "/solar-system/distance"
+    | "/solar-system/orbits"
+    | "/solar-system/size"
+    | "/lessons/scale"
+    | "/solar-system/scale"
+    | "/teachers/scale-prints"
   id:
-    | '__root__'
-    | '/_app'
-    | '/_web'
-    | '/_web/'
-    | '/_web/about/'
-    | '/_web/loading/'
-    | '/_web/teacher/'
-    | '/_web/teachers/'
-    | '/_app/solar-system/data/'
-    | '/_app/solar-system/distance/'
-    | '/_app/solar-system/orbits/'
-    | '/_app/solar-system/size/'
-    | '/_web/lessons/scale/'
-    | '/_web/solar-system/scale/'
-    | '/_web/teachers/scale-prints/'
+    | "__root__"
+    | "/_app"
+    | "/_web"
+    | "/_web/"
+    | "/_web/about/"
+    | "/_web/loading/"
+    | "/_web/teacher/"
+    | "/_web/teachers/"
+    | "/_app/solar-system/data/"
+    | "/_app/solar-system/distance/"
+    | "/_app/solar-system/orbits/"
+    | "/_app/solar-system/size/"
+    | "/_web/lessons/scale/"
+    | "/_web/solar-system/scale/"
+    | "/_web/teachers/scale-prints/"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -194,105 +194,105 @@ export interface RootRouteChildren {
   WebRouteRoute: typeof WebRouteRouteWithChildren
 }
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    '/_web': {
-      id: '/_web'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof WebRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_app': {
-      id: '/_app'
-      path: ''
-      fullPath: '/'
+    "/_app": {
+      id: "/_app"
+      path: ""
+      fullPath: "/"
       preLoaderRoute: typeof AppRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_web/': {
-      id: '/_web/'
-      path: '/'
-      fullPath: '/'
+    "/_web": {
+      id: "/_web"
+      path: ""
+      fullPath: "/"
+      preLoaderRoute: typeof WebRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/_web/": {
+      id: "/_web/"
+      path: "/"
+      fullPath: "/"
       preLoaderRoute: typeof WebIndexRouteImport
       parentRoute: typeof WebRouteRoute
     }
-    '/_web/teachers/': {
-      id: '/_web/teachers/'
-      path: '/teachers'
-      fullPath: '/teachers/'
-      preLoaderRoute: typeof WebTeachersIndexRouteImport
-      parentRoute: typeof WebRouteRoute
-    }
-    '/_web/teacher/': {
-      id: '/_web/teacher/'
-      path: '/teacher'
-      fullPath: '/teacher/'
-      preLoaderRoute: typeof WebTeacherIndexRouteImport
-      parentRoute: typeof WebRouteRoute
-    }
-    '/_web/loading/': {
-      id: '/_web/loading/'
-      path: '/loading'
-      fullPath: '/loading/'
-      preLoaderRoute: typeof WebLoadingIndexRouteImport
-      parentRoute: typeof WebRouteRoute
-    }
-    '/_web/about/': {
-      id: '/_web/about/'
-      path: '/about'
-      fullPath: '/about/'
+    "/_web/about/": {
+      id: "/_web/about/"
+      path: "/about"
+      fullPath: "/about/"
       preLoaderRoute: typeof WebAboutIndexRouteImport
       parentRoute: typeof WebRouteRoute
     }
-    '/_web/teachers/scale-prints/': {
-      id: '/_web/teachers/scale-prints/'
-      path: '/teachers/scale-prints'
-      fullPath: '/teachers/scale-prints/'
-      preLoaderRoute: typeof WebTeachersScalePrintsIndexRouteImport
+    "/_web/loading/": {
+      id: "/_web/loading/"
+      path: "/loading"
+      fullPath: "/loading/"
+      preLoaderRoute: typeof WebLoadingIndexRouteImport
       parentRoute: typeof WebRouteRoute
     }
-    '/_web/solar-system/scale/': {
-      id: '/_web/solar-system/scale/'
-      path: '/solar-system/scale'
-      fullPath: '/solar-system/scale/'
-      preLoaderRoute: typeof WebSolarSystemScaleIndexRouteImport
+    "/_web/teacher/": {
+      id: "/_web/teacher/"
+      path: "/teacher"
+      fullPath: "/teacher/"
+      preLoaderRoute: typeof WebTeacherIndexRouteImport
       parentRoute: typeof WebRouteRoute
     }
-    '/_web/lessons/scale/': {
-      id: '/_web/lessons/scale/'
-      path: '/lessons/scale'
-      fullPath: '/lessons/scale/'
-      preLoaderRoute: typeof WebLessonsScaleIndexRouteImport
+    "/_web/teachers/": {
+      id: "/_web/teachers/"
+      path: "/teachers"
+      fullPath: "/teachers/"
+      preLoaderRoute: typeof WebTeachersIndexRouteImport
       parentRoute: typeof WebRouteRoute
     }
-    '/_app/solar-system/size/': {
-      id: '/_app/solar-system/size/'
-      path: '/solar-system/size'
-      fullPath: '/solar-system/size/'
-      preLoaderRoute: typeof AppSolarSystemSizeIndexRouteImport
+    "/_app/solar-system/data/": {
+      id: "/_app/solar-system/data/"
+      path: "/solar-system/data"
+      fullPath: "/solar-system/data/"
+      preLoaderRoute: typeof AppSolarSystemDataIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
-    '/_app/solar-system/orbits/': {
-      id: '/_app/solar-system/orbits/'
-      path: '/solar-system/orbits'
-      fullPath: '/solar-system/orbits/'
-      preLoaderRoute: typeof AppSolarSystemOrbitsIndexRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/_app/solar-system/distance/': {
-      id: '/_app/solar-system/distance/'
-      path: '/solar-system/distance'
-      fullPath: '/solar-system/distance/'
+    "/_app/solar-system/distance/": {
+      id: "/_app/solar-system/distance/"
+      path: "/solar-system/distance"
+      fullPath: "/solar-system/distance/"
       preLoaderRoute: typeof AppSolarSystemDistanceIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
-    '/_app/solar-system/data/': {
-      id: '/_app/solar-system/data/'
-      path: '/solar-system/data'
-      fullPath: '/solar-system/data/'
-      preLoaderRoute: typeof AppSolarSystemDataIndexRouteImport
+    "/_app/solar-system/orbits/": {
+      id: "/_app/solar-system/orbits/"
+      path: "/solar-system/orbits"
+      fullPath: "/solar-system/orbits/"
+      preLoaderRoute: typeof AppSolarSystemOrbitsIndexRouteImport
       parentRoute: typeof AppRouteRoute
+    }
+    "/_app/solar-system/size/": {
+      id: "/_app/solar-system/size/"
+      path: "/solar-system/size"
+      fullPath: "/solar-system/size/"
+      preLoaderRoute: typeof AppSolarSystemSizeIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    "/_web/lessons/scale/": {
+      id: "/_web/lessons/scale/"
+      path: "/lessons/scale"
+      fullPath: "/lessons/scale/"
+      preLoaderRoute: typeof WebLessonsScaleIndexRouteImport
+      parentRoute: typeof WebRouteRoute
+    }
+    "/_web/solar-system/scale/": {
+      id: "/_web/solar-system/scale/"
+      path: "/solar-system/scale"
+      fullPath: "/solar-system/scale/"
+      preLoaderRoute: typeof WebSolarSystemScaleIndexRouteImport
+      parentRoute: typeof WebRouteRoute
+    }
+    "/_web/teachers/scale-prints/": {
+      id: "/_web/teachers/scale-prints/"
+      path: "/teachers/scale-prints"
+      fullPath: "/teachers/scale-prints/"
+      preLoaderRoute: typeof WebTeachersScalePrintsIndexRouteImport
+      parentRoute: typeof WebRouteRoute
     }
   }
 }
@@ -312,7 +312,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
 }
 
 const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
-  AppRouteRouteChildren,
+  AppRouteRouteChildren
 )
 
 interface WebRouteRouteChildren {
@@ -338,7 +338,7 @@ const WebRouteRouteChildren: WebRouteRouteChildren = {
 }
 
 const WebRouteRouteWithChildren = WebRouteRoute._addFileChildren(
-  WebRouteRouteChildren,
+  WebRouteRouteChildren
 )
 
 const rootRouteChildren: RootRouteChildren = {

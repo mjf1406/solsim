@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import {
   computeMoonPowerOfTwoSnapStops,
@@ -12,15 +12,16 @@ describe("scale snap stops for gesture zoom", () => {
   const stops = computeMoonPowerOfTwoSnapStops()
 
   it("nearestSnapStopIndex picks closest tick", () => {
-    const mid =
-      (stops[3]!.sliderValue + stops[4]!.sliderValue) / 2
+    const mid = (stops[3]!.sliderValue + stops[4]!.sliderValue) / 2
     expect(nearestSnapStopIndex(mid, stops)).toBe(3)
   })
 
   it("stepSnapStopSliderValue moves one stop", () => {
     const start = stops[5]!.sliderValue
     expect(stepSnapStopSliderValue(start, stops, 1)).toBe(stops[6]!.sliderValue)
-    expect(stepSnapStopSliderValue(start, stops, -1)).toBe(stops[4]!.sliderValue)
+    expect(stepSnapStopSliderValue(start, stops, -1)).toBe(
+      stops[4]!.sliderValue
+    )
   })
 
   it("stepSnapStopSliderValue clamps at ends", () => {
@@ -28,26 +29,16 @@ describe("scale snap stops for gesture zoom", () => {
       stops[0]!.sliderValue
     )
     const last = stops.length - 1
-    expect(
-      stepSnapStopSliderValue(stops[last]!.sliderValue, stops, 1)
-    ).toBe(stops[last]!.sliderValue)
+    expect(stepSnapStopSliderValue(stops[last]!.sliderValue, stops, 1)).toBe(
+      stops[last]!.sliderValue
+    )
   })
 
   it("snapStopSliderValueForPinchFactor stays on stops", () => {
     const start = stops[4]!.sliderValue
     const pxFn = sliderValueToPxPerKmMoonLadder
-    const zoomedIn = snapStopSliderValueForPinchFactor(
-      start,
-      2,
-      stops,
-      pxFn
-    )
-    const zoomedOut = snapStopSliderValueForPinchFactor(
-      start,
-      0.5,
-      stops,
-      pxFn
-    )
+    const zoomedIn = snapStopSliderValueForPinchFactor(start, 2, stops, pxFn)
+    const zoomedOut = snapStopSliderValueForPinchFactor(start, 0.5, stops, pxFn)
     const allValues = new Set(stops.map((s) => s.sliderValue))
     expect(allValues.has(zoomedIn)).toBe(true)
     expect(allValues.has(zoomedOut)).toBe(true)

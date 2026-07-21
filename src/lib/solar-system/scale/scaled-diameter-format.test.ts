@@ -1,6 +1,9 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
-import { formatScaledDiameter, spokenScaledDiameterSentence } from "./scaled-diameter-format"
+import {
+  formatScaledDiameter,
+  spokenScaledDiameterSentence,
+} from "./scaled-diameter-format"
 
 describe("formatScaledDiameter (metric, no micrometers)", () => {
   it("never returns µm", () => {
@@ -38,4 +41,3 @@ describe("spokenScaledDiameterSentence (metric clamp)", () => {
     )
   })
 })
-

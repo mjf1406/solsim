@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import {
   canvasLabelFitsInsideDiskHorizontalCount,
@@ -7,9 +7,7 @@ import {
 
 describe("canvasLabelFitsInsideDiskHorizontalCount", () => {
   it("returns false when count is not positive", () => {
-    expect(canvasLabelFitsInsideDiskHorizontalCount(10, 10, 100, 0)).toBe(
-      false
-    )
+    expect(canvasLabelFitsInsideDiskHorizontalCount(10, 10, 100, 0)).toBe(false)
     expect(canvasLabelFitsInsideDiskHorizontalCount(10, 10, 100, -1)).toBe(
       false
     )
@@ -32,9 +30,9 @@ describe("canvasLabelFitsInsideDiskHorizontalCount", () => {
     const hh = h / 2
     const needR = Math.sqrt((hw * hw + hh * hh) / 0.96)
     const rTooSmall = needR * 0.99
-    expect(canvasLabelFitsInsideDiskHorizontalCount(w, h, rTooSmall, count)).toBe(
-      false
-    )
+    expect(
+      canvasLabelFitsInsideDiskHorizontalCount(w, h, rTooSmall, count)
+    ).toBe(false)
   })
 
   it("returns true when the disk comfortably fits three copies horizontally", () => {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import type { ScaleBodyRow, ScalePageModel } from "./-data"
 import {
@@ -122,9 +122,7 @@ describe("computePrintLayout", () => {
       model,
       defaultTestConfig({ planetLayout: "one_per_page" })
     )
-    expect(packed.summary.planetPages).toBeLessThan(
-      oneEach.summary.planetPages
-    )
+    expect(packed.summary.planetPages).toBeLessThan(oneEach.summary.planetPages)
   })
 
   it("uses single Sun page when fit_if_possible and Sun fits", () => {
@@ -144,10 +142,7 @@ describe("computePrintLayout", () => {
 
   it("limb edge always produces one Sun page", () => {
     const model = minimalModel()
-    const result = computePrintLayout(
-      model,
-      defaultTestConfig({ sunMm: 2000 })
-    )
+    const result = computePrintLayout(model, defaultTestConfig({ sunMm: 2000 }))
     expect(result.sunSection?.mode).toBe("limb")
     expect(result.summary.sunPages).toBe(1)
   })
@@ -308,10 +303,7 @@ describe("layoutPack", () => {
   it("spaces packed labels by estimated text width not just disk diameter", () => {
     const rect = printableRect("a4", "portrait", 10)
     const pages = layoutPack(
-      [
-        packItem("Titania", 5, "moons"),
-        packItem("Makemake", 5, "moons"),
-      ],
+      [packItem("Titania", 5, "moons"), packItem("Makemake", 5, "moons")],
       "planets",
       rect,
       0,
@@ -351,15 +343,11 @@ describe("computeDiskTiles", () => {
       0
     )
     expect(cols).toBeGreaterThan(1)
-    const row0 = pages.filter(
-      (p) => p.placements[0]?.tileRow === 0
-    )
+    const row0 = pages.filter((p) => p.placements[0]?.tileRow === 0)
     const col0 = row0.find((p) => p.placements[0]?.tileCol === 0)!
     const col1 = row0.find((p) => p.placements[0]?.tileCol === 1)!
     expect(
-      Math.abs(
-        col1.placements[0]!.centerXMm - col0.placements[0]!.centerXMm
-      )
+      Math.abs(col1.placements[0]!.centerXMm - col0.placements[0]!.centerXMm)
     ).toBe(rect.printableWidthMm)
   })
 
@@ -384,9 +372,7 @@ describe("computeDiskTiles", () => {
     const col0 = row0.find((p) => p.placements[0]?.tileCol === 0)!
     const col1 = row0.find((p) => p.placements[0]?.tileCol === 1)!
     expect(
-      Math.abs(
-        col1.placements[0]!.centerXMm - col0.placements[0]!.centerXMm
-      )
+      Math.abs(col1.placements[0]!.centerXMm - col0.placements[0]!.centerXMm)
     ).toBe(rect.printableWidthMm - overlap)
   })
 

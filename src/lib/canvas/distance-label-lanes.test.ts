@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import {
   DISTANCE_LABEL_UNDERLINE_GAP_PX,
@@ -50,9 +50,7 @@ describe("resolveDistanceLabelLanes", () => {
       { x: a!.labelRect.right, y: aUnderlineY },
     ])
     const bUnderlineY = b!.labelRect.bottom + DISTANCE_LABEL_UNDERLINE_GAP_PX
-    expect(b?.leader?.points[b!.leader!.points.length - 1]?.y).toBe(
-      bUnderlineY
-    )
+    expect(b?.leader?.points[b!.leader!.points.length - 1]?.y).toBe(bUnderlineY)
   })
 
   it("shifts the second overlapping label to a non-zero lane with a leader", () => {

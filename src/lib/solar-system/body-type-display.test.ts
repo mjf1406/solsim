@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import {
   makeSizeCanvasId,
@@ -18,7 +18,11 @@ import {
   statsByKindForModelUnderFilter,
 } from "./body-type-display"
 
-function moon(id: string, diameterKm: number, parentId: string): SizeCanvasBody {
+function moon(
+  id: string,
+  diameterKm: number,
+  parentId: string
+): SizeCanvasBody {
   return {
     canvasId: makeSizeCanvasId("moon", id),
     row: { id, name: id, diameterKm },
@@ -99,7 +103,9 @@ describe("bodyPassesDisplayFilter planetsOnly moons", () => {
   it("allows dwarf-planet moons when dwarf kind is enabled", () => {
     const f = applyBodyTypePreset("planetsAndMoons")
     f.kindVisibility.dwarf = "visible"
-    expect(bodyPassesDisplayFilter(charon, f, bodies, pxPerKm, minPx)).toBe(true)
+    expect(bodyPassesDisplayFilter(charon, f, bodies, pxPerKm, minPx)).toBe(
+      true
+    )
   })
 
   it("filterSizeCanvasBodiesForDisplay drops dwarf-planet moons", () => {

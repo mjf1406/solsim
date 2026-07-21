@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vite-plus/test"
 
 import { buildSizePageModel } from "../size/-data"
 import {
@@ -78,7 +78,10 @@ describe("distance data layer", () => {
     const moon = bodies.find((b) => b.row.name === "Moon")!
     expect(moon.distanceFromSunKm).toBeCloseTo(earth.distanceFromSunKm, 6)
     expect(moon.moonOrbitKm).toBeGreaterThan(100_000) // semi-major axis from elements
-    expect(moon.semiMajorAxisKm).toBeCloseTo(0.002588599856872054 * KM_PER_AU, 3)
+    expect(moon.semiMajorAxisKm).toBeCloseTo(
+      0.002588599856872054 * KM_PER_AU,
+      3
+    )
   })
 
   it("findDistanceBodyDetail prev/next use Sun-orbiter ordering; moons use parent neighbors", () => {
@@ -97,4 +100,3 @@ describe("distance data layer", () => {
     expect(moon.nextSunOrbiterId).toBe(earth.nextSunOrbiterId)
   })
 })
-
